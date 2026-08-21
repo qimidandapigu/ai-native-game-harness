@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AI-Native Game Harness 的产品定位、协议边界、Game Pack、可视化界面与演进路线。">
+  <title>AI-Native Game Harness · 定位与思想体系</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b12;
+      --bg-soft: #0d121d;
+      --panel: rgba(19, 26, 40, .78);
+      --panel-strong: #151d2c;
+      --line: rgba(172, 192, 224, .16);
+      --line-strong: rgba(172, 192, 224, .28);
+      --text: #f3f6fb;
+      --muted: #a7b2c5;
+      --faint: #748198;
+      --blue: #75a7ff;
+      --cyan: #5fe1da;
+      --amber: #f4c768;
+      --rose: #ff8299;
+      --green: #79dfa5;
+      --shadow: 0 24px 80px rgba(0, 0, 0, .32);
+      --radius: 22px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% -8%, rgba(58, 105, 202, .23), transparent 34rem),
+        radial-gradient(circle at 95% 12%, rgba(44, 176, 162, .14), transparent 32rem),
+        var(--bg);
+      font-family: Inter, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.65;
+    }
+
+    a { color: inherit; }
+    code, .mono { font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(8, 11, 18, .76);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav {
+      width: min(calc(100% - 36px), var(--max));
+      min-height: 64px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-weight: 760;
+      letter-spacing: -.02em;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(117, 167, 255, .48);
+      border-radius: 9px;
+      color: var(--blue);
+      background: linear-gradient(145deg, rgba(117, 167, 255, .2), rgba(95, 225, 218, .06));
+      box-shadow: inset 0 0 20px rgba(117, 167, 255, .08);
+      font-size: 13px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .nav-links a { text-decoration: none; }
+    .nav-links a:hover { color: var(--text); }
+
+    main {
+      width: min(calc(100% - 36px), var(--max));
+      margin: 0 auto;
+      padding: 70px 0 96px;
+    }
+
+    .hero {
+      min-height: 580px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(330px, .88fr);
+      align-items: center;
+      gap: 54px;
+      padding: 28px 0 80px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 20px;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 30px;
+      height: 1px;
+      background: var(--cyan);
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 760px;
+      margin-bottom: 24px;
+      font-size: clamp(44px, 6.4vw, 82px);
+      line-height: 1.02;
+      letter-spacing: -.055em;
+    }
+
+    .gradient-text {
+      color: transparent;
+      background: linear-gradient(108deg, #f5f8ff 6%, #8fb5ff 52%, #61e0d4 100%);
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
+
+    .hero-copy {
+      max-width: 680px;
+      margin-bottom: 30px;
+      color: var(--muted);
+      font-size: clamp(17px, 2vw, 21px);
+      line-height: 1.8;
+    }
+
+    .hero-copy strong { color: var(--text); font-weight: 720; }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+    .button {
+      min-height: 44px;
+      padding: 0 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      color: var(--text);
+      background: rgba(255, 255, 255, .035);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .button.primary {
+      border-color: rgba(117, 167, 255, .62);
+      background: var(--blue);
+      color: #07101f;
+    }
+
+    .button:hover { transform: translateY(-1px); }
+
+    .hero-map {
+      position: relative;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: linear-gradient(150deg, rgba(25, 35, 53, .9), rgba(13, 18, 29, .72));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero-map::before {
+      content: "";
+      position: absolute;
+      inset: -40% 34% 55% -20%;
+      background: radial-gradient(circle, rgba(117, 167, 255, .25), transparent 68%);
+      pointer-events: none;
+    }
+
+    .map-label {
+      position: relative;
+      margin-bottom: 20px;
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .stack { position: relative; display: grid; gap: 12px; }
+    .stack-card {
+      padding: 16px 17px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(8, 12, 20, .58);
+    }
+
+    .stack-card strong { display: block; margin-bottom: 3px; font-size: 15px; }
+    .stack-card span { color: var(--muted); font-size: 12px; }
+    .stack-card.engine { border-color: rgba(117, 167, 255, .5); }
+    .stack-card.protocol { border-color: rgba(95, 225, 218, .4); }
+    .stack-card.games {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      border: 0;
+      padding: 0;
+      background: transparent;
+    }
+
+    .game-chip {
+      min-height: 58px;
+      padding: 10px 8px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      color: var(--muted);
+      background: rgba(8, 12, 20, .5);
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .connector {
+      width: 1px;
+      height: 14px;
+      margin: -6px auto;
+      background: linear-gradient(var(--blue), var(--cyan));
+    }
+
+    section { scroll-margin-top: 88px; margin-top: 105px; }
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, .68fr) minmax(0, 1fr);
+      gap: 46px;
+      align-items: end;
+      margin-bottom: 34px;
+    }
+
+    .section-kicker {
+      margin-bottom: 9px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin-bottom: 0;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.12;
+      letter-spacing: -.04em;
+    }
+
+    .section-summary {
+      margin-bottom: 2px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .principles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .position-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .position-card { min-height: 220px; padding: 25px; }
+    .position-card .label {
+      margin-bottom: 34px;
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .position-card p { margin-bottom: 0; color: var(--muted); font-size: 14px; }
+    .position-card.core { border-color: rgba(117, 167, 255, .5); }
+    .position-card.boundary { border-color: rgba(255, 130, 153, .34); }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .12);
+    }
+
+    .principle { min-height: 228px; padding: 25px; }
+    .index {
+      margin-bottom: 38px;
+      color: var(--faint);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    h3 { margin-bottom: 10px; font-size: 19px; letter-spacing: -.02em; }
+    .principle p, .feature p, .role p { margin-bottom: 0; color: var(--muted); font-size: 14px; }
+
+    .definition {
+      padding: 34px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 34px;
+      border-color: rgba(117, 167, 255, .33);
+      background:
+        linear-gradient(130deg, rgba(117, 167, 255, .1), transparent 40%),
+        var(--panel);
+    }
+
+    .definition .tag {
+      width: fit-content;
+      height: fit-content;
+      padding: 8px 11px;
+      border: 1px solid rgba(117, 167, 255, .42);
+      border-radius: 9px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .definition blockquote {
+      margin: 0;
+      font-size: clamp(21px, 3vw, 31px);
+      line-height: 1.48;
+      letter-spacing: -.025em;
+    }
+
+    .definition blockquote strong { color: var(--cyan); }
+
+    .architecture {
+      padding: 30px;
+      display: grid;
+      grid-template-columns: 1fr 52px 1fr 52px 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .arch-column {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: rgba(8, 12, 20, .5);
+    }
+
+    .arch-column.engine { border-color: rgba(117, 167, 255, .5); }
+    .arch-column.protocol { border-color: rgba(95, 225, 218, .45); }
+    .arch-title { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .arch-title strong { font-size: 17px; }
+    .arch-title span { color: var(--faint); font-size: 11px; }
+
+    .arch-list { display: grid; gap: 8px; }
+    .arch-item {
+      padding: 9px 11px;
+      border-radius: 9px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .035);
+      font-size: 12px;
+    }
+
+    .arrow {
+      display: grid;
+      place-items: center;
+      color: var(--faint);
+      font-size: 25px;
+    }
+
+    .gamepack-shell {
+      padding: 30px;
+      border-color: rgba(244, 199, 104, .28);
+      background:
+        linear-gradient(145deg, rgba(244, 199, 104, .07), transparent 42%),
+        var(--panel);
+    }
+
+    .gamepack-topline {
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .gamepack-topline strong { font-size: 19px; }
+    .gamepack-topline span { color: var(--faint); font-size: 11px; letter-spacing: .1em; }
+
+    .gamepack-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.08fr 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .pack-lane {
+      min-width: 0;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: rgba(8, 12, 20, .54);
+    }
+
+    .pack-lane.content { border-color: rgba(95, 225, 218, .34); }
+    .pack-lane.logic { border-color: rgba(117, 167, 255, .38); }
+    .pack-lane.authority { border-color: rgba(255, 130, 153, .32); }
+    .lane-label { margin-bottom: 8px; color: var(--faint); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    .pack-lane h3 { margin-bottom: 16px; }
+    .pack-lane p { margin-bottom: 18px; color: var(--muted); font-size: 13px; }
+    .pack-lane .arch-list { margin-top: auto; }
+
+    .pack-manifest {
+      grid-column: 1 / -1;
+      margin: 0 9%;
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      gap: 18px;
+      align-items: center;
+      border: 1px dashed rgba(244, 199, 104, .42);
+      border-radius: 15px;
+      background: rgba(244, 199, 104, .045);
+    }
+
+    .pack-manifest strong { color: var(--amber); font-size: 14px; }
+    .pack-manifest code { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+
+    .placement-rule {
+      margin-top: 16px;
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--line);
+    }
+
+    .placement-rule div {
+      min-height: 96px;
+      padding: 15px;
+      background: #0c121d;
+    }
+
+    .placement-rule b { display: block; margin-bottom: 5px; font-size: 13px; }
+    .placement-rule span { color: var(--muted); font-size: 11px; }
+
+    .state-law {
+      margin-top: 16px;
+      padding: 20px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      border-left: 3px solid var(--rose);
+      border-radius: 0 14px 14px 0;
+      background: rgba(255, 130, 153, .06);
+    }
+
+    .state-law strong { flex: 0 0 auto; color: var(--rose); font-size: 13px; }
+    .state-law span { color: var(--muted); font-size: 13px; }
+
+    .protocol-grid, .surface-grid, .role-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .protocol-card { padding: 28px; }
+    .protocol-card.internal { border-color: rgba(117, 167, 255, .35); }
+    .protocol-card.external { border-color: rgba(95, 225, 218, .35); }
+    .protocol-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin: 17px 0 22px;
+    }
+
+    .pill {
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .025);
+      font-size: 11px;
+    }
+
+    .rule-list { display: grid; gap: 12px; }
+    .rule {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .rule b { color: var(--green); }
+    .rule.no b { color: var(--rose); }
+
+    .surface-grid { grid-template-columns: repeat(3, 1fr); }
+    .feature { min-height: 240px; padding: 26px; }
+    .feature-icon {
+      width: 42px;
+      height: 42px;
+      margin-bottom: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      color: var(--blue);
+      background: rgba(117, 167, 255, .07);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .feature:nth-child(2) .feature-icon { color: var(--cyan); background: rgba(95, 225, 218, .07); }
+    .feature:nth-child(3) .feature-icon { color: var(--amber); background: rgba(244, 199, 104, .07); }
+
+    .protocol-sample {
+      margin-top: 17px;
+      padding: 15px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: #cbd7eb;
+      background: #080d16;
+      font-size: 11px;
+      line-height: 1.65;
+      white-space: pre;
+    }
+
+    .role-grid { grid-template-columns: repeat(4, 1fr); }
+    .role { min-height: 226px; padding: 24px; }
+    .role .who {
+      margin-bottom: 38px;
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .phase { padding: 24px; border-top: 2px solid var(--line-strong); }
+    .phase.now { border-top-color: var(--blue); }
+    .phase.next { border-top-color: var(--cyan); }
+    .phase-num { margin-bottom: 26px; color: var(--faint); font-size: 12px; font-weight: 800; }
+    .phase ul { margin: 14px 0 0; padding-left: 17px; color: var(--muted); font-size: 13px; }
+    .phase li + li { margin-top: 7px; }
+
+    .boundary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+    }
+
+    .boundary > div { padding: 30px; }
+    .boundary > div + div { border-left: 1px solid var(--line); }
+    .boundary h3 { display: flex; align-items: center; gap: 9px; }
+    .boundary h3 span { font-size: 12px; }
+    .boundary .yes h3 span { color: var(--green); }
+    .boundary .no h3 span { color: var(--rose); }
+    .boundary ul { margin: 18px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+    .boundary li + li { margin-top: 8px; }
+
+    .source-note {
+      margin-top: 105px;
+      padding: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      border-color: rgba(244, 199, 104, .26);
+      background: linear-gradient(120deg, rgba(244, 199, 104, .08), transparent 45%), var(--panel);
+    }
+
+    .source-note p { max-width: 760px; margin: 7px 0 0; color: var(--muted); font-size: 14px; }
+    .source-note strong { font-size: 18px; }
+
+    footer {
+      width: min(calc(100% - 36px), var(--max));
+      margin: 0 auto;
+      padding: 28px 0 42px;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--faint);
+      font-size: 12px;
+    }
+
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .55s ease, transform .55s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 920px) {
+      .hero { grid-template-columns: 1fr; min-height: auto; }
+      .hero-map { max-width: 650px; }
+      .section-head { grid-template-columns: 1fr; gap: 16px; }
+      .principles, .position-grid, .surface-grid { grid-template-columns: 1fr 1fr; }
+      .architecture { grid-template-columns: 1fr; }
+      .arrow { min-height: 34px; transform: rotate(90deg); }
+      .gamepack-grid { grid-template-columns: 1fr 1fr; }
+      .pack-lane.authority { grid-column: 1 / -1; }
+      .placement-rule { grid-template-columns: 1fr 1fr; }
+      .role-grid, .timeline { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 650px) {
+      .nav-links { display: none; }
+      main { padding-top: 38px; }
+      .hero { padding-bottom: 30px; gap: 34px; }
+      .principles, .position-grid, .protocol-grid, .surface-grid, .role-grid, .timeline, .boundary { grid-template-columns: 1fr; }
+      .definition { grid-template-columns: 1fr; padding: 25px; }
+      .boundary > div + div { border-left: 0; border-top: 1px solid var(--line); }
+      .source-note, footer { align-items: flex-start; flex-direction: column; }
+      section { margin-top: 78px; }
+      .architecture { padding: 18px; }
+      .gamepack-shell { padding: 18px; }
+      .gamepack-grid, .placement-rule { grid-template-columns: 1fr; }
+      .pack-lane.authority { grid-column: auto; }
+      .pack-manifest { grid-template-columns: 1fr; margin: 0; }
+      .state-law { align-items: flex-start; flex-direction: column; gap: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .button:hover { transform: none; }
+    }
+
+    @media print {
+      :root { color-scheme: light; --bg: #fff; --text: #111827; --muted: #475569; --faint: #64748b; --panel: #fff; --line: #dbe3ee; --line-strong: #c2cedd; }
+      body { background: #fff; }
+      .site-header { position: static; background: #fff; }
+      .nav-links, .actions { display: none; }
+      main { padding-top: 30px; }
+      .hero { min-height: auto; }
+      .hero-map, .card, .stack-card, .arch-column, .game-chip, .protocol-sample { box-shadow: none; background: #fff; }
+      .gradient-text { color: #111827; background: none; }
+      .reveal { opacity: 1; transform: none; }
+      section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav" aria-label="页面导航">
+      <a class="brand" href="#top">
+        <span class="brand-mark">AI</span>
+        <span>AI-Native Game Harness</span>
+      </a>
+      <div class="nav-links">
+        <a href="#positioning">定位</a>
+        <a href="#principles">原则</a>
+        <a href="#architecture">架构</a>
+        <a href="#gamepack">Game Pack</a>
+        <a href="#protocols">协议</a>
+        <a href="#surfaces">界面</a>
+        <a href="#roadmap">路线</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero reveal" aria-labelledby="hero-title">
+      <div>
+        <div class="eyebrow">Product doctrine · v2</div>
+        <h1 id="hero-title"><span class="gradient-text">AI-Native</span><br>Game Harness</h1>
+        <p class="hero-copy">
+          一套面向 <strong>AI 原生与 AI 连接型游戏</strong> 的可视化承载与编排系统：自带对话、分析、记忆、模型、工具、视觉、语音与安全边界。
+          它不替代游戏引擎，也不是 DeepSeek Harness 的兼容层；开发者只需为自己的游戏实现 Adapter，就能复用完整的 AI 游戏运行能力。
+        </p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看新项目 ↗</a>
+          <a class="button" href="#definition">阅读核心定义</a>
+          <a class="button" href="https://github.com/qimidandapigu/dsh-xiaotangyuan-game">原型项目 ↗</a>
+        </div>
+      </div>
+
+      <div class="hero-map" aria-label="引擎结构概览">
+        <div class="map-label">One engine · Many games</div>
+        <div class="stack">
+          <div class="stack-card engine">
+            <strong>AI-Native Game Harness</strong>
+            <span>UI · Agent · 对话 · 分析 · 记忆 · 模型 · 语音 · 安全</span>
+          </div>
+          <div class="connector"></div>
+          <div class="stack-card protocol">
+            <strong>Game Pack + Adapter Protocol</strong>
+            <span>内容包 · 能力声明 · 状态 · 事件 · 动作 · 跨语言</span>
+          </div>
+          <div class="connector"></div>
+          <div class="stack-card games">
+            <div class="game-chip">星露谷<br>C#</div>
+            <div class="game-chip">饥荒<br>Lua</div>
+            <div class="game-chip">任意游戏<br>Any stack</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="definition" class="reveal">
+      <div class="definition card">
+        <div class="tag">一句话定义</div>
+        <blockquote>
+          这是一个位于<strong>模型 / Agent 与真实游戏之间</strong>、同时拥有对话页和分析页的 AI 游戏 Harness；
+          它承载并编排跨游戏的 AI 能力，把具体游戏差异压缩成 Adapter，把剧情与玩法资产组织成 Game Pack。
+        </blockquote>
+      </div>
+    </section>
+
+    <section id="positioning" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">00 · Positioning</div>
+          <h2>它本身就是 Harness</h2>
+        </div>
+        <p class="section-summary">Harness 不是借来的品牌词，而是产品类别：负责把模型、上下文、工具、游戏状态、动作权限和用户界面组装成可运行、可观察、可控制的闭环。</p>
+      </div>
+      <div class="position-grid">
+        <article class="position-card core card"><div class="label">What it is</div><h3>AI 游戏运行底座</h3><p>连接模型、Agent、玩家与游戏，持续处理观察、理解、决策、执行、回执和呈现。</p></article>
+        <article class="position-card card"><div class="label">Product form</div><h3>有界面的 Harness</h3><p>对话页面向玩家，分析页面向理解与诊断，Adapter 中心面向连接、权限和能力管理。</p></article>
+        <article class="position-card card"><div class="label">How games join</div><h3>一游戏一 Adapter</h3><p>游戏只暴露状态、事件、动作与呈现能力；Harness 不要求开发者重做模型和 Agent 基础设施。</p></article>
+        <article class="position-card boundary card"><div class="label">What it is not</div><h3>不替代游戏引擎</h3><p>不负责渲染、物理、逐帧战斗或游戏规则权威，也不是 DeepSeek Harness 的转接器或外壳。</p></article>
+      </div>
+    </section>
+
+    <section id="principles" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">01 · Principles</div>
+          <h2>六条不可动摇的原则</h2>
+        </div>
+        <p class="section-summary">每个架构决策都应该能回到这些原则；不能解释的复杂度，就不应该进入核心。</p>
+      </div>
+      <div class="principles">
+        <article class="principle card"><div class="index">P / 01</div><h3>Harness 拥有通用能力</h3><p>模型、Agent、记忆、视觉、语音、会话、安全、UI 与诊断只实现一次，不在每个游戏里复制。</p></article>
+        <article class="principle card"><div class="index">P / 02</div><h3>Adapter 只表达游戏差异</h3><p>Adapter 提供状态、事件、动作与呈现能力；它不保存模型密钥，也不内置某家模型 SDK。</p></article>
+        <article class="principle card"><div class="index">P / 03</div><h3>协议优先于实现</h3><p>游戏侧只依赖版本化的网络协议。C#、Lua、C++、Python 与 JavaScript 都能成为一等公民。</p></article>
+        <article class="principle card"><div class="index">P / 04</div><h3>事实先于推测</h3><p>当前状态和动作结果来自游戏 API；视觉与模型负责理解和表达，不能伪造确定性执行结果。</p></article>
+        <article class="principle card"><div class="index">P / 05</div><h3>界面是一等产品能力</h3><p>对话、分析、权限、记忆和诊断不是附属工具，而是玩家理解并信任 AI 的核心表面。</p></article>
+        <article class="principle card"><div class="index">P / 06</div><h3>内部可插拔，对外要简单</h3><p>Harness 内部采用版本化的 Cordis 风格插件约定；普通游戏开发者只需实现 Adapter，不必学习插件系统。</p></article>
+      </div>
+    </section>
+
+    <section id="architecture" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">02 · Architecture</div>
+          <h2>三层架构，一个清晰边界</h2>
+        </div>
+        <p class="section-summary">Harness 负责 AI 编排，协议负责翻译，游戏负责真实世界。任何能力都应该有唯一所有者。</p>
+      </div>
+      <div class="architecture card">
+        <div class="arch-column engine">
+          <div class="arch-title"><strong>AI-Native Game Harness</strong><span>OWNED BY HARNESS</span></div>
+          <div class="arch-list">
+            <div class="arch-item">对话页 / 分析页 / 设置页</div>
+            <div class="arch-item">Agent 与模型工具循环</div>
+            <div class="arch-item">记忆、技能、角色与会话</div>
+            <div class="arch-item">视觉、ASR、TTS 与媒体</div>
+            <div class="arch-item">权限、审计、费用与诊断</div>
+          </div>
+        </div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="arch-column protocol">
+          <div class="arch-title"><strong>Adapter 协议</strong><span>STABLE WIRE</span></div>
+          <div class="arch-list">
+            <div class="arch-item">身份与版本握手</div>
+            <div class="arch-item">能力发现与 Schema</div>
+            <div class="arch-item">状态快照与游戏事件</div>
+            <div class="arch-item">动作请求与结果回执</div>
+            <div class="arch-item">流式回复与呈现事件</div>
+          </div>
+        </div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="arch-column">
+          <div class="arch-title"><strong>游戏 / Mod</strong><span>OWNED BY GAME</span></div>
+          <div class="arch-list">
+            <div class="arch-item">读取准确游戏状态</div>
+            <div class="arch-item">订阅真实游戏事件</div>
+            <div class="arch-item">调用游戏 API 执行动作</div>
+            <div class="arch-item">寻路、战斗与逐帧逻辑</div>
+            <div class="arch-item">游戏内气泡、角色与动画</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gamepack" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">03 · Game Pack</div>
+          <h2>剧情、玩法和代码分别放哪</h2>
+        </div>
+        <p class="section-summary">Game Pack 是一个游戏在引擎生态中的完整发行单元。它可以组合内容、逻辑、Adapter 和资源，但每种资产仍有清晰所有权。</p>
+      </div>
+
+      <div class="gamepack-shell card" aria-label="Game Pack 剧情与玩法架构图">
+        <div class="gamepack-topline">
+          <strong>Game Pack · 一个游戏的完整 AI 接入包</strong>
+          <span>CONTENT × LOGIC × ADAPTER × GAME</span>
+        </div>
+
+        <div class="gamepack-grid">
+          <article class="pack-lane content">
+            <div class="lane-label">Declarative content</div>
+            <h3>剧情与角色配置</h3>
+            <p>策划能够直接阅读、版本化和修改的数据，不需要重新编译引擎。</p>
+            <div class="arch-list">
+              <div class="arch-item">世界观、人物小传与语言风格</div>
+              <div class="arch-item">剧情节点、任务目标与触发条件</div>
+              <div class="arch-item">数值、概率、冷却与关系阈值</div>
+              <div class="arch-item">角色提示词、知识与本地化</div>
+            </div>
+          </article>
+
+          <article class="pack-lane logic">
+            <div class="lane-label">Engine plugins</div>
+            <h3>动态玩法与剧情逻辑</h3>
+            <p>只有需要算法、状态机或持续运行的能力才进入 Engine Plugin API。</p>
+            <div class="arch-list">
+              <div class="arch-item">动态剧情导演与章节调度</div>
+              <div class="arch-item">关系网络与长期角色成长</div>
+              <div class="arch-item">程序化任务与多角色协作</div>
+              <div class="arch-item">自定义剧情页、关系图和分析面板</div>
+            </div>
+          </article>
+
+          <article class="pack-lane authority">
+            <div class="lane-label">Game authority</div>
+            <h3>Adapter 与游戏本体</h3>
+            <p>Adapter 负责翻译；游戏本体始终负责真实状态、硬玩法和最终执行结果。</p>
+            <div class="arch-list">
+              <div class="arch-item">Adapter：状态、事件、动作 Schema</div>
+              <div class="arch-item">Adapter：校验参数并调用游戏 API</div>
+              <div class="arch-item">游戏：战斗、移动、寻路与经济系统</div>
+              <div class="arch-item">游戏：任务完成、物品、金钱与胜负</div>
+            </div>
+          </article>
+
+          <div class="pack-manifest">
+            <strong>game-pack.json</strong>
+            <code>manifest → adapter + content/stories + content/characters + gameplay/balance + optional plugins + ui + assets</code>
+          </div>
+        </div>
+
+        <div class="placement-rule" aria-label="内容放置判断规则">
+          <div><b>能用数据描述</b><span>放进配置与内容文件</span></div>
+          <div><b>需要运行算法</b><span>做成 Engine 插件</span></div>
+          <div><b>依赖具体游戏 API</b><span>放进 Adapter</span></div>
+          <div><b>决定真实游戏结果</b><span>留在游戏本体</span></div>
+        </div>
+
+        <div class="state-law">
+          <strong>权威状态原则</strong>
+          <span>凡是影响胜负、物品、金钱、任务完成、角色死亡、地图变化或存档进度的状态，都必须由游戏本体保存并通过 Adapter 返回确认；模型不能仅凭文字宣告其生效。</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="protocols" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">04 · Protocols</div>
+          <h2>两类扩展边界，各司其职</h2>
+        </div>
+        <p class="section-summary">Cordis 风格插件约定解决“通用能力如何扩展”，Game Adapter Protocol 解决“任意语言的游戏如何接入”。二者服务的对象、进程边界和安全模型不同，不能强行合并。</p>
+      </div>
+      <div class="protocol-grid">
+        <article class="protocol-card internal card">
+          <h3>Harness Plugin Protocol</h3>
+          <p class="section-summary">Harness 内部扩展约定，遵循 DeepSeek Harness 所采用的 Cordis 核心形态：服务、事件、依赖注入与可逆生命周期。</p>
+          <div class="protocol-meta">
+            <span class="pill">TypeScript / JavaScript</span><span class="pill">同进程</span><span class="pill">Cordis</span><span class="pill">受控扩展</span>
+          </div>
+          <div class="rule-list">
+            <div class="rule"><b>✓</b><span>模型、记忆、语音、视觉、分析面板和角色包可以是插件。</span></div>
+            <div class="rule"><b>✓</b><span>沿用 <span class="mono">name / inject / apply / ctx.effect / ctx.on</span> 的核心契约，并自行版本化。</span></div>
+            <div class="rule no"><b>×</b><span>这不是行业统一标准，也不承诺所有 DSH 插件无需修改即可运行；项目不再建设 DSH 兼容适配层。</span></div>
+          </div>
+        </article>
+
+        <article class="protocol-card external card">
+          <h3>Game Adapter Protocol</h3>
+          <p class="section-summary">由本项目定义的公开协议，从原型项目 protocol/v1.1 演进；它面向跨进程、跨语言和游戏权威状态，不套用 Harness 内部插件协议。</p>
+          <div class="protocol-meta">
+            <span class="pill">WebSocket</span><span class="pill">JSON-RPC 2.0</span><span class="pill">JSON Schema</span><span class="pill">跨进程</span>
+          </div>
+          <div class="rule-list">
+            <div class="rule"><b>✓</b><span>Adapter 上报游戏身份、能力、状态、事件和动作结果。</span></div>
+            <div class="rule"><b>✓</b><span>协议不包含 Provider Key、厂商消息结构和模型隐藏推理。</span></div>
+            <div class="rule no"><b>×</b><span>原始音视频和逐帧控制不塞进 JSON；大数据使用独立媒体通道。</span></div>
+          </div>
+          <div class="protocol-sample" aria-label="协议示例">{
+  "jsonrpc": "2.0",
+  "method": "adapter.hello",
+  "params": {
+    "gameId": "my-native-game",
+    "adapterId": "official-adapter",
+    "protocolVersion": "1.1",
+    "capabilities": ["state", "events", "actions"]
+  }
+}</div>
+        </article>
+      </div>
+    </section>
+
+    <section id="surfaces" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">05 · Product surfaces</div>
+          <h2>引擎必须“看得见”</h2>
+        </div>
+        <p class="section-summary">界面让玩家与开发者理解 AI 正在做什么、依据是什么、权限在哪里，而不是面对一个黑盒后台进程。</p>
+      </div>
+      <div class="surface-grid">
+        <article class="feature card"><div class="feature-icon">CHAT</div><h3>对话页面</h3><p>实时流式对话、语音、取消与重试；明确展示工具动作、成功结果和可恢复错误。</p></article>
+        <article class="feature card"><div class="feature-icon">DATA</div><h3>分析页面</h3><p>展示结构化游戏状态、最近事件、记忆命中、可用动作、延迟与费用；不展示隐藏思维链。</p></article>
+        <article class="feature card"><div class="feature-icon">LINK</div><h3>Adapter 中心</h3><p>管理游戏连接、协议版本、能力列表、权限、安装更新和诊断，让接入状态一眼可见。</p></article>
+      </div>
+    </section>
+
+    <section id="ecosystem" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">06 · Ecosystem</div>
+          <h2>不同参与者，只承担必要复杂度</h2>
+        </div>
+        <p class="section-summary">生态的关键不是让所有人写插件，而是让每一种参与者只接触与自己相关的那层。</p>
+      </div>
+      <div class="role-grid">
+        <article class="role card"><div class="who">Game developer</div><h3>游戏开发者</h3><p>实现 Game Adapter Protocol，提供状态、事件、动作和游戏内呈现。</p></article>
+        <article class="role card"><div class="who">Harness developer</div><h3>Harness 开发者</h3><p>维护 Agent、协议、UI、安全、版本兼容与跨游戏基础设施。</p></article>
+        <article class="role card"><div class="who">Plugin author</div><h3>能力开发者</h3><p>通过 Harness Plugin Protocol 扩展模型、语音、记忆、视觉或分析面板。</p></article>
+        <article class="role card"><div class="who">Player</div><h3>玩家</h3><p>安装一个应用、连接自己的游戏、选择角色与模型，不需要理解 Harness。</p></article>
+      </div>
+    </section>
+
+    <section id="roadmap" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">07 · Evolution</div>
+          <h2>保留原型，建立独立 Harness</h2>
+        </div>
+        <p class="section-summary">原仓库继续作为已验证能力和迁移来源，新仓库承载清晰的产品身份；不在旧项目上硬改品牌和边界。</p>
+      </div>
+      <div class="timeline">
+        <article class="phase card now"><div class="phase-num">SOURCE · 原型项目</div><h3>保留验证资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
+        <article class="phase card next"><div class="phase-num">PHASE 1 · 新仓库</div><h3>冻结产品与边界</h3><ul><li>定义 Harness Plugin Protocol v1</li><li>定义 Game Adapter Protocol v1</li><li>建立 Game Pack 清单与兼容测试</li></ul></article>
+        <article class="phase card"><div class="phase-num">PHASE 2</div><h3>形成独立产品</h3><ul><li>桌面对话与分析页面</li><li>自有 Agent 与模型运行时</li><li>一键安装与 Adapter 中心</li></ul></article>
+        <article class="phase card"><div class="phase-num">PHASE 3</div><h3>开放开发生态</h3><ul><li>多语言 Adapter SDK</li><li>签名与权限模型</li><li>官方目录、测试与认证</li></ul></article>
+      </div>
+    </section>
+
+    <section id="boundaries" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">08 · Boundaries</div>
+          <h2>我们做什么，也明确不做什么</h2>
+        </div>
+        <p class="section-summary">清晰的非目标能防止引擎重新膨胀成另一个面向所有场景的通用 Agent 产品。</p>
+      </div>
+      <div class="boundary card">
+        <div class="yes"><h3><span>●</span> Harness 承诺</h3><ul><li>统一 AI 游戏运行时和可见界面</li><li>稳定、跨语言、可测试的 Adapter 协议</li><li>基于事实的游戏状态与动作回执</li><li>本机优先的权限、记忆和隐私边界</li><li>一次接入，多种模型、角色和内容包可复用</li></ul></div>
+        <div class="no"><h3><span>●</span> 明确非目标</h3><ul><li>不做 DeepSeek Harness 的兼容层或替代发行版</li><li>不要求游戏 Adapter 使用 TypeScript 或 Cordis</li><li>不取代 Unity、Godot 或游戏自己的运行时</li><li>不让远程模型控制逐帧战斗和寻路</li><li>不把模型隐藏推理作为分析页面内容</li></ul></div>
+      </div>
+    </section>
+
+    <aside class="source-note card reveal" aria-label="原项目说明">
+      <div>
+        <strong>原项目是能力原型，新项目是产品本体。</strong>
+        <p><span class="mono">dsh-xiaotangyuan-game</span> 已验证多游戏桥接、跨语言 JSON-RPC、记忆、视觉、语音与流式回复；<span class="mono">ai-native-game-harness</span> 用独立名称和边界承载未来产品。二者有技术血缘，但新产品不依赖 DeepSeek Harness 才能成立。</p>
+      </div>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">新项目 ↗</a>
+        <a class="button" href="https://github.com/qimidandapigu/dsh-xiaotangyuan-game">原型项目 ↗</a>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <span>AI-Native Game Harness Doctrine · evolved from dsh-xiaotangyuan-game</span>
+    <span>本页为产品与架构思想说明，不代表所有目标均已实现。</span>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible')
+          observer.unobserve(entry.target)
+        }
+      }
+    }, { threshold: 0.08 })
+
+    document.querySelectorAll('.reveal').forEach((element) => observer.observe(element))
+  </script>
+</body>
+</html>
