@@ -691,6 +691,7 @@
         <a href="#architecture">架构</a>
         <a href="#gamepack">Game Pack</a>
         <a href="#protocols">协议</a>
+        <a href="#baseline">基线</a>
         <a href="#surfaces">界面</a>
         <a href="#roadmap">路线</a>
       </div>
@@ -944,10 +945,41 @@
       </div>
     </section>
 
+    <section id="baseline" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">05 · Build baseline</div>
+          <h2>第一版只建立可验证的游戏闭环</h2>
+        </div>
+        <p class="section-summary">采用完整的 Cordis 基础运行组合，但不复制 DeepSeek Harness 的编程 Agent 插件。依赖负责装配，我们自己的包负责游戏 Harness 语义。</p>
+      </div>
+      <div class="surface-grid">
+        <article class="feature card">
+          <div class="feature-icon">CORE</div>
+          <h3>Cordis Kernel Bundle</h3>
+          <p><span class="mono">cordis</span>、<span class="mono">plugin-loader</span>、<span class="mono">plugin-include</span>、<span class="mono">plugin-group</span>、<span class="mono">plugin-timer</span>、<span class="mono">plugin-logger-console</span> 与 Loader 所需的 Node 兼容依赖。全部固定精确版本并提交 lockfile。</p>
+        </article>
+        <article class="feature card">
+          <div class="feature-icon">MVP</div>
+          <h3>第一方游戏运行时</h3>
+          <p><span class="mono">kernel</span>、<span class="mono">contracts</span>、<span class="mono">protocol</span>、<span class="mono">model-runtime</span>、<span class="mono">agent-runtime</span>、<span class="mono">tool-runtime</span>、<span class="mono">session</span> 与 <span class="mono">game-gateway</span>，配合 <span class="mono">ws</span> 和 <span class="mono">ajv</span>。</p>
+        </article>
+        <article class="feature card">
+          <div class="feature-icon">TEST</div>
+          <h3>CLI + Fake Game</h3>
+          <p>用确定性 Fake Adapter 跑通状态、Agent 决策、Schema 校验、权限、工具执行、结果确认和 Trace 回放；先证明闭环，再连接真实游戏。</p>
+        </article>
+      </div>
+      <div class="state-law card">
+        <strong>依赖与延期规则</strong>
+        <span><span class="mono">cosmokit</span> 与 <span class="mono">schemastery</span> 作为间接依赖，不主动导入；<span class="mono">plugin-hmr</span> 只进入开发依赖。长期记忆、语音、视觉、桌面 UI、Adapter 商店、自动安装、多 Agent、MCP、Shell 和编程工作流均不进入第一版实现。</span>
+      </div>
+    </section>
+
     <section id="surfaces" class="reveal">
       <div class="section-head">
         <div>
-          <div class="section-kicker">05 · Product surfaces</div>
+          <div class="section-kicker">06 · Product surfaces</div>
           <h2>引擎必须“看得见”</h2>
         </div>
         <p class="section-summary">界面让玩家与开发者理解 AI 正在做什么、依据是什么、权限在哪里，而不是面对一个黑盒后台进程。</p>
@@ -962,7 +994,7 @@
     <section id="ecosystem" class="reveal">
       <div class="section-head">
         <div>
-          <div class="section-kicker">06 · Ecosystem</div>
+          <div class="section-kicker">07 · Ecosystem</div>
           <h2>不同参与者，只承担必要复杂度</h2>
         </div>
         <p class="section-summary">生态的关键不是让所有人写插件，而是让每一种参与者只接触与自己相关的那层。</p>
@@ -978,14 +1010,14 @@
     <section id="roadmap" class="reveal">
       <div class="section-head">
         <div>
-          <div class="section-kicker">07 · Evolution</div>
+          <div class="section-kicker">08 · Evolution</div>
           <h2>保留原型，建立独立 Harness</h2>
         </div>
         <p class="section-summary">原仓库继续作为已验证能力和迁移来源，新仓库承载清晰的产品身份；不在旧项目上硬改品牌和边界。</p>
       </div>
       <div class="timeline">
         <article class="phase card now"><div class="phase-num">SOURCE · 原型项目</div><h3>保留验证资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
-        <article class="phase card next"><div class="phase-num">PHASE 1 · 新仓库</div><h3>冻结产品与边界</h3><ul><li>固定上游 Cordis 并封装 HarnessKernel</li><li>定义 Harness Plugin / Game Adapter Protocol v1</li><li>建立 Game Pack 清单与兼容测试</li></ul></article>
+        <article class="phase card next"><div class="phase-num">PHASE 1 · 新仓库</div><h3>跑通最小闭环</h3><ul><li>建立 Kernel、Contracts、Protocol 与 Gateway</li><li>实现 Agent、Tool、Session 和权限链路</li><li>用 CLI + Fake Game 完成 Trace 回放测试</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 2</div><h3>形成独立产品</h3><ul><li>桌面对话与分析页面</li><li>自有 Agent 与模型运行时</li><li>一键安装与 Adapter 中心</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 3</div><h3>开放开发生态</h3><ul><li>多语言 Adapter SDK</li><li>签名与权限模型</li><li>官方目录、测试与认证</li></ul></article>
       </div>
@@ -994,7 +1026,7 @@
     <section id="boundaries" class="reveal">
       <div class="section-head">
         <div>
-          <div class="section-kicker">08 · Boundaries</div>
+          <div class="section-kicker">09 · Boundaries</div>
           <h2>我们做什么，也明确不做什么</h2>
         </div>
         <p class="section-summary">清晰的非目标能防止引擎重新膨胀成另一个面向所有场景的通用 Agent 产品。</p>
