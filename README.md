@@ -1,2 +1,91 @@
-# ai-native-game-harness
-An open runtime and adapter framework for AI-native and AI-connected games.
+# AI Native Game Harness
+
+AI Native Game Harness 是一个面向 AI 原生与 AI 连接型游戏的 **DeepSeek Harness 游戏发行版**。
+
+它复用 DeepSeek Harness（DSH）已经提供的模型、Agent、工具、会话、权限、配置和插件生命周期，不重新实现一套通用 Agent 运行时；本项目专注于游戏领域插件、桌面产品、游戏接入协议和可独立安装的 Game Pack。
+
+## 产品边界
+
+- **DSH Runtime**：提供通用 AI 运行能力和 Cordis 插件容器。
+- **我们的 DSH 插件**：提供游戏状态、语义工具、记忆、语音、视觉、UI、安装和跨进程连接等游戏能力。
+- **每游戏 Harness Plugin**：把某个游戏的知识、状态和原生 API 组合成 Agent 能理解的高层工具。
+- **Game Mod / Native Bridge**：运行在游戏进程中，只封装并暴露安全的原生游戏 API，返回权威状态和执行结果。
+- **游戏本体**：拥有存档、物品、金钱、任务、胜负、移动、战斗和逐帧逻辑等真实世界状态。
+
+Mod 不是另一个 Agent，也不负责规划、记忆或调用模型。Harness 才是调用方：
+
+```text
+玩家
+  → DSH Agent
+  → 每游戏 Harness Plugin（高层语义工具、编排与校验）
+  → Game Transport Plugin（连接、请求、事件、取消与健康检查）
+  → Native Bridge / Mod（薄 API 封装和游戏侧最终校验）
+  → 真实游戏 API
+  → 权威结果与新状态原路返回
+```
+
+## 为什么基于 DSH
+
+我们需要的模型、Agent、工具、会话、设置、凭据、授权、日志和插件生命周期，与 DeepSeek Harness 已解决的问题相同。重写这些基础设施不会形成游戏产品的独特价值，也更难达到上游的兼容性和稳定性。
+
+因此本项目遵循三个原则：
+
+1. 复用并固定经过验证的 DSH 运行时版本，包括其命名空间下的 Cordis 依赖。
+2. 游戏能力尽量实现为标准 DSH 插件，不塞进 Electron Main，也不复制到每个 Mod。
+3. 上游升级作为独立变更执行，通过 Fake Game、协议兼容和真实游戏闭环测试后再合入，而不是自动追随最新版。
+
+这不是给 DSH 增加一个“游戏模式”，也不是要求用户先安装另一个 DSH 应用。最终用户安装的是一个完整的 AI Native Game Harness 桌面应用，其中已经打包了所需的 DSH Runtime 和官方游戏插件。
+
+## 目标目录
+
+```text
+AI Native Game Harness/
+├─ desktop/                     # 最小 Electron 启动、窗口和 Windows 打包
+├─ runtime/                     # 固定版本的 DSH 发行配置与启动入口
+├─ plugins/                     # 跨游戏复用的标准 DSH 插件
+│  ├─ game-core/                # 游戏上下文、状态与统一领域服务
+│  ├─ game-transport/           # Bridge 连接、请求、事件、取消和健康检查
+│  ├─ adapter-manager/          # 游戏发现、连接、权限和能力管理
+│  ├─ game-memory/              # 按 gameId + saveId 隔离的游戏记忆
+│  ├─ game-media/               # 语音、视觉与媒体通道
+│  ├─ game-ui/                  # 对话、分析和连接诊断界面
+│  ├─ game-installer/           # 游戏与 Mod 安装定位
+│  └─ game-bundle/              # Game Pack 安装、校验与更新
+├─ contracts/                   # 跨进程线协议与 Schema；它是契约，不是插件
+├─ games/
+│  └─ oxygen-not-included/
+│     ├─ harness-plugin/        # DSH 插件：知识、工具、编排、Bridge API client
+│     ├─ native-bridge/         # 薄 C# Mod：状态、动作、事件 API
+│     └─ pack/                  # manifest、校验和与发行脚本
+└─ tests/
+   ├─ fake-game/                # 快速、确定性的完整闭环
+   ├─ protocol/                 # 跨版本契约测试
+   └─ integration/              # DSH 插件装配与桌面启动测试
+```
+
+`Adapter` 在产品界面中仍可作为“游戏接入”的通俗名称；在代码所有权上，它主要由 **每游戏 Harness Plugin + 薄 Native Bridge + 两者之间的线协议** 组成，不再是一个把 AI 逻辑放进游戏进程的粗粒度模块。
+
+## Game Pack
+
+一个游戏的可独立安装包同时包含：
+
+- Harness Plugin：安装到本产品的 DSH Profile；
+- Native Bridge / Mod：安装到游戏的 Mods 目录；
+- 内容与配置：知识、角色、玩法参数和本地化；
+- Manifest、版本、兼容范围、校验和和卸载信息。
+
+Game Pack 可以一键安装，但两部分运行在不同进程、承担不同职责。核心业务与 AI 语义位于 Harness Plugin；Mod 只保留必须贴近游戏 API 的最薄实现。
+
+## 第一条验证闭环
+
+第一版先用 Fake Game 验证：
+
+```text
+state → Agent → semantic tool call → permission/schema validation
+      → transport → native API wrapper → authoritative result
+      → new state → trace/replay
+```
+
+随后再用一个真实游戏验证同一条链路。构建成功不等于接入成功；必须能观察到状态变化、调用参数、游戏侧执行结果和最终状态。
+
+更完整的产品定位与架构说明见 [AI_GAME_ENGINE_IDEOLOGY.html](docs/AI_GAME_ENGINE_IDEOLOGY.html)。

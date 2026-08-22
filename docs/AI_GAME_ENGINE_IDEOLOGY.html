@@ -701,11 +701,11 @@
   <main id="top">
     <section class="hero reveal" aria-labelledby="hero-title">
       <div>
-        <div class="eyebrow">Product doctrine · v2</div>
+        <div class="eyebrow">Product doctrine · v3</div>
         <h1 id="hero-title"><span class="gradient-text">AI-Native</span><br>Game Harness</h1>
         <p class="hero-copy">
           一套面向 <strong>AI 原生与 AI 连接型游戏</strong> 的可视化承载与编排系统：自带对话、分析、记忆、模型、工具、视觉、语音与安全边界。
-          它不替代游戏引擎，也不是 DeepSeek Harness 的兼容层；开发者只需为自己的游戏实现 Adapter，就能复用完整的 AI 游戏运行能力。
+          它不替代游戏引擎，而是复用 DeepSeek Harness 通用运行时形成的游戏发行版；开发者提供 Harness Plugin 与薄 Native Bridge，就能复用完整的 AI 游戏运行能力。
         </p>
         <div class="actions">
           <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看新项目 ↗</a>
@@ -719,12 +719,12 @@
         <div class="stack">
           <div class="stack-card engine">
             <strong>AI-Native Game Harness</strong>
-            <span>UI · Agent · 对话 · 分析 · 记忆 · 模型 · 语音 · 安全</span>
+            <span>DSH Runtime · 游戏插件 · 桌面 UI · Game Packs</span>
           </div>
           <div class="connector"></div>
           <div class="stack-card protocol">
-            <strong>Game Pack + Adapter Protocol</strong>
-            <span>内容包 · 能力声明 · 状态 · 事件 · 动作 · 跨语言</span>
+            <strong>Harness Plugin + Bridge Contract</strong>
+            <span>语义工具 · 内容包 · 状态 · 事件 · 动作 · 跨语言</span>
           </div>
           <div class="connector"></div>
           <div class="stack-card games">
@@ -741,7 +741,7 @@
         <div class="tag">一句话定义</div>
         <blockquote>
           这是一个位于<strong>模型 / Agent 与真实游戏之间</strong>、同时拥有对话页和分析页的 AI 游戏 Harness；
-          它承载并编排跨游戏的 AI 能力，把具体游戏差异压缩成 Adapter，把剧情与玩法资产组织成 Game Pack。
+          它复用 DSH 的通用 Agent 能力，把跨游戏能力做成标准 DSH 插件，把单个游戏的 AI 语义放进 Harness Plugin，并把必须进入游戏进程的部分压缩成薄 Native Bridge。
         </blockquote>
       </div>
     </section>
@@ -752,13 +752,13 @@
           <div class="section-kicker">00 · Positioning</div>
           <h2>它本身就是 Harness</h2>
         </div>
-        <p class="section-summary">Harness 不是借来的品牌词，而是产品类别：负责把模型、上下文、工具、游戏状态、动作权限和用户界面组装成可运行、可观察、可控制的闭环。</p>
+        <p class="section-summary">它是基于 DeepSeek Harness Runtime 构建的游戏产品发行版：继承通用 Agent 与插件能力，再增加游戏领域插件、桌面界面、Game Pack 和 Native Bridge 体系。</p>
       </div>
       <div class="position-grid">
-        <article class="position-card core card"><div class="label">What it is</div><h3>AI 游戏运行底座</h3><p>连接模型、Agent、玩家与游戏，持续处理观察、理解、决策、执行、回执和呈现。</p></article>
-        <article class="position-card card"><div class="label">Product form</div><h3>有界面的 Harness</h3><p>对话页面向玩家，分析页面向理解与诊断，Adapter 中心面向连接、权限和能力管理。</p></article>
-        <article class="position-card card"><div class="label">How games join</div><h3>一游戏一 Adapter</h3><p>游戏只暴露状态、事件、动作与呈现能力；Harness 不要求开发者重做模型和 Agent 基础设施。</p></article>
-        <article class="position-card boundary card"><div class="label">What it is not</div><h3>不替代游戏引擎</h3><p>不负责渲染、物理、逐帧战斗或游戏规则权威，也不是 DeepSeek Harness 的转接器或外壳。</p></article>
+        <article class="position-card core card"><div class="label">What it is</div><h3>DSH 的游戏发行版</h3><p>复用 DSH Runtime，连接模型、Agent、玩家与游戏，持续处理观察、理解、决策、执行、回执和呈现。</p></article>
+        <article class="position-card card"><div class="label">Product form</div><h3>独立桌面应用</h3><p>用户安装的是已经打包 DSH Runtime 与游戏插件的完整产品，不需要预先安装另一个 DSH 应用。</p></article>
+        <article class="position-card card"><div class="label">How games join</div><h3>一游戏一 Harness Plugin</h3><p>插件拥有游戏知识、语义工具与编排；薄 Mod 只暴露状态、事件和原生动作 API。</p></article>
+        <article class="position-card boundary card"><div class="label">What it is not</div><h3>不重写 DSH，也不替代游戏</h3><p>不重造模型、Agent、Tool 与 Session 基础设施，也不接管渲染、物理、逐帧战斗和游戏规则权威。</p></article>
       </div>
     </section>
 
@@ -771,12 +771,12 @@
         <p class="section-summary">每个架构决策都应该能回到这些原则；不能解释的复杂度，就不应该进入核心。</p>
       </div>
       <div class="principles">
-        <article class="principle card"><div class="index">P / 01</div><h3>Harness 拥有通用能力</h3><p>“拥有”指产品职责归 Harness：模型、Agent、记忆、视觉、语音、会话、安全、UI 与诊断由第一方插件组合提供，不写死在 Kernel，也不在每个游戏里复制。</p></article>
-        <article class="principle card"><div class="index">P / 02</div><h3>Adapter 只表达游戏差异</h3><p>Adapter 提供状态、事件、动作与呈现能力；它不保存模型密钥，也不内置某家模型 SDK。</p></article>
-        <article class="principle card"><div class="index">P / 03</div><h3>协议优先于实现</h3><p>游戏侧只依赖版本化的网络协议。C#、Lua、C++、Python 与 JavaScript 都能成为一等公民。</p></article>
+        <article class="principle card"><div class="index">P / 01</div><h3>复用 DSH 通用运行时</h3><p>模型、Agent、Tool、Session、配置、凭据、权限和插件生命周期沿用 DSH；产品差异集中在游戏领域，不重复造轮子。</p></article>
+        <article class="principle card"><div class="index">P / 02</div><h3>游戏能力首先是 DSH 插件</h3><p>记忆、语音、视觉、UI、安装、Transport 与每游戏语义工具都遵循 DSH 插件生命周期，不写进 Electron Main 或游戏 Mod。</p></article>
+        <article class="principle card"><div class="index">P / 03</div><h3>Mod 必须薄</h3><p>游戏侧只依赖版本化线协议，封装真实状态、事件和原生动作 API；不调用模型、不做规划、不保存 Harness 记忆。</p></article>
         <article class="principle card"><div class="index">P / 04</div><h3>事实先于推测</h3><p>当前状态和动作结果来自游戏 API；视觉与模型负责理解和表达，不能伪造确定性执行结果。</p></article>
         <article class="principle card"><div class="index">P / 05</div><h3>界面是一等产品能力</h3><p>对话、分析、权限、记忆和诊断不是附属工具，而是玩家理解并信任 AI 的核心表面。</p></article>
-        <article class="principle card"><div class="index">P / 06</div><h3>内部可插拔，对外要简单</h3><p>Harness 内部基于独立 MIT 开源的 Cordis 微内核组合第一方插件；普通游戏开发者只需实现 Adapter，不依赖、不感知 Cordis。</p></article>
+        <article class="principle card"><div class="index">P / 06</div><h3>版本固定，升级可验证</h3><p>固定 DSH 及其命名空间 Cordis 的兼容版本；升级通过独立变更、Fake Game、协议兼容与真实游戏测试，不自动追新。</p></article>
       </div>
     </section>
 
@@ -786,40 +786,39 @@
           <div class="section-kicker">02 · Architecture</div>
           <h2>三层架构，一个清晰边界</h2>
         </div>
-        <p class="section-summary">Harness 负责 AI 编排，协议负责翻译，游戏负责真实世界。任何能力都应该有唯一所有者。</p>
+        <p class="section-summary">DSH Agent 负责调用，我们的 Harness Plugin 负责游戏语义，Transport 负责跨进程，薄 Mod 负责原生 API，游戏负责真实世界。</p>
       </div>
       <div class="architecture card">
         <div class="arch-column engine">
           <div class="arch-title"><strong>AI-Native Game Harness</strong><span>OWNED BY HARNESS</span></div>
           <div class="arch-list">
-            <div class="arch-item">Cordis 薄内核：插件、服务、事件与生命周期</div>
-            <div class="arch-item">对话页 / 分析页 / 设置页</div>
-            <div class="arch-item">第一方插件：Agent 与模型工具循环</div>
-            <div class="arch-item">记忆、技能、角色与会话</div>
-            <div class="arch-item">视觉、ASR、TTS 与媒体</div>
-            <div class="arch-item">权限、审计、费用与诊断</div>
+            <div class="arch-item">DSH Runtime：模型、Agent、Tool、Session 与权限</div>
+            <div class="arch-item">共享游戏插件：Core、Memory、Media、UI、Installer</div>
+            <div class="arch-item">每游戏 Harness Plugin：知识、Schema 与语义编排</div>
+            <div class="arch-item">Transport Plugin：连接、请求、事件、取消与健康检查</div>
+            <div class="arch-item">桌面对话、分析、设置与连接诊断</div>
           </div>
         </div>
         <div class="arrow" aria-hidden="true">→</div>
         <div class="arch-column protocol">
-          <div class="arch-title"><strong>Adapter 协议</strong><span>STABLE WIRE</span></div>
+          <div class="arch-title"><strong>Bridge Contract</strong><span>STABLE WIRE</span></div>
           <div class="arch-list">
             <div class="arch-item">身份与版本握手</div>
-            <div class="arch-item">能力发现与 Schema</div>
+            <div class="arch-item">原生 API 能力发现与 Schema</div>
             <div class="arch-item">状态快照与游戏事件</div>
             <div class="arch-item">动作请求与结果回执</div>
-            <div class="arch-item">流式回复与呈现事件</div>
+            <div class="arch-item">取消、错误与健康状态</div>
           </div>
         </div>
         <div class="arrow" aria-hidden="true">→</div>
         <div class="arch-column">
-          <div class="arch-title"><strong>游戏 / Mod</strong><span>OWNED BY GAME</span></div>
+          <div class="arch-title"><strong>薄 Mod / 游戏</strong><span>OWNED BY GAME</span></div>
           <div class="arch-list">
             <div class="arch-item">读取准确游戏状态</div>
             <div class="arch-item">订阅真实游戏事件</div>
             <div class="arch-item">调用游戏 API 执行动作</div>
-            <div class="arch-item">寻路、战斗与逐帧逻辑</div>
-            <div class="arch-item">游戏内气泡、角色与动画</div>
+            <div class="arch-item">执行游戏侧最终校验并返回权威结果</div>
+            <div class="arch-item">保留寻路、战斗与逐帧逻辑的游戏权威</div>
           </div>
         </div>
       </div>
@@ -831,13 +830,13 @@
           <div class="section-kicker">03 · Game Pack</div>
           <h2>剧情、玩法和代码分别放哪</h2>
         </div>
-        <p class="section-summary">Game Pack 是一个游戏在引擎生态中的完整发行单元。它可以组合内容、逻辑、Adapter 和资源，但每种资产仍有清晰所有权。</p>
+        <p class="section-summary">Game Pack 是一个游戏的完整发行单元：Harness Plugin 安装进 DSH Profile，Native Bridge 安装进游戏 Mods 目录，内容与版本信息把两者组成一次安装。</p>
       </div>
 
       <div class="gamepack-shell card" aria-label="Game Pack 剧情与玩法架构图">
         <div class="gamepack-topline">
           <strong>Game Pack · 一个游戏的完整 AI 接入包</strong>
-          <span>CONTENT × LOGIC × ADAPTER × GAME</span>
+          <span>HARNESS PLUGIN × CONTENT × NATIVE BRIDGE × GAME</span>
         </div>
 
         <div class="gamepack-grid">
@@ -854,9 +853,9 @@
           </article>
 
           <article class="pack-lane logic">
-            <div class="lane-label">Engine plugins</div>
+            <div class="lane-label">DSH game plugin</div>
             <h3>动态玩法与剧情逻辑</h3>
-            <p>只有需要算法、状态机或持续运行的能力才进入 Engine Plugin API。</p>
+            <p>算法、状态机、知识、工具定义和持续运行能力进入标准 DSH Harness Plugin。</p>
             <div class="arch-list">
               <div class="arch-item">动态剧情导演与章节调度</div>
               <div class="arch-item">关系网络与长期角色成长</div>
@@ -867,11 +866,11 @@
 
           <article class="pack-lane authority">
             <div class="lane-label">Game authority</div>
-            <h3>Adapter 与游戏本体</h3>
-            <p>Adapter 负责翻译；游戏本体始终负责真实状态、硬玩法和最终执行结果。</p>
+            <h3>Native Bridge 与游戏本体</h3>
+            <p>Bridge 只封装原生 API；Harness Plugin 才负责调用、组合与解释，游戏本体始终拥有真实状态和最终执行结果。</p>
             <div class="arch-list">
-              <div class="arch-item">Adapter：状态、事件、动作 Schema</div>
-              <div class="arch-item">Adapter：校验参数并调用游戏 API</div>
+              <div class="arch-item">Bridge：状态、事件与细粒度原生动作 API</div>
+              <div class="arch-item">Bridge：游戏侧最终校验与权威回执</div>
               <div class="arch-item">游戏：战斗、移动、寻路与经济系统</div>
               <div class="arch-item">游戏：任务完成、物品、金钱与胜负</div>
             </div>
@@ -879,20 +878,20 @@
 
           <div class="pack-manifest">
             <strong>game-pack.json</strong>
-            <code>manifest → adapter + content/stories + content/characters + gameplay/balance + optional plugins + ui + assets</code>
+            <code>manifest → harness-plugin.tgz + native-bridge.zip + content + compatibility + checksums + uninstall</code>
           </div>
         </div>
 
         <div class="placement-rule" aria-label="内容放置判断规则">
           <div><b>能用数据描述</b><span>放进配置与内容文件</span></div>
-          <div><b>需要运行算法</b><span>做成 Engine 插件</span></div>
-          <div><b>依赖具体游戏 API</b><span>放进 Adapter</span></div>
+          <div><b>需要知识、工具或算法</b><span>做成 DSH Harness Plugin</span></div>
+          <div><b>必须调用游戏原生 API</b><span>放进薄 Native Bridge</span></div>
           <div><b>决定真实游戏结果</b><span>留在游戏本体</span></div>
         </div>
 
         <div class="state-law">
           <strong>权威状态原则</strong>
-          <span>凡是影响胜负、物品、金钱、任务完成、角色死亡、地图变化或存档进度的状态，都必须由游戏本体保存并通过 Adapter 返回确认；模型不能仅凭文字宣告其生效。</span>
+          <span>凡是影响胜负、物品、金钱、任务完成、角色死亡、地图变化或存档进度的状态，都必须由游戏本体保存并通过 Native Bridge 返回确认；模型不能仅凭文字宣告其生效。</span>
         </div>
       </div>
     </section>
@@ -901,42 +900,42 @@
       <div class="section-head">
         <div>
           <div class="section-kicker">04 · Protocols</div>
-          <h2>两类扩展边界，各司其职</h2>
+          <h2>插件协议与线协议，各司其职</h2>
         </div>
-        <p class="section-summary">上游 Cordis 微内核解决“通用能力如何装配”，Harness Plugin Protocol 解决“内部能力如何扩展”，Game Adapter Protocol 解决“任意语言的游戏如何接入”。三者服务的对象、进程边界和安全模型不同，不能强行合并。</p>
+        <p class="section-summary">DSH/Cordis 插件协议解决 Harness 内能力如何装配；Bridge Contract 解决 Harness Plugin 如何跨进程调用不同语言的游戏 Mod。Transport 是插件，线上消息格式是独立契约。</p>
       </div>
       <div class="protocol-grid">
         <article class="protocol-card internal card">
-          <h3>Harness Plugin Protocol</h3>
-          <p class="section-summary">Harness 内部扩展约定建立在独立上游 <span class="mono">cordis</span> 之上。Cordis 按常见英文读法读作 <span class="mono">COR-dis</span>，中文近似“科尔迪斯”；项目没有声明专门的官方读音。</p>
+          <h3>DSH / Cordis Plugin Protocol</h3>
+          <p class="section-summary">直接沿用 DSH 的 Context、服务、事件、依赖和可逆生命周期。Cordis 按常见英文读法读作 <span class="mono">COR-dis</span>，中文近似“科尔迪斯”。</p>
           <div class="protocol-meta">
-            <span class="pill">TypeScript / JavaScript</span><span class="pill">同进程</span><span class="pill">Cordis</span><span class="pill">受控扩展</span>
+            <span class="pill">TypeScript / JavaScript</span><span class="pill">同进程</span><span class="pill">@deepseek-ai/*</span><span class="pill">标准 DSH 插件</span>
           </div>
           <div class="rule-list">
-            <div class="rule"><b>✓</b><span>模型、记忆、语音、视觉、分析面板和角色包可以是插件。</span></div>
-            <div class="rule"><b>✓</b><span>Kernel 只负责 Context、依赖注入、事件、加载与可逆生命周期；产品能力由第一方插件实现。</span></div>
-            <div class="rule"><b>✓</b><span>固定 Cordis 精确版本并提交 lockfile；升级只通过独立变更和兼容测试，不自动追随最新版。</span></div>
-            <div class="rule no"><b>×</b><span>不依赖 <span class="mono">@deepseek-ai/cordis</span>，不承诺 DSH 插件无需修改即可运行，也不向 Game Adapter 暴露 Cordis 类型。</span></div>
+            <div class="rule"><b>✓</b><span>复用 DSH 的模型、Agent、Tool、Session、Settings、Credentials 与 Approval 能力。</span></div>
+            <div class="rule"><b>✓</b><span>Game Core、Transport、Memory、Media、UI、Installer 与每游戏 Harness 都是 DSH 插件。</span></div>
+            <div class="rule"><b>✓</b><span>固定整套 DSH 与命名空间 Cordis 兼容版本并提交 lockfile；升级执行兼容测试。</span></div>
+            <div class="rule no"><b>×</b><span>不混用独立 <span class="mono">cordis</span> 与 <span class="mono">@deepseek-ai/cordis</span>，避免 Context、类型和 peer dependency 分裂。</span></div>
           </div>
         </article>
 
         <article class="protocol-card external card">
-          <h3>Game Adapter Protocol</h3>
-          <p class="section-summary">由本项目定义的公开协议，从原型项目 protocol/v1.1 演进；它面向跨进程、跨语言和游戏权威状态，不套用 Harness 内部插件协议。</p>
+          <h3>Native Bridge Contract</h3>
+          <p class="section-summary">由本项目定义的公开线协议，从原型项目 protocol/v1.1 演进；它面向跨进程、跨语言和游戏权威状态。Mod 不需要也不能实现 DSH 插件协议。</p>
           <div class="protocol-meta">
             <span class="pill">WebSocket</span><span class="pill">JSON-RPC 2.0</span><span class="pill">JSON Schema</span><span class="pill">跨进程</span>
           </div>
           <div class="rule-list">
-            <div class="rule"><b>✓</b><span>Adapter 上报游戏身份、能力、状态、事件和动作结果。</span></div>
+            <div class="rule"><b>✓</b><span>Bridge 上报游戏身份、原生 API 能力、状态、事件和动作结果。</span></div>
             <div class="rule"><b>✓</b><span>协议不包含 Provider Key、厂商消息结构和模型隐藏推理。</span></div>
             <div class="rule no"><b>×</b><span>原始音视频和逐帧控制不塞进 JSON；大数据使用独立媒体通道。</span></div>
           </div>
           <div class="protocol-sample" aria-label="协议示例">{
   "jsonrpc": "2.0",
-  "method": "adapter.hello",
+  "method": "bridge.hello",
   "params": {
     "gameId": "my-native-game",
-    "adapterId": "official-adapter",
+    "bridgeId": "official-native-bridge",
     "protocolVersion": "1.1",
     "capabilities": ["state", "events", "actions"]
   }
@@ -951,28 +950,28 @@
           <div class="section-kicker">05 · Build baseline</div>
           <h2>第一版只建立可验证的游戏闭环</h2>
         </div>
-        <p class="section-summary">采用完整的 Cordis 基础运行组合，但不复制 DeepSeek Harness 的编程 Agent 插件。依赖负责装配，我们自己的包负责游戏 Harness 语义。</p>
+        <p class="section-summary">采用固定版本的完整 DSH Runtime，不重写通用 Agent 基础设施；我们只实现游戏领域插件、每游戏 Harness Plugin、Bridge Contract 与薄 Mod。</p>
       </div>
       <div class="surface-grid">
         <article class="feature card">
           <div class="feature-icon">CORE</div>
-          <h3>Cordis Kernel Bundle</h3>
-          <p><span class="mono">cordis</span>、<span class="mono">plugin-loader</span>、<span class="mono">plugin-include</span>、<span class="mono">plugin-group</span>、<span class="mono">plugin-timer</span>、<span class="mono">plugin-logger-console</span> 与 Loader 所需的 Node 兼容依赖。全部固定精确版本并提交 lockfile。</p>
+          <h3>DSH Runtime Profile</h3>
+          <p>打包 DSH 的模型、Agent、Tool、Session、Settings、Credentials、Approval、Loader、日志和命名空间 Cordis 运行组合。按产品 Profile 启用，整套固定兼容版本并提交 lockfile。</p>
         </article>
         <article class="feature card">
           <div class="feature-icon">MVP</div>
-          <h3>第一方游戏运行时</h3>
-          <p><span class="mono">kernel</span>、<span class="mono">contracts</span>、<span class="mono">protocol</span>、<span class="mono">model-runtime</span>、<span class="mono">agent-runtime</span>、<span class="mono">tool-runtime</span>、<span class="mono">session</span> 与 <span class="mono">game-gateway</span>，配合 <span class="mono">ws</span> 和 <span class="mono">ajv</span>。</p>
+          <h3>第一方游戏插件</h3>
+          <p><span class="mono">game-core</span>、<span class="mono">game-transport</span>、<span class="mono">adapter-manager</span>、<span class="mono">game-memory</span>、<span class="mono">game-media</span>、<span class="mono">game-ui</span>、<span class="mono">game-installer</span> 与 <span class="mono">game-bundle</span>。</p>
         </article>
         <article class="feature card">
           <div class="feature-icon">TEST</div>
-          <h3>CLI + Fake Game</h3>
-          <p>用确定性 Fake Adapter 跑通状态、Agent 决策、Schema 校验、权限、工具执行、结果确认和 Trace 回放；先证明闭环，再连接真实游戏。</p>
+          <h3>Harness Plugin + Fake Game</h3>
+          <p>用确定性 Fake Bridge 跑通状态、Agent 决策、语义工具、Schema/权限、Transport、原生 API 包装、结果确认和 Trace 回放；再连接一个真实游戏。</p>
         </article>
       </div>
       <div class="state-law card">
         <strong>依赖与延期规则</strong>
-        <span><span class="mono">cosmokit</span> 与 <span class="mono">schemastery</span> 作为间接依赖，不主动导入；<span class="mono">plugin-hmr</span> 只进入开发依赖。长期记忆、语音、视觉、桌面 UI、Adapter 商店、自动安装、多 Agent、MCP、Shell 和编程工作流均不进入第一版实现。</span>
+        <span>不是“把所有包全装进启动配置”，而是完整复用 DSH 发行能力、按产品 Profile 启用所需插件。Loader、Include、Group、Timer、Logger、HMR 等通用包优先复用上游；业务代码不重复实现。第一条验收仍聚焦 Fake Game 与一个真实游戏的可观察闭环。</span>
       </div>
     </section>
 
@@ -987,7 +986,7 @@
       <div class="surface-grid">
         <article class="feature card"><div class="feature-icon">CHAT</div><h3>对话页面</h3><p>实时流式对话、语音、取消与重试；明确展示工具动作、成功结果和可恢复错误。</p></article>
         <article class="feature card"><div class="feature-icon">DATA</div><h3>分析页面</h3><p>展示结构化游戏状态、最近事件、记忆命中、可用动作、延迟与费用；不展示隐藏思维链。</p></article>
-        <article class="feature card"><div class="feature-icon">LINK</div><h3>Adapter 中心</h3><p>管理游戏连接、协议版本、能力列表、权限、安装更新和诊断，让接入状态一眼可见。</p></article>
+        <article class="feature card"><div class="feature-icon">LINK</div><h3>游戏连接中心</h3><p>管理 Harness Plugin、Native Bridge、协议版本、能力列表、权限、安装更新和诊断，让接入状态一眼可见。</p></article>
       </div>
     </section>
 
@@ -1000,9 +999,9 @@
         <p class="section-summary">生态的关键不是让所有人写插件，而是让每一种参与者只接触与自己相关的那层。</p>
       </div>
       <div class="role-grid">
-        <article class="role card"><div class="who">Game developer</div><h3>游戏开发者</h3><p>实现 Game Adapter Protocol，提供状态、事件、动作和游戏内呈现。</p></article>
-        <article class="role card"><div class="who">Harness developer</div><h3>Harness 开发者</h3><p>维护 Agent、协议、UI、安全、版本兼容与跨游戏基础设施。</p></article>
-        <article class="role card"><div class="who">Plugin author</div><h3>能力开发者</h3><p>通过 Harness Plugin Protocol 扩展模型、语音、记忆、视觉或分析面板。</p></article>
+        <article class="role card"><div class="who">Game integrator</div><h3>游戏接入开发者</h3><p>实现每游戏 DSH Harness Plugin 与薄 Native Bridge，前者拥有 AI 语义，后者只封装原生 API。</p></article>
+        <article class="role card"><div class="who">Harness developer</div><h3>Harness 开发者</h3><p>维护游戏领域插件、Bridge Contract、桌面发行、版本兼容和跨游戏基础设施。</p></article>
+        <article class="role card"><div class="who">Plugin author</div><h3>能力开发者</h3><p>遵循 DSH 插件协议扩展语音、记忆、视觉、安装、Transport 或分析面板。</p></article>
         <article class="role card"><div class="who">Player</div><h3>玩家</h3><p>安装一个应用、连接自己的游戏、选择角色与模型，不需要理解 Harness。</p></article>
       </div>
     </section>
@@ -1011,15 +1010,15 @@
       <div class="section-head">
         <div>
           <div class="section-kicker">08 · Evolution</div>
-          <h2>保留原型，建立独立 Harness</h2>
+          <h2>保留原型，建立游戏发行版</h2>
         </div>
-        <p class="section-summary">原仓库继续作为已验证能力和迁移来源，新仓库承载清晰的产品身份；不在旧项目上硬改品牌和边界。</p>
+        <p class="section-summary">原仓库继续作为已验证能力和迁移来源；新仓库复用 DSH Runtime，但形成独立安装、独立界面和独立 Game Pack 生态。</p>
       </div>
       <div class="timeline">
         <article class="phase card now"><div class="phase-num">SOURCE · 原型项目</div><h3>保留验证资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
-        <article class="phase card next"><div class="phase-num">PHASE 1 · 新仓库</div><h3>跑通最小闭环</h3><ul><li>建立 Kernel、Contracts、Protocol 与 Gateway</li><li>实现 Agent、Tool、Session 和权限链路</li><li>用 CLI + Fake Game 完成 Trace 回放测试</li></ul></article>
-        <article class="phase card"><div class="phase-num">PHASE 2</div><h3>形成独立产品</h3><ul><li>桌面对话与分析页面</li><li>自有 Agent 与模型运行时</li><li>一键安装与 Adapter 中心</li></ul></article>
-        <article class="phase card"><div class="phase-num">PHASE 3</div><h3>开放开发生态</h3><ul><li>多语言 Adapter SDK</li><li>签名与权限模型</li><li>官方目录、测试与认证</li></ul></article>
+        <article class="phase card next"><div class="phase-num">PHASE 1 · 新仓库</div><h3>跑通最小闭环</h3><ul><li>固定 DSH Runtime Profile 与插件版本</li><li>实现 Game Core、Transport 与首个 Harness Plugin</li><li>用 Fake Bridge 完成 Trace 回放和状态验收</li></ul></article>
+        <article class="phase card"><div class="phase-num">PHASE 2</div><h3>形成独立产品</h3><ul><li>最小 Electron 启动与 Windows 打包</li><li>对话、分析与游戏连接页面</li><li>首个真实游戏 Game Pack 一键安装</li></ul></article>
+        <article class="phase card"><div class="phase-num">PHASE 3</div><h3>开放开发生态</h3><ul><li>多语言 Native Bridge SDK</li><li>Game Pack 签名、权限与兼容范围</li><li>官方目录、测试与认证</li></ul></article>
       </div>
     </section>
 
@@ -1032,15 +1031,15 @@
         <p class="section-summary">清晰的非目标能防止引擎重新膨胀成另一个面向所有场景的通用 Agent 产品。</p>
       </div>
       <div class="boundary card">
-        <div class="yes"><h3><span>●</span> Harness 承诺</h3><ul><li>统一 AI 游戏运行时和可见界面</li><li>稳定、跨语言、可测试的 Adapter 协议</li><li>基于事实的游戏状态与动作回执</li><li>本机优先的权限、记忆和隐私边界</li><li>一次接入，多种模型、角色和内容包可复用</li></ul></div>
-        <div class="no"><h3><span>●</span> 明确非目标</h3><ul><li>不做 DeepSeek Harness 的兼容层或替代发行版</li><li>不要求游戏 Adapter 使用 TypeScript 或 Cordis</li><li>不取代 Unity、Godot 或游戏自己的运行时</li><li>不让远程模型控制逐帧战斗和寻路</li><li>不把模型隐藏推理作为分析页面内容</li></ul></div>
+        <div class="yes"><h3><span>●</span> Harness 承诺</h3><ul><li>完整打包并复用经过验证的 DSH Runtime</li><li>标准 DSH 游戏插件与可独立安装的 Game Pack</li><li>稳定、跨语言、可测试的 Native Bridge Contract</li><li>基于事实的游戏状态与动作回执</li><li>本机优先的权限、记忆和隐私边界</li></ul></div>
+        <div class="no"><h3><span>●</span> 明确非目标</h3><ul><li>不重写 DSH 已有的模型、Agent、Tool 与 Session</li><li>不要求游戏 Mod 使用 TypeScript 或 Cordis</li><li>不把规划、记忆和模型调用塞进游戏 Mod</li><li>不取代 Unity、Godot 或游戏自己的运行时</li><li>不让远程模型控制逐帧战斗和寻路</li></ul></div>
       </div>
     </section>
 
     <aside class="source-note card reveal" aria-label="原项目说明">
       <div>
         <strong>原项目是能力原型，新项目是产品本体。</strong>
-        <p><span class="mono">dsh-xiaotangyuan-game</span> 已验证多游戏桥接、跨语言 JSON-RPC、记忆、视觉、语音与流式回复；<span class="mono">ai-native-game-harness</span> 用独立名称和边界承载未来产品。新产品直接采用独立上游 <span class="mono">cordis</span> 作为内部微内核，不依赖 DeepSeek Harness 或 <span class="mono">@deepseek-ai/cordis</span> 才能成立。</p>
+        <p><span class="mono">dsh-xiaotangyuan-game</span> 已验证多游戏桥接、跨语言 JSON-RPC、记忆、视觉、语音与流式回复；<span class="mono">ai-native-game-harness</span> 将这些能力整理为基于 DSH Runtime 的游戏发行版。新产品沿用 DSH 与其 <span class="mono">@deepseek-ai/cordis</span> 插件体系，游戏差异位于 Harness Plugin，游戏进程只保留薄 Native Bridge。</p>
       </div>
       <div class="actions">
         <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">新项目 ↗</a>
