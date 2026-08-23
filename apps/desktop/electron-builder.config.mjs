@@ -9,7 +9,7 @@ const archiveName = `qimidandapigu-dsh-xiaotangyuan-game-${manifest.development.
 
 export default {
   appId: 'com.qimidandapigu.ai-native-game-harness',
-  productName: 'AI Native Game Harness',
+  productName: 'AI Native Game Harness 游戏版',
   electronVersion: '43.4.1',
   asar: true,
   directories: {
@@ -40,13 +40,14 @@ export default {
   ],
   win: {
     target: ['nsis'],
-    artifactName: 'AI-Native-Game-Harness-Setup-${version}.${ext}',
+    icon: resolve(desktopRoot, 'assets/game-edition-icon.ico'),
+    artifactName: 'AI-Native-Game-Harness-Game-Edition-Setup-${version}.${ext}',
   },
   nsis: {
     oneClick: false,
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: 'AI Native Game Harness',
+    shortcutName: 'AI Native Game Harness 游戏版',
   },
 }

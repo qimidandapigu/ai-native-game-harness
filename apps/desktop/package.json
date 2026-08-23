@@ -2,7 +2,7 @@
   "name": "@ai-native-game-harness/desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "Windows desktop distribution for AI Native Game Harness.",
+  "description": "Windows game edition of AI Native Game Harness.",
   "type": "module",
   "main": "src/main.mjs",
   "files": [

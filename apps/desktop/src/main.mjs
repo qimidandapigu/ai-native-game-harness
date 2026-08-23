@@ -184,7 +184,7 @@ function createWindow() {
     height: 820,
     minWidth: 900,
     minHeight: 620,
-    title: 'AI Native Game Harness',
+    title: 'AI Native Game Harness 游戏版',
     backgroundColor: '#08131d',
     show: false,
     webPreferences: {
@@ -204,7 +204,7 @@ function createWindow() {
     sendStatus('启动失败', error instanceof Error ? error.message : String(error))
     await dialog.showMessageBox(mainWindow, {
       type: 'error',
-      title: 'AI Native Game Harness 启动失败',
+      title: 'AI Native Game Harness 游戏版启动失败',
       message: '内置 DSH Runtime 未能启动。',
       detail: error instanceof Error ? error.message : String(error),
     })
