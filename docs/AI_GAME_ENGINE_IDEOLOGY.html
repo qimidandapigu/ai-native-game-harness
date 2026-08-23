@@ -971,7 +971,7 @@
         </article>
       </div>
       <div class="state-law card">
-        <strong>仍在规划或迁移</strong>
+        <strong>已迁入，仍待模块化</strong>
         <span><span class="mono">adapter-manager</span>、<span class="mono">game-memory</span>、<span class="mono">game-media</span>、<span class="mono">game-ui</span>、<span class="mono">game-installer</span> 与 <span class="mono">game-bundle</span> 仍是目标模块；当前成熟能力已随小汤圆插件迁入本仓库，后续按复用边界逐步拆成共享插件。</span>
       </div>
       <div class="state-law card">
@@ -1039,7 +1039,7 @@
           <div class="section-kicker">09 · Evolution</div>
           <h2>迁入原型能力，统一维护游戏发行版</h2>
         </div>
-        <p class="section-summary">原仓库继续作为已验证能力和迁移来源；新仓库复用 DSH Runtime，但形成独立安装、独立界面和独立 Game Pack 生态。</p>
+        <p class="section-summary">源码迁移已经完成；主仓库现在是唯一开发入口，旧仓库只保留历史记录和既有 Release 文件，不再参与构建或双仓库开发。</p>
       </div>
       <div class="timeline">
         <article class="phase card"><div class="phase-num">SOURCE · 已迁入</div><h3>统一源码资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
@@ -1066,7 +1066,7 @@
     <aside class="source-note card reveal" aria-label="原项目说明">
       <div>
         <strong>原项目是历史原型，新项目现在同时是源码与产品本体。</strong>
-        <p><span class="mono">dsh-xiaotangyuan-game</span> 验证过的多游戏桥接、跨语言 JSON-RPC、记忆、视觉、语音与流式回复源码现已迁入 <span class="mono">ai-native-game-harness</span>。桌面版直接从仓库内的 <span class="mono">plugins/xiaotangyuan-game</span> 构建，不再依赖相邻旧仓库；旧 Release 暂时只作为已发布游戏包的静态下载源。新产品沿用 DSH 与其 <span class="mono">@deepseek-ai/cordis</span> 插件体系，游戏差异位于 Harness Plugin，游戏进程只保留薄 Native Bridge。</p>
+        <p><span class="mono">dsh-xiaotangyuan-game</span> 验证过的多游戏桥接、跨语言 JSON-RPC、记忆、视觉、语音与流式回复源码现已迁入 <span class="mono">ai-native-game-harness</span>。今后的源码、测试、文档与新 Release 只在主仓库维护；桌面版直接从 <span class="mono">plugins/xiaotangyuan-game</span> 构建，不再读取相邻旧仓库。旧仓库仅保留历史记录和已经发布的静态下载文件，不是第二条开发线。新产品沿用 DSH 与其 <span class="mono">@deepseek-ai/cordis</span> 插件体系，游戏差异位于 Harness Plugin，游戏进程只保留薄 Native Bridge。</p>
       </div>
       <div class="actions">
         <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">新项目 ↗</a>

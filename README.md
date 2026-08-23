@@ -169,6 +169,13 @@ pnpm integration:xiaotangyuan
 
 原 `dsh-xiaotangyuan-game` 的插件、三个游戏的 Mod/Bridge、发行清单、协议与测试源码已经迁入本仓库。旧仓库可以作为历史快照保留；现有旧 Release 链接暂时继续承载已经发布的游戏包，后续新版本和新 Release 统一从本仓库发布。
 
+### 仓库维护策略
+
+- **唯一源码仓库**：今后的插件、桌面应用、游戏 Mod/Bridge、协议、测试和文档修改都提交到 `ai-native-game-harness`。
+- **旧仓库不再开发**：`dsh-xiaotangyuan-game` 不再接收同一套源码的重复修改，也不参与本地构建。
+- **旧 Release 暂时保留**：已经发布的游戏包仍使用旧仓库下载地址；这只是静态文件托管，不代表需要维护两套代码。
+- **后续彻底收口**：新版本改由主仓库发布；等旧下载入口全部替换后，可将旧仓库设为 Archive，但不要直接删除。
+
 构建桌面安装包：
 
 ```powershell
