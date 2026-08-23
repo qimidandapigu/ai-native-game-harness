@@ -1,0 +1,8 @@
+- insert:
+    - id: xiaotangyuan-oni-adapter
+      name: '@qimidandapigu/oni-adapter'
+      config:
+        host: 127.0.0.1
+        port: 32145
+        installer:
+          manifestUrl: https://github.com/qimidandapigu/dsh-xiaotangyuan-game/releases/download/oni-v0.6.1/oxygen-not-included-v1.json

@@ -1,0 +1,41 @@
+{
+  "gameId": "dont-starve-together",
+  "saveId": "dst-world-a",
+  "adapterCapabilities": [
+    "dst.find_nearest_butterfly",
+    "dst.attack_butterfly",
+    "dst.collect_butterfly_loot"
+  ],
+  "observation": {
+    "player": { "alive": true, "x": 10, "z": 8 },
+    "companion": { "available": true, "containerSlotsUsed": 2, "containerSlotsTotal": 9 },
+    "nearbyEntities": [{ "id": 9001, "prefab": "butterfly", "x": 12, "z": 8, "alive": true }]
+  },
+  "atomResults": {
+    "dst.find_nearest_butterfly": { "targetId": 9001, "x": 12, "z": 8 },
+    "dst.attack_butterfly": { "targetId": 9001, "defeated": true, "x": 12, "z": 8 },
+    "dst.collect_butterfly_loot": { "count": 1, "items": ["butterflywings"] }
+  },
+  "replayResponse": {
+    "output": "打到了，我把蝴蝶翅膀收进箱子了。",
+    "metadata": {
+      "toolCalls": [{
+        "name": "xiaotangyuan_skill_run",
+        "input": { "skillId": "dst.hunt-and-collect-butterfly" },
+        "output": {
+          "success": true,
+          "skillId": "dst.hunt-and-collect-butterfly",
+          "skillVersion": 1,
+          "message": "技能执行成功。",
+          "traceJson": "[{\"index\":0,\"atom\":\"dst.find_nearest_butterfly\",\"arguments\":{\"radius\":20},\"success\":true,\"result\":{\"targetId\":9001,\"x\":12,\"z\":8}},{\"index\":1,\"atom\":\"dst.attack_butterfly\",\"arguments\":{\"targetId\":9001},\"success\":true,\"result\":{\"targetId\":9001,\"defeated\":true,\"x\":12,\"z\":8}},{\"index\":2,\"atom\":\"dst.collect_butterfly_loot\",\"arguments\":{\"x\":12,\"z\":8,\"radius\":4},\"success\":true,\"result\":{\"count\":1,\"items\":[\"butterflywings\"]}}]"
+        },
+        "isError": false
+      }],
+      "finalGameState": {
+        "nearbyEntities": [],
+        "groundLoot": [],
+        "companionContainer": [{ "prefab": "butterflywings", "count": 1 }]
+      }
+    }
+  }
+}

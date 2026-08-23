@@ -1,0 +1,31 @@
+{
+  "gameId": "dont-starve-together",
+  "saveId": "dst-world-a",
+  "adapterCapabilities": ["dst.find_nearest_butterfly", "dst.attack_butterfly", "dst.collect_butterfly_loot"],
+  "observation": {
+    "player": { "alive": true, "x": 10, "z": 8 },
+    "companion": { "available": true, "containerSlotsUsed": 2, "containerSlotsTotal": 9 },
+    "nearbyEntities": [{ "id": 9001, "prefab": "butterfly", "x": 12, "z": 8, "alive": true }]
+  },
+  "atomResults": { "dst.find_nearest_butterfly": { "targetId": 9001, "x": 12, "z": 8 } },
+  "atomErrors": { "dst.attack_butterfly": "追击时目标蝴蝶消失了" },
+  "replayResponse": {
+    "output": "追过去时蝴蝶消失了，所以没有掉落可以捡。",
+    "metadata": {
+      "toolCalls": [{
+        "name": "xiaotangyuan_skill_run",
+        "input": { "skillId": "dst.hunt-and-collect-butterfly" },
+        "output": {
+          "success": false,
+          "skillId": "dst.hunt-and-collect-butterfly",
+          "skillVersion": 1,
+          "message": "技能执行失败：追击时目标蝴蝶消失了",
+          "error": "追击时目标蝴蝶消失了",
+          "traceJson": "[{\"index\":0,\"atom\":\"dst.find_nearest_butterfly\",\"arguments\":{\"radius\":20},\"success\":true,\"result\":{\"targetId\":9001,\"x\":12,\"z\":8}},{\"index\":1,\"atom\":\"dst.attack_butterfly\",\"arguments\":{\"targetId\":9001},\"success\":false,\"error\":\"追击时目标蝴蝶消失了\"}]"
+        },
+        "isError": false
+      }],
+      "finalGameState": { "nearbyEntities": [], "groundLoot": [], "companionContainer": [] }
+    }
+  }
+}

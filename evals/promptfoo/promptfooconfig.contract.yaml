@@ -1,0 +1,15 @@
+description: XiaoTangYuan Promptfoo contract smoke test (not a model evaluation)
+
+prompts:
+  - '{{playerText}}'
+
+providers:
+  - id: file://provider.mjs
+    label: contract-replay
+    config:
+      mode: contract-replay
+
+tests: file://tests.yaml
+
+evaluateOptions:
+  maxConcurrency: 1

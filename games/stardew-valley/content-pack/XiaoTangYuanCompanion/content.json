@@ -1,0 +1,147 @@
+{
+  "Format": "2.9.0",
+  "Changes": [
+    {
+      "LogName": "注册小汤圆物品图标",
+      "Action": "Load",
+      "Target": "Mods/{{ModId}}/icon",
+      "FromFile": "assets/xiaotangyuan_icon.png"
+    },
+    {
+      "LogName": "注册小汤圆同伴精灵",
+      "Action": "Load",
+      "Target": "Mods/{{ModId}}/companion",
+      "FromFile": "assets/xiaotangyuan_companion.png"
+    },
+    {
+      "LogName": "添加小汤圆隐藏饰品",
+      "Action": "EditData",
+      "Target": "Data/Trinkets",
+      "Entries": {
+        "{{ModId}}_Companion": {
+          "Id": "{{ModId}}_Companion",
+          "DisplayName": "未定型的小汤圆",
+          "Description": "它会根据与你共同经历的战斗、种植或钓鱼逐渐定型。",
+          "Texture": "Mods/{{ModId}}/icon",
+          "SheetIndex": 0,
+          "DropsNaturally": false,
+          "CanBeReforged": false
+        },
+        "{{ModId}}_Companion_Combat": {
+          "Id": "{{ModId}}_Companion_Combat",
+          "DisplayName": "战斗型小汤圆",
+          "Description": "每次击败怪物，为玩家恢复2点生命。",
+          "Texture": "Mods/{{ModId}}/icon",
+          "SheetIndex": 0,
+          "DropsNaturally": false,
+          "CanBeReforged": false
+        },
+        "{{ModId}}_Companion_Farming": {
+          "Id": "{{ModId}}_Companion_Farming",
+          "DisplayName": "种植型小汤圆",
+          "Description": "新种下的作物会被立即浇水。",
+          "Texture": "Mods/{{ModId}}/icon",
+          "SheetIndex": 0,
+          "DropsNaturally": false,
+          "CanBeReforged": false
+        },
+        "{{ModId}}_Companion_Fishing": {
+          "Id": "{{ModId}}_Companion_Fishing",
+          "DisplayName": "钓鱼型小汤圆",
+          "Description": "每钓上一条鱼，为玩家恢复8点体力。",
+          "Texture": "Mods/{{ModId}}/icon",
+          "SheetIndex": 0,
+          "DropsNaturally": false,
+          "CanBeReforged": false
+        }
+      }
+    },
+    {
+      "LogName": "交给 TrinketTinker 管理小汤圆同伴",
+      "Action": "EditData",
+      "Target": "mushymato.TrinketTinker/Tinker",
+      "Entries": {
+        "{{ModId}}_Companion": {
+          "VariantsBase": {
+            "Width": 32,
+            "Height": 32
+          },
+          "Variants": [
+            {
+              "Texture": "Mods/{{ModId}}/companion",
+              "TextureScale": 2.0
+            }
+          ],
+          "Motion": {
+            "MotionClass": "Hover",
+            "AlwaysMoving": true,
+            "DirectionMode": "DRUL",
+            "FrameLength": 1,
+            "Interval": 200,
+            "HideDuringEvents": false
+          }
+        },
+        "{{ModId}}_Companion_Combat": {
+          "VariantsBase": {
+            "Width": 32,
+            "Height": 32
+          },
+          "Variants": [
+            {
+              "Texture": "Mods/{{ModId}}/companion",
+              "TextureScale": 2.0
+            }
+          ],
+          "Motion": {
+            "MotionClass": "Hover",
+            "AlwaysMoving": true,
+            "DirectionMode": "DRUL",
+            "FrameLength": 1,
+            "Interval": 160,
+            "HideDuringEvents": false
+          }
+        },
+        "{{ModId}}_Companion_Farming": {
+          "VariantsBase": {
+            "Width": 32,
+            "Height": 32
+          },
+          "Variants": [
+            {
+              "Texture": "Mods/{{ModId}}/companion",
+              "TextureScale": 2.0
+            }
+          ],
+          "Motion": {
+            "MotionClass": "Hover",
+            "AlwaysMoving": true,
+            "DirectionMode": "DRUL",
+            "FrameLength": 1,
+            "Interval": 260,
+            "HideDuringEvents": false
+          }
+        },
+        "{{ModId}}_Companion_Fishing": {
+          "VariantsBase": {
+            "Width": 32,
+            "Height": 32
+          },
+          "Variants": [
+            {
+              "Texture": "Mods/{{ModId}}/companion",
+              "TextureScale": 2.0
+            }
+          ],
+          "Motion": {
+            "MotionClass": "Hover",
+            "AlwaysMoving": true,
+            "DirectionMode": "DRUL",
+            "FrameLength": 1,
+            "Interval": 220,
+            "HideDuringEvents": false
+          }
+        }
+      }
+    }
+  ]
+}

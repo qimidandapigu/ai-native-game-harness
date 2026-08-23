@@ -4,6 +4,7 @@ packages:
   - plugins/*
   - games/*/harness-plugin
   - games/*/native-bridge
+  - games/*/adapter
   - integrations/*
   - tests/*
 onlyBuiltDependencies:

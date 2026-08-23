@@ -1,0 +1,2 @@
+pywin32>=306
+websocket-client>=1.8,<2

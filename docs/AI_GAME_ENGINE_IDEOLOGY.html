@@ -711,7 +711,7 @@
         <div class="actions">
           <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看新项目 ↗</a>
           <a class="button" href="#definition">阅读核心定义</a>
-          <a class="button" href="https://github.com/qimidandapigu/dsh-xiaotangyuan-game">原型项目 ↗</a>
+          <a class="button" href="https://github.com/qimidandapigu/dsh-xiaotangyuan-game">历史原型 ↗</a>
         </div>
       </div>
 
@@ -972,11 +972,11 @@
       </div>
       <div class="state-law card">
         <strong>仍在规划或迁移</strong>
-        <span><span class="mono">adapter-manager</span>、<span class="mono">game-memory</span>、<span class="mono">game-media</span>、<span class="mono">game-ui</span>、<span class="mono">game-installer</span> 与 <span class="mono">game-bundle</span> 仍是目标模块；当前相关成熟能力主要来自原型仓库的小汤圆插件，尚未全部拆成新仓库的共享插件。</span>
+        <span><span class="mono">adapter-manager</span>、<span class="mono">game-memory</span>、<span class="mono">game-media</span>、<span class="mono">game-ui</span>、<span class="mono">game-installer</span> 与 <span class="mono">game-bundle</span> 仍是目标模块；当前成熟能力已随小汤圆插件迁入本仓库，后续按复用边界逐步拆成共享插件。</span>
       </div>
       <div class="state-law card">
         <strong>当前已实现</strong>
-        <span><span class="mono">fake_collect_coin</span> 已实际执行 observe → move → collect → observe；<span class="mono">dsh-xiaotangyuan-game 0.7.7</span> 已打包进隔离 Profile 并真实启动 Gateway；<span class="mono">desktop:dist</span> 已生成 Windows 安装器。尚未完成代码签名、GitHub Release、产品图标和真实游戏存档内的最终验收，所以这些本地产物还不是公开稳定版。</span>
+        <span><span class="mono">fake_collect_coin</span> 已实际执行 observe → move → collect → observe；仓库内的 <span class="mono">dsh-xiaotangyuan-game 0.7.7</span> 已打包进隔离 Profile 并真实启动 Gateway；<span class="mono">desktop:dist</span> 已生成带游戏版图标的 Windows 安装器。尚未完成代码签名、GitHub Release 和真实游戏存档内的最终验收，所以这些本地产物还不是公开稳定版。</span>
       </div>
     </section>
 
@@ -1037,12 +1037,12 @@
       <div class="section-head">
         <div>
           <div class="section-kicker">09 · Evolution</div>
-          <h2>保留原型，建立游戏发行版</h2>
+          <h2>迁入原型能力，统一维护游戏发行版</h2>
         </div>
         <p class="section-summary">原仓库继续作为已验证能力和迁移来源；新仓库复用 DSH Runtime，但形成独立安装、独立界面和独立 Game Pack 生态。</p>
       </div>
       <div class="timeline">
-        <article class="phase card"><div class="phase-num">SOURCE · 已验证</div><h3>保留原型资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
+        <article class="phase card"><div class="phase-num">SOURCE · 已迁入</div><h3>统一源码资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 1 · 已完成</div><h3>跑通最小闭环</h3><ul><li>固定 DSH Runtime Profile 与插件版本</li><li>实现 Game Core、Transport 与 Fake Harness Plugin</li><li>完成 Trace 回放和权威状态验收</li></ul></article>
         <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>形成独立产品</h3><ul><li>Electron 启动壳与 Windows 安装包已可构建</li><li>补产品专属分析与游戏连接页面</li><li>完成首个真实游戏 Game Pack 验收</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 3</div><h3>开放开发生态</h3><ul><li>多语言 Native Bridge SDK</li><li>Game Pack 签名、权限与兼容范围</li><li>官方目录、测试与认证</li></ul></article>
@@ -1065,12 +1065,12 @@
 
     <aside class="source-note card reveal" aria-label="原项目说明">
       <div>
-        <strong>原项目是能力原型，新项目是产品本体。</strong>
-        <p><span class="mono">dsh-xiaotangyuan-game</span> 已验证多游戏桥接、跨语言 JSON-RPC、记忆、视觉、语音与流式回复；<span class="mono">ai-native-game-harness</span> 将这些能力整理为基于 DSH Runtime 的游戏发行版。新产品沿用 DSH 与其 <span class="mono">@deepseek-ai/cordis</span> 插件体系，游戏差异位于 Harness Plugin，游戏进程只保留薄 Native Bridge。</p>
+        <strong>原项目是历史原型，新项目现在同时是源码与产品本体。</strong>
+        <p><span class="mono">dsh-xiaotangyuan-game</span> 验证过的多游戏桥接、跨语言 JSON-RPC、记忆、视觉、语音与流式回复源码现已迁入 <span class="mono">ai-native-game-harness</span>。桌面版直接从仓库内的 <span class="mono">plugins/xiaotangyuan-game</span> 构建，不再依赖相邻旧仓库；旧 Release 暂时只作为已发布游戏包的静态下载源。新产品沿用 DSH 与其 <span class="mono">@deepseek-ai/cordis</span> 插件体系，游戏差异位于 Harness Plugin，游戏进程只保留薄 Native Bridge。</p>
       </div>
       <div class="actions">
         <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">新项目 ↗</a>
-        <a class="button" href="https://github.com/qimidandapigu/dsh-xiaotangyuan-game">原型项目 ↗</a>
+        <a class="button" href="https://github.com/qimidandapigu/dsh-xiaotangyuan-game">历史原型 ↗</a>
       </div>
     </aside>
   </main>

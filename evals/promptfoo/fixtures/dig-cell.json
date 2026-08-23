@@ -1,0 +1,7 @@
+{
+  "gameId": "oxygen-not-included",
+  "saveId": "colony-a",
+  "observation": { "cursor": { "x": 20, "y": 8, "diggable": true } },
+  "toolResults": { "oni_dig": { "success": true, "reply": "单格挖掘任务已创建。" } },
+  "replayResponse": { "output": "好，这一格已经安排挖掘。", "metadata": { "toolCalls": [{ "name": "oni_dig", "input": {}, "output": { "success": true, "reply": "单格挖掘任务已创建。" }, "isError": false }], "finalGameState": { "digOrders": [{ "x": 20, "y": 8 }] } } }
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "tag": "dont-starve-v0.2.23",
+  "version": "0.2.23",
+  "archive": {
+    "name": "dsh-xiaotangyuan-game-dont-starve-0.2.23.zip",
+    "url": "https://github.com/qimidandapigu/dsh-xiaotangyuan-game/releases/download/dont-starve-v0.2.23/dsh-xiaotangyuan-game-dont-starve-0.2.23.zip",
+    "size": 16015144,
+    "sha256": "dd3a912d74ca94cc35b9c9c38a35300808ead3f694a669b545feee6e794fe2b5"
+  }
+}

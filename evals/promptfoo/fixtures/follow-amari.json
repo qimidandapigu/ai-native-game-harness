@@ -1,0 +1,7 @@
+{
+  "gameId": "oxygen-not-included",
+  "saveId": "colony-a",
+  "observation": { "followedDuplicantId": 21, "duplicants": [{ "id": 12, "name": "阿玛里", "alive": true }, { "id": 21, "name": "哈桑", "alive": true }] },
+  "toolResults": { "oni_companion_follow": { "success": true, "reply": "小汤圆现在跟随阿玛里。" } },
+  "replayResponse": { "output": "好，以后我跟着阿玛里。", "metadata": { "toolCalls": [{ "name": "oni_companion_follow", "input": { "actorId": 12 }, "output": { "success": true, "reply": "小汤圆现在跟随阿玛里。" }, "isError": false }], "finalGameState": { "followedDuplicantId": 12 } } }
+}

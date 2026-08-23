@@ -1,0 +1,7 @@
+{
+  "gameId": "oxygen-not-included",
+  "saveId": "colony-a",
+  "observation": { "cursor": { "x": 50, "y": 30, "reachable": false }, "duplicants": [{ "id": 12, "name": "阿玛里", "alive": true }] },
+  "toolResults": { "oni_move": { "success": false, "reply": "目标格不可达。" } },
+  "replayResponse": { "output": "那个位置暂时不可达，阿玛里到不了。", "metadata": { "toolCalls": [{ "name": "oni_move", "input": { "actorId": 12 }, "output": { "success": false, "reply": "目标格不可达。" }, "isError": false }], "finalGameState": { "moveTarget": null } } }
+}

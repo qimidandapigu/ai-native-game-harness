@@ -13,7 +13,7 @@ An update is intentionally not applied automatically. For each candidate version
 1. Create a dedicated upgrade change.
 2. Update the exact `@deepseek-ai/dsh` version and all directly consumed `@deepseek-ai/dsh-*` package versions together.
 3. Run `pnpm install` and `pnpm check`.
-4. Run `pnpm integration:xiaotangyuan` against the current XiaoTangYuan source package.
+4. Run `pnpm integration:xiaotangyuan` against the in-repository XiaoTangYuan source package.
 5. Run the real Stardew Valley, Don't Starve Together, and Oxygen Not Included smoke tests.
 6. Merge only after compatibility passes, then build a new desktop release.
 

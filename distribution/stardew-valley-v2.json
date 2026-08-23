@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "tag": "stardew-v0.5.0",
+  "version": "0.5.0",
+  "archive": {
+    "name": "dsh-xiaotangyuan-game-stardew-0.5.0.zip",
+    "url": "https://github.com/qimidandapigu/dsh-xiaotangyuan-game/releases/download/stardew-v0.5.0/dsh-xiaotangyuan-game-stardew-0.5.0.zip",
+    "size": 40717,
+    "sha256": "7ece942a704fdbc63a843bd6b54c92dc78f2a6304ed6f69fc118972c9443c293"
+  },
+  "components": [
+    {
+      "uniqueId": "Pathoschild.ContentPatcher",
+      "name": "Content Patcher",
+      "version": "2.9.1",
+      "folderName": "ContentPatcher",
+      "archive": {
+        "name": "ContentPatcher-2.9.1.zip",
+        "url": "https://www.curseforge.com/api/v1/mods/309243/files/7759981/download",
+        "size": 389967,
+        "sha256": "22962ecbeda204d207f66f4dded727a2ce67134f7decdd249c1024bbc4576817"
+      }
+    },
+    {
+      "uniqueId": "mushymato.TrinketTinker",
+      "name": "TrinketTinker",
+      "version": "1.9.0",
+      "folderName": "TrinketTinker",
+      "archive": {
+        "name": "TrinketTinker.1.9.0.zip",
+        "url": "https://github.com/Mushymato/TrinketTinker/releases/download/1.9.0/TrinketTinker.1.9.0.zip",
+        "size": 164458,
+        "sha256": "cb04fe77e43607c3914f68c781371a3c0442accad794ebb73de34666707dd4ef"
+      }
+    }
+  ]
+}

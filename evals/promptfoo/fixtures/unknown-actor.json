@@ -1,0 +1,7 @@
+{
+  "gameId": "oxygen-not-included",
+  "saveId": "colony-a",
+  "observation": { "cursor": { "x": 16, "y": 5, "reachable": true }, "duplicants": [{ "id": 12, "name": "阿玛里", "alive": true }, { "id": 21, "name": "哈桑", "alive": true }] },
+  "toolResults": {},
+  "replayResponse": { "output": "当前复制人里没有找到小明，我不能替你猜目标。", "metadata": { "toolCalls": [], "finalGameState": { "moveTarget": null } } }
+}

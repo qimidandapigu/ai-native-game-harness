@@ -1,0 +1,81 @@
+{
+  "name": "@qimidandapigu/dsh-xiaotangyuan-game",
+  "version": "0.7.7",
+  "description": "XiaoTangYuan game AI runtime for DeepSeek Harness.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "media/windows-x64/XtyMediaHost.exe",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "pnpm run clean && tsc -p tsconfig.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "test": "vitest run",
+    "check": "pnpm run build && pnpm run test"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "xiaotangyuan",
+    "game-ai",
+    "game-agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qimidandapigu/ai-native-game-harness.git",
+    "directory": "plugins/xiaotangyuan-game"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "extract-zip": "^2.0.1",
+    "screenshot-desktop": "^1.15.1",
+    "ws": "^8.18.3"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-agent": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-agent-default-model": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-attachment": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-credentials": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-session": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/dsh-agent": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-agent-default-model": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-attachment": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-credentials": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-session": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.6",
+    "@types/node": "^24.10.0",
+    "@types/screenshot-desktop": "^1.12.3",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

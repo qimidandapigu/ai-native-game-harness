@@ -1,0 +1,32 @@
+- insert:
+    - id: xiaotangyuan-game
+      name: '@qimidandapigu/dsh-xiaotangyuan-game'
+      config:
+        host: 127.0.0.1
+        port: 32145
+        vision:
+          enabled: true
+          maxWidth: 1280
+        speech:
+          enabled: true
+          provider: auto
+          credentialRef: VOLCENGINE_API_KEY
+        media:
+          enabled: true
+          pushToTalkVirtualKey: 119
+        proactiveChat:
+          enabled: true
+          intervalSeconds: 180
+        memory:
+          enabled: true
+          autoLearn: true
+          profileId: default
+          maxGameEntries: 300
+        installers:
+          dontStarve:
+            manifestUrl: https://raw.githubusercontent.com/qimidandapigu/dsh-xiaotangyuan-game/main/distribution/dont-starve-together-v1.json
+        feedback:
+          enabled: true
+          endpoint: https://xiaotangyuan-feedback-receiver.qimidandapigu-xiaotangyuan-feedback-receiver.workers.dev/v1/feedback
+          clientId: xiaotangyuan-official
+          credentialRef: XIAOTANGYUAN_FEEDBACK_TOKEN

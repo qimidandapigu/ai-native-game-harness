@@ -1,0 +1,7 @@
+{
+  "gameId": "oxygen-not-included",
+  "saveId": "colony-a",
+  "observation": { "cursor": { "x": 16, "y": 5, "reachable": true }, "duplicants": [{ "id": 12, "name": "阿玛里", "alive": true }, { "id": 21, "name": "哈桑", "alive": true }] },
+  "toolResults": { "oni_move": { "success": true, "reply": "阿玛里的移动目标已设置。" } },
+  "replayResponse": { "output": "好，阿玛里会去鼠标指的位置。", "metadata": { "toolCalls": [{ "name": "oni_move", "input": { "actorId": 12 }, "output": { "success": true, "reply": "阿玛里的移动目标已设置。" }, "isError": false }], "finalGameState": { "moveTarget": { "actorId": 12, "x": 16, "y": 5 } } } }
+}

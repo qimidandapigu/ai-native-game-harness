@@ -1,0 +1,7 @@
+{
+  "gameId": "oxygen-not-included",
+  "saveId": "colony-a",
+  "observation": { "cursor": { "x": 25, "y": 8, "diggable": true } },
+  "toolResults": { "oni_dig_path": { "success": true, "reply": "分阶段挖掘路径已创建。" } },
+  "replayResponse": { "output": "好，我已经安排了一条分阶段挖掘路线。", "metadata": { "toolCalls": [{ "name": "oni_dig_path", "input": {}, "output": { "success": true, "reply": "分阶段挖掘路径已创建。" }, "isError": false }], "finalGameState": { "digPathTarget": { "x": 25, "y": 8 } } } }
+}

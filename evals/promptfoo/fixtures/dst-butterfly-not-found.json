@@ -1,0 +1,30 @@
+{
+  "gameId": "dont-starve-together",
+  "saveId": "dst-world-a",
+  "adapterCapabilities": ["dst.find_nearest_butterfly", "dst.attack_butterfly", "dst.collect_butterfly_loot"],
+  "observation": {
+    "player": { "alive": true, "x": 10, "z": 8 },
+    "companion": { "available": true, "containerSlotsUsed": 2, "containerSlotsTotal": 9 },
+    "nearbyEntities": []
+  },
+  "atomErrors": { "dst.find_nearest_butterfly": "附近没有找到蝴蝶" },
+  "replayResponse": {
+    "output": "附近没有找到蝴蝶，我没有继续乱跑。",
+    "metadata": {
+      "toolCalls": [{
+        "name": "xiaotangyuan_skill_run",
+        "input": { "skillId": "dst.hunt-and-collect-butterfly" },
+        "output": {
+          "success": false,
+          "skillId": "dst.hunt-and-collect-butterfly",
+          "skillVersion": 1,
+          "message": "技能执行失败：附近没有找到蝴蝶",
+          "error": "附近没有找到蝴蝶",
+          "traceJson": "[{\"index\":0,\"atom\":\"dst.find_nearest_butterfly\",\"arguments\":{\"radius\":20},\"success\":false,\"error\":\"附近没有找到蝴蝶\"}]"
+        },
+        "isError": false
+      }],
+      "finalGameState": { "nearbyEntities": [], "groundLoot": [], "companionContainer": [] }
+    }
+  }
+}

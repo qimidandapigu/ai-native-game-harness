@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dont-starve-ai-mod"
+version = "0.2.23"
+description = "A voice and vision sidecar that lets Chester talk in Don't Starve Together"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "pywin32>=306",
+  "websocket-client>=1.8,<2",
+]
+
+[project.scripts]
+chester-ai = "dont_starve_ai_mod.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

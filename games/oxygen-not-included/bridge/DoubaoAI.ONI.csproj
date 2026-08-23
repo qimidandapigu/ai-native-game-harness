@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>DoubaoAI.ONI</AssemblyName>
+    <RootNamespace>DoubaoAI.ONI</RootNamespace>
+    <GameManagedDir Condition="'$(GameManagedDir)' == ''">E:\steam\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed</GameManagedDir>
+    <Deterministic>true</Deterministic>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp" HintPath="$(GameManagedDir)\Assembly-CSharp.dll" Private="false" />
+    <Reference Include="Assembly-CSharp-firstpass" HintPath="$(GameManagedDir)\Assembly-CSharp-firstpass.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(GameManagedDir)\0Harmony.dll" Private="false" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(GameManagedDir)\Newtonsoft.Json.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(GameManagedDir)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GameManagedDir)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.ImageConversionModule" HintPath="$(GameManagedDir)\UnityEngine.ImageConversionModule.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(GameManagedDir)\UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.InputLegacyModule" HintPath="$(GameManagedDir)\UnityEngine.InputLegacyModule.dll" Private="false" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(GameManagedDir)\UnityEngine.TextRenderingModule.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="assets\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="config.template.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="mod.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="mod_info.yaml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

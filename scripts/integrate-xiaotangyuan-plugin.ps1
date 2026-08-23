@@ -9,25 +9,44 @@ $manifestPath = Join-Path $repoRoot 'integrations/xiaotangyuan/manifest.json'
 $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
 
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
-  $SourceRoot = Join-Path (Split-Path -Parent $repoRoot) 'dsh-xiaotangyuan-game/apps/harness-plugin'
+  $SourceRoot = Join-Path $repoRoot 'plugins/xiaotangyuan-game'
 }
 $pluginRoot = [IO.Path]::GetFullPath($SourceRoot)
 $packagePath = Join-Path $pluginRoot 'package.json'
 $entryPath = Join-Path $pluginRoot 'dist/index.js'
+$mediaProject = Join-Path $repoRoot 'apps/windows-media-host/XtyMediaHost.csproj'
+$mediaOutput = Join-Path $pluginRoot 'media/windows-x64'
+$mediaEntry = Join-Path $mediaOutput 'XtyMediaHost.exe'
 
 if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) {
   throw "XiaoTangYuan plugin package was not found: $packagePath"
 }
-if (-not (Test-Path -LiteralPath $entryPath -PathType Leaf)) {
-  throw "Built plugin entry was not found: $entryPath. Build dsh-xiaotangyuan-game first."
-}
-
 $pluginPackage = Get-Content -Raw -LiteralPath $packagePath | ConvertFrom-Json
 if ($pluginPackage.name -ne $manifest.packageName) {
   throw "Unexpected package name: $($pluginPackage.name)"
 }
 if ($pluginPackage.version -ne $manifest.development.expectedVersion) {
   throw "Expected source version $($manifest.development.expectedVersion), found $($pluginPackage.version)"
+}
+
+if (-not (Test-Path -LiteralPath $mediaProject -PathType Leaf)) {
+  throw "XiaoTangYuan media host project was not found: $mediaProject"
+}
+
+New-Item -ItemType Directory -Force -Path $mediaOutput | Out-Null
+dotnet publish $mediaProject -c Release -r win-x64 --self-contained true -o $mediaOutput | Out-Host
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $mediaEntry -PathType Leaf)) {
+  throw "XiaoTangYuan media host build failed: $mediaEntry"
+}
+
+Push-Location $pluginRoot
+try {
+  pnpm run build | Out-Host
+} finally {
+  Pop-Location
+}
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $entryPath -PathType Leaf)) {
+  throw "XiaoTangYuan plugin build failed: $entryPath"
 }
 
 $artifactRoot = Join-Path $repoRoot '.artifacts/xiaotangyuan'

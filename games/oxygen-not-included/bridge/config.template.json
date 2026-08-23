@@ -1,0 +1,8 @@
+{
+  "HarnessBridgeRoot": "",
+  "DangerAlertsEnabled": true,
+  "DangerAlertCooldownSeconds": 45,
+  "FairyFollowOffsetX": 28,
+  "FairyFollowOffsetY": 34,
+  "FairyFollowDuplicantName": ""
+}

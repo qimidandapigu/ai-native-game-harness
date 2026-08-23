@@ -9,6 +9,11 @@
     "test": "pnpm --filter @ai-native-game-harness/integration-tests test",
     "check": "pnpm run build && pnpm run test",
     "integration:xiaotangyuan": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/integrate-xiaotangyuan-plugin.ps1",
+    "check:xiaotangyuan": "pnpm run check:dst && pnpm --filter @qimidandapigu/xiaotangyuan-feedback-receiver check && pnpm --filter @qimidandapigu/oni-adapter check && pnpm --filter @qimidandapigu/dsh-xiaotangyuan-game check",
+    "check:dst": "powershell -NoProfile -ExecutionPolicy Bypass -File games/dont-starve-together/scripts/check.ps1",
+    "eval:promptfoo": "node scripts/run-promptfoo.mjs eval -c evals/promptfoo/promptfooconfig.yaml",
+    "eval:promptfoo:contract": "node scripts/run-promptfoo.mjs eval -c evals/promptfoo/promptfooconfig.contract.yaml --no-cache",
+    "eval:promptfoo:view": "node scripts/run-promptfoo.mjs view",
     "dsh:update:check": "node scripts/check-dsh-update.mjs",
     "desktop:prepare": "pnpm integration:xiaotangyuan && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-desktop-runtime.ps1",
     "desktop:start": "pnpm integration:xiaotangyuan && pnpm --filter @ai-native-game-harness/desktop start",
@@ -23,6 +28,7 @@
   },
   "devDependencies": {
     "@types/node": "24.10.0",
+    "promptfoo": "0.122.0",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
   },

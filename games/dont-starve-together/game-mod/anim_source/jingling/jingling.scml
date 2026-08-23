@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spriter_data generator="Codex" generator_version="2" scml_version="1.0">
+    <folder id="0" name="">
+        <file id="0" name="jingling_front.png" width="222" height="444" pivot_x="0.5" pivot_y="0.08"/>
+        <file id="1" name="jingling_blink.png" width="222" height="444" pivot_x="0.5" pivot_y="0.08"/>
+        <file id="2" name="jingling_back.png" width="222" height="444" pivot_x="0.5" pivot_y="0.08"/>
+        <file id="3" name="jingling_left.png" width="222" height="444" pivot_x="0.5" pivot_y="0.08"/>
+        <file id="4" name="jingling_right.png" width="222" height="444" pivot_x="0.5" pivot_y="0.08"/>
+    </folder>
+    <entity id="0" name="jingling">
+        <animation id="0" name="BUILD" length="1" looping="true">
+            <mainline><key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key></mainline>
+            <timeline id="0" name="body"><key id="0"><object folder="0" file="0" x="0" y="0"/></key></timeline>
+        </animation>
+        <animation id="1" name="idle_front" length="1000" looping="true">
+            <mainline><key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key></mainline>
+            <timeline id="0" name="body"><key id="0"><object folder="0" file="0" x="0" y="0"/></key></timeline>
+        </animation>
+        <animation id="2" name="idle_back" length="1000" looping="true">
+            <mainline><key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key></mainline>
+            <timeline id="0" name="body"><key id="0"><object folder="0" file="2" x="0" y="0"/></key></timeline>
+        </animation>
+        <animation id="3" name="idle_west" length="1000" looping="true">
+            <mainline><key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key></mainline>
+            <timeline id="0" name="body"><key id="0"><object folder="0" file="3" x="0" y="0"/></key></timeline>
+        </animation>
+        <animation id="4" name="idle_east" length="1000" looping="true">
+            <mainline><key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key></mainline>
+            <timeline id="0" name="body"><key id="0"><object folder="0" file="4" x="0" y="0"/></key></timeline>
+        </animation>
+        <animation id="5" name="walk_front" length="1000" looping="true">
+            <mainline><key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key></mainline>
+            <timeline id="0" name="body"><key id="0"><object folder="0" file="0" x="0" y="0"/></key></timeline>
+        </animation>
+        <animation id="6" name="walk_back" length="1000" looping="true">
+            <mainline><key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key></mainline>
+            <timeline id="0" name="body"><key id="0"><object folder="0" file="2" x="0" y="0"/></key></timeline>
+        </animation>
+        <animation id="7" name="walk_west" length="1000" looping="true">
+            <mainline><key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key></mainline>
+            <timeline id="0" name="body"><key id="0"><object folder="0" file="3" x="0" y="0"/></key></timeline>
+        </animation>
+        <animation id="8" name="walk_east" length="1000" looping="true">
+            <mainline><key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key></mainline>
+            <timeline id="0" name="body"><key id="0"><object folder="0" file="4" x="0" y="0"/></key></timeline>
+        </animation>
+        <animation id="9" name="throw" length="600" looping="false">
+            <mainline>
+                <key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key>
+                <key id="1" time="150"><object_ref id="0" timeline="0" key="1" z_index="0"/></key>
+                <key id="2" time="300"><object_ref id="0" timeline="0" key="2" z_index="0"/></key>
+                <key id="3" time="450"><object_ref id="0" timeline="0" key="3" z_index="0"/></key>
+                <key id="4" time="550"><object_ref id="0" timeline="0" key="4" z_index="0"/></key>
+            </mainline>
+            <timeline id="0" name="body">
+                <key id="0"><object folder="0" file="0" x="0" y="186" angle="0" pivot_x="0.5" pivot_y="0.5"/></key>
+                <key id="1" time="150"><object folder="0" file="0" x="0" y="204" angle="540" pivot_x="0.5" pivot_y="0.5" scale_x="0.9" scale_y="1.1"/></key>
+                <key id="2" time="300"><object folder="0" file="0" x="0" y="188" angle="1080" pivot_x="0.5" pivot_y="0.5" scale_x="1.05" scale_y="0.9"/></key>
+                <key id="3" time="450"><object folder="0" file="0" x="0" y="204" angle="1620" pivot_x="0.5" pivot_y="0.5" scale_x="0.9" scale_y="1.1"/></key>
+                <key id="4" time="550"><object folder="0" file="0" x="0" y="186" angle="2160" pivot_x="0.5" pivot_y="0.5"/></key>
+            </timeline>
+        </animation>
+        <animation id="10" name="strike" length="650" looping="false">
+            <mainline>
+                <key id="0"><object_ref id="0" timeline="0" key="0" z_index="0"/></key>
+                <key id="1" time="120"><object_ref id="0" timeline="0" key="1" z_index="0"/></key>
+                <key id="2" time="300"><object_ref id="0" timeline="0" key="2" z_index="0"/></key>
+                <key id="3" time="500"><object_ref id="0" timeline="0" key="3" z_index="0"/></key>
+            </mainline>
+            <timeline id="0" name="body">
+                <key id="0"><object folder="0" file="0" x="0" y="0" angle="0"/></key>
+                <key id="1" time="120"><object folder="0" file="0" x="0" y="-10" angle="-10" scale_x="1.15" scale_y="0.78"/></key>
+                <key id="2" time="300"><object folder="0" file="1" x="0" y="-4" angle="10" scale_x="0.88" scale_y="1.05"/></key>
+                <key id="3" time="500"><object folder="0" file="0" x="0" y="0" angle="0"/></key>
+            </timeline>
+        </animation>
+    </entity>
+</spriter_data>

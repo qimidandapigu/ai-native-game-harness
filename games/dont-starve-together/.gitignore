@@ -1,0 +1,33 @@
+# Don't Starve mod build artifacts
+*.zip
+!game-mod/anim/
+!game-mod/anim/jingling.zip
+dist/
+build/
+*.spec
+
+# Local tooling and editor files
+.idea/
+.vscode/
+*.user
+*.suo
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/.env
+.pytest_cache/
+
+# Runtime captures and local state
+runtime/

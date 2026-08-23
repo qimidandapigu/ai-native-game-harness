@@ -1,9 +1,12 @@
 node_modules/
 dist/
+**/bin/
+**/obj/
 coverage/
 .artifacts/
 .tmp/
 distribution/desktop/
+plugins/xiaotangyuan-game/media/
 *.tgz
 *.log
 .DS_Store

@@ -1,0 +1,8 @@
+bin/
+obj/
+dist/
+config.json
+chat_history.json
+memory.json
+deploy-after-exit.log
+*.user

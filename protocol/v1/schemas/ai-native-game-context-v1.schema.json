@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/qimidandapigu/dsh-xiaotangyuan-game/blob/main/protocol/v1/schemas/ai-native-game-context-v1.schema.json",
+  "title": "AI-Native Game Context v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "meta", "scene", "player", "entities", "objectives", "ui"],
+  "properties": {
+    "schema": { "const": "ai-native.game-context.v1" },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gameId", "capturedAt"],
+      "properties": {
+        "gameId": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "adapterId": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "stale": { "type": "boolean" },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "saveScope": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "locale": { "type": "string", "minLength": 2, "maxLength": 30 }
+      }
+    },
+    "scene": { "type": "object" },
+    "player": { "type": "object" },
+    "companion": { "type": "object" },
+    "entities": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": ["string", "number"] },
+          "kind": { "type": "string", "maxLength": 80 },
+          "name": { "type": "string", "maxLength": 120 },
+          "distance": { "type": "number", "minimum": 0 },
+          "hostile": { "type": "boolean" },
+          "interactable": { "type": "boolean" },
+          "position": { "type": "object" }
+        }
+      }
+    },
+    "objectives": { "type": "array", "maxItems": 20 },
+    "ui": { "type": "object" },
+    "extensions": {
+      "type": "object",
+      "description": "Game-specific facts keyed by stable game namespace."
+    }
+  }
+}

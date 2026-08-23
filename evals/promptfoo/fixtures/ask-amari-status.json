@@ -1,0 +1,7 @@
+{
+  "gameId": "oxygen-not-included",
+  "saveId": "colony-a",
+  "observation": { "duplicants": [{ "id": 12, "name": "阿玛里", "alive": true, "health": 96, "stress": 8 }] },
+  "toolResults": {},
+  "replayResponse": { "output": "阿玛里状态不错，生命值 96，压力也很低。", "metadata": { "toolCalls": [], "finalGameState": { "followedDuplicantId": 21 } } }
+}

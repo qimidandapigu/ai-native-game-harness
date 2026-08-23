@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "tag": "stardew-v0.4.0",
+  "version": "0.4.0",
+  "archive": {
+    "name": "dsh-xiaotangyuan-game-stardew-0.4.0.zip",
+    "url": "https://github.com/qimidandapigu/dsh-xiaotangyuan-game/releases/download/stardew-v0.4.0/dsh-xiaotangyuan-game-stardew-0.4.0.zip",
+    "size": 39081,
+    "sha256": "0a1b712f4ca0498e79d742cfe6c0c3fea9d49a64300505e1590044da7a233a3b"
+  }
+}

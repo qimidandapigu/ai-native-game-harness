@@ -1,0 +1,38 @@
+{
+  "gameId": "dont-starve-together",
+  "saveId": "dst-world-a",
+  "adapterCapabilities": ["dst.find_nearest_butterfly", "dst.attack_butterfly", "dst.collect_butterfly_loot"],
+  "observation": {
+    "player": { "alive": true, "x": 10, "z": 8 },
+    "companion": { "available": true, "containerSlotsUsed": 9, "containerSlotsTotal": 9 },
+    "nearbyEntities": [{ "id": 9001, "prefab": "butterfly", "x": 12, "z": 8, "alive": true }]
+  },
+  "atomResults": {
+    "dst.find_nearest_butterfly": { "targetId": 9001, "x": 12, "z": 8 },
+    "dst.attack_butterfly": { "targetId": 9001, "defeated": true, "x": 12, "z": 8 }
+  },
+  "atomErrors": { "dst.collect_butterfly_loot": "小汤圆的容器已经满了" },
+  "replayResponse": {
+    "output": "蝴蝶打到了，但我的箱子已经满了，蝴蝶翅膀还在地上。",
+    "metadata": {
+      "toolCalls": [{
+        "name": "xiaotangyuan_skill_run",
+        "input": { "skillId": "dst.hunt-and-collect-butterfly" },
+        "output": {
+          "success": false,
+          "skillId": "dst.hunt-and-collect-butterfly",
+          "skillVersion": 1,
+          "message": "技能执行失败：小汤圆的容器已经满了",
+          "error": "小汤圆的容器已经满了",
+          "traceJson": "[{\"index\":0,\"atom\":\"dst.find_nearest_butterfly\",\"arguments\":{\"radius\":20},\"success\":true,\"result\":{\"targetId\":9001,\"x\":12,\"z\":8}},{\"index\":1,\"atom\":\"dst.attack_butterfly\",\"arguments\":{\"targetId\":9001},\"success\":true,\"result\":{\"targetId\":9001,\"defeated\":true,\"x\":12,\"z\":8}},{\"index\":2,\"atom\":\"dst.collect_butterfly_loot\",\"arguments\":{\"x\":12,\"z\":8,\"radius\":4},\"success\":false,\"error\":\"小汤圆的容器已经满了\"}]"
+        },
+        "isError": false
+      }],
+      "finalGameState": {
+        "nearbyEntities": [],
+        "groundLoot": [{ "prefab": "butterflywings", "count": 1, "x": 12, "z": 8 }],
+        "companionContainer": []
+      }
+    }
+  }
+}

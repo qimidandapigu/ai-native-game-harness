@@ -1,0 +1,8 @@
+{
+  "gameId": "oxygen-not-included",
+  "saveId": "colony-b",
+  "memorySeed": { "shared": [], "otherSaves": [{ "saveId": "colony-a", "followTarget": "阿玛里" }], "currentSave": [{ "followTarget": "哈桑" }] },
+  "observation": { "followedDuplicantId": 21, "duplicants": [{ "id": 12, "name": "阿玛里", "alive": true }, { "id": 21, "name": "哈桑", "alive": true }] },
+  "toolResults": {},
+  "replayResponse": { "output": "我们现在跟着哈桑。", "metadata": { "toolCalls": [], "finalGameState": { "followedDuplicantId": 21 } } }
+}

@@ -51,7 +51,8 @@ AI Native Game Harness/
 │  ├─ game-media/               # 语音、视觉与媒体通道
 │  ├─ game-ui/                  # 对话、分析和连接诊断界面
 │  ├─ game-installer/           # 游戏与 Mod 安装定位
-│  └─ game-bundle/              # Game Pack 安装、校验与更新
+│  ├─ game-bundle/              # Game Pack 安装、校验与更新
+│  └─ xiaotangyuan-game/        # 已迁入的多游戏 DSH 插件与当前产品能力
 ├─ contracts/                   # 跨进程线协议与 Schema；它是契约，不是插件
 ├─ games/
 │  └─ oxygen-not-included/
@@ -164,7 +165,9 @@ pnpm check
 pnpm integration:xiaotangyuan
 ```
 
-这条命令从相邻的 `dsh-xiaotangyuan-game/apps/harness-plugin` 打包开发版插件，安装到仓库内忽略的隔离 Profile，并验证最终装配配置；不会修改用户的日常 DSH Profile。
+这条命令会在当前仓库内构建 `apps/windows-media-host` 和 `plugins/xiaotangyuan-game`，打包插件、安装到仓库内忽略的隔离 Profile，并验证最终装配配置；不会读取相邻旧仓库，也不会修改用户的日常 DSH Profile。
+
+原 `dsh-xiaotangyuan-game` 的插件、三个游戏的 Mod/Bridge、发行清单、协议与测试源码已经迁入本仓库。旧仓库可以作为历史快照保留；现有旧 Release 链接暂时继续承载已经发布的游戏包，后续新版本和新 Release 统一从本仓库发布。
 
 构建桌面安装包：
 
@@ -177,7 +180,7 @@ pnpm desktop:dist
 接下来按产品闭环继续：
 
 1. 接入一个真实游戏的 Native Bridge，完成游戏内验收；
-2. 补产品图标、代码签名、升级清单和崩溃诊断；
+2. 补代码签名、升级清单和崩溃诊断；
 3. 生成校验和并发布 GitHub Release。
 
 DSH 不自动追新，但可以受控升级。运行 `pnpm dsh:update:check` 查看候选版本，升级规则见 [UPGRADING_DSH.md](docs/UPGRADING_DSH.md)。

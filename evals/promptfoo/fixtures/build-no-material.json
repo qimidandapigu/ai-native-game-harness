@@ -1,0 +1,7 @@
+{
+  "gameId": "oxygen-not-included",
+  "saveId": "colony-a",
+  "observation": { "cursor": { "x": 18, "y": 7, "buildable": true }, "materials": { "sandstone": 0 } },
+  "toolResults": { "oni_build": { "success": false, "reply": "材料不足，无法创建梯子建造任务。" } },
+  "replayResponse": { "output": "这里材料不足，暂时没法建梯子。", "metadata": { "toolCalls": [{ "name": "oni_build", "input": { "buildingKey": "ladder" }, "output": { "success": false, "reply": "材料不足，无法创建梯子建造任务。" }, "isError": false }], "finalGameState": { "buildings": [] } } }
+}

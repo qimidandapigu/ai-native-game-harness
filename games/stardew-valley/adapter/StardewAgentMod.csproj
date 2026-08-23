@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>StardewAgentMod</RootNamespace>
+    <AssemblyName>StardewAgentMod</AssemblyName>
+    <Version>0.6.1</Version>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <EnableModDeploy>false</EnableModDeploy>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+  </ItemGroup>
+</Project>
