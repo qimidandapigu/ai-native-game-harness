@@ -1,0 +1,6 @@
+packages:
+  - contracts/*
+  - plugins/*
+  - games/*/harness-plugin
+  - games/*/native-bridge
+  - tests/*

@@ -1,0 +1,6 @@
+{
+  "dsh": "0.1.0-rc.6",
+  "cordis": "4.0.1",
+  "node": ">=22.19",
+  "upgradePolicy": "pinned-and-tested"
+}

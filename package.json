@@ -1,0 +1,21 @@
+{
+  "name": "ai-native-game-harness-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DeepSeek Harness game distribution and plugin workspace.",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "test": "pnpm --filter @ai-native-game-harness/integration-tests test",
+    "check": "pnpm run build && pnpm run test"
+  },
+  "engines": {
+    "node": ">=22.19"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  },
+  "packageManager": "pnpm@10.28.2"
+}

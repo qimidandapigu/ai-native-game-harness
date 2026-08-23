@@ -1,0 +1,3 @@
+- insert:
+    - id: ai-native-game-core
+      name: '@ai-native-game-harness/game-core'

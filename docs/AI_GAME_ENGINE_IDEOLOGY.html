@@ -692,6 +692,7 @@
         <a href="#gamepack">Game Pack</a>
         <a href="#protocols">协议</a>
         <a href="#baseline">基线</a>
+        <a href="#structure">目录</a>
         <a href="#surfaces">界面</a>
         <a href="#roadmap">路线</a>
       </div>
@@ -973,12 +974,38 @@
         <strong>依赖与延期规则</strong>
         <span>不是“把所有包全装进启动配置”，而是完整复用 DSH 发行能力、按产品 Profile 启用所需插件。Loader、Include、Group、Timer、Logger、HMR 等通用包优先复用上游；业务代码不重复实现。第一条验收仍聚焦 Fake Game 与一个真实游戏的可观察闭环。</span>
       </div>
+      <div class="state-law card">
+        <strong>当前已实现</strong>
+        <span><span class="mono">game-core</span>、<span class="mono">game-transport</span>、Bridge v1 契约、<span class="mono">fake-game-harness</span> 与 Fake Native Bridge 已组成可运行切片。DSH Tool <span class="mono">fake_collect_coin</span> 实际执行 observe → move → collect → observe，并由测试验证权威状态、Trace 与插件卸载清理。</span>
+      </div>
+    </section>
+
+    <section id="structure" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">06 · Repository structure</div>
+          <h2>目录表达边界，不只是整理文件</h2>
+        </div>
+        <p class="section-summary">按运行进程、复用范围、依赖方向和发行单元拆分。除了桌面启动壳、线协议、游戏内 Mod 与打包元数据，产品运行能力都应实现为 DSH 插件。</p>
+      </div>
+      <div class="surface-grid">
+        <article class="feature card"><div class="feature-icon">APP</div><h3>apps / runtime</h3><p><span class="mono">apps/desktop</span> 只管理窗口与 DSH 子进程；<span class="mono">runtime/dsh-profile</span> 固定上游版本、默认配置与插件装配，不自研另一套 Runtime。</p></article>
+        <article class="feature card"><div class="feature-icon">PLUG</div><h3>plugins</h3><p>Game Core、Transport、Memory、Media、UI、Installer 等跨游戏能力只实现一次，并遵循 DSH 的注入、事件和可逆生命周期。</p></article>
+        <article class="feature card"><div class="feature-icon">WIRE</div><h3>contracts</h3><p>独立定义 Harness 与 C#、Lua、C++ Mod 共同使用的 Bridge 消息和 Schema，避免线协议反向依赖某个 TypeScript 插件。</p></article>
+        <article class="feature card"><div class="feature-icon">GAME</div><h3>games / &lt;game&gt;</h3><p>同一游戏的 Harness Plugin、薄 Native Bridge 与 Pack 放在一起，确保它们共同测试、固定兼容范围并作为一个 Game Pack 发行。</p></article>
+        <article class="feature card"><div class="feature-icon">TEST</div><h3>tests</h3><p>分别验证协议兼容、DSH 插件装配、Trace 回放和最终游戏状态，明确区分“能够构建”和“真的执行成功”。</p></article>
+        <article class="feature card"><div class="feature-icon">SHIP</div><h3>distribution</h3><p>将桌面源代码组合成完整应用，将每游戏两端代码组合成 Game Pack；发行物拥有独立版本、校验和、兼容范围与卸载信息。</p></article>
+      </div>
+      <div class="state-law card">
+        <strong>单向依赖规则</strong>
+        <span>Desktop → DSH Profile → Shared Plugins → Game Harness Plugin → Bridge Contract → Native Bridge → Game API。Mod 不反向依赖 Harness，通用插件也不依赖某个具体游戏。</span>
+      </div>
     </section>
 
     <section id="surfaces" class="reveal">
       <div class="section-head">
         <div>
-          <div class="section-kicker">06 · Product surfaces</div>
+          <div class="section-kicker">07 · Product surfaces</div>
           <h2>引擎必须“看得见”</h2>
         </div>
         <p class="section-summary">界面让玩家与开发者理解 AI 正在做什么、依据是什么、权限在哪里，而不是面对一个黑盒后台进程。</p>
@@ -993,7 +1020,7 @@
     <section id="ecosystem" class="reveal">
       <div class="section-head">
         <div>
-          <div class="section-kicker">07 · Ecosystem</div>
+          <div class="section-kicker">08 · Ecosystem</div>
           <h2>不同参与者，只承担必要复杂度</h2>
         </div>
         <p class="section-summary">生态的关键不是让所有人写插件，而是让每一种参与者只接触与自己相关的那层。</p>
@@ -1009,7 +1036,7 @@
     <section id="roadmap" class="reveal">
       <div class="section-head">
         <div>
-          <div class="section-kicker">08 · Evolution</div>
+          <div class="section-kicker">09 · Evolution</div>
           <h2>保留原型，建立游戏发行版</h2>
         </div>
         <p class="section-summary">原仓库继续作为已验证能力和迁移来源；新仓库复用 DSH Runtime，但形成独立安装、独立界面和独立 Game Pack 生态。</p>
@@ -1025,7 +1052,7 @@
     <section id="boundaries" class="reveal">
       <div class="section-head">
         <div>
-          <div class="section-kicker">09 · Boundaries</div>
+          <div class="section-kicker">10 · Boundaries</div>
           <h2>我们做什么，也明确不做什么</h2>
         </div>
         <p class="section-summary">清晰的非目标能防止引擎重新膨胀成另一个面向所有场景的通用 Agent 产品。</p>

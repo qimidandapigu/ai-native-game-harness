@@ -1,0 +1,21 @@
+{
+  "name": "@ai-native-game-harness/integration-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-native-game-harness/bridge-contract": "workspace:*",
+    "@ai-native-game-harness/fake-game-harness": "workspace:*",
+    "@ai-native-game-harness/fake-native-bridge": "workspace:*",
+    "@ai-native-game-harness/game-core": "workspace:*",
+    "@ai-native-game-harness/game-transport": "workspace:*",
+    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.6"
+  },
+  "devDependencies": {
+    "vitest": "4.0.18"
+  }
+}

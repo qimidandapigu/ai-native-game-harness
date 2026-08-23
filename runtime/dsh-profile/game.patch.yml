@@ -1,0 +1,5 @@
+- insert:
+    - id: ai-native-game-core
+      name: '@ai-native-game-harness/game-core'
+    - id: ai-native-game-transport
+      name: '@ai-native-game-harness/game-transport'

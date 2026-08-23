@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-native-game-harness.dev/schemas/bridge-v1/bridge-hello.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocolVersion", "bridgeId", "bridgeVersion", "gameId", "capabilities"],
+  "properties": {
+    "protocolVersion": { "const": "1.0" },
+    "bridgeId": { "type": "string", "minLength": 1 },
+    "bridgeVersion": { "type": "string", "minLength": 1 },
+    "gameId": { "type": "string", "minLength": 1 },
+    "gameVersion": { "type": "string" },
+    "capabilities": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+  }
+}

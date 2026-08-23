@@ -1,0 +1,3 @@
+- insert:
+    - id: ai-native-fake-game-harness
+      name: '@ai-native-game-harness/fake-game-harness'

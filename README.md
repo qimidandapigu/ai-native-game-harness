@@ -65,6 +65,39 @@ AI Native Game Harness/
 
 `Adapter` 在产品界面中仍可作为“游戏接入”的通俗名称；在代码所有权上，它主要由 **每游戏 Harness Plugin + 薄 Native Bridge + 两者之间的线协议** 组成，不再是一个把 AI 逻辑放进游戏进程的粗粒度模块。
 
+## 为什么这样分目录
+
+目录同时表达四种边界：运行进程、复用范围、依赖方向和发行单元。
+
+| 目录 | 拆分原因 |
+| --- | --- |
+| `apps/desktop` | Electron 必须在 DSH 启动前存在，但它只管理进程、窗口和系统集成，不拥有游戏业务。 |
+| `runtime/dsh-profile` | 集中固定 DSH 版本与插件装配；这是发行配置，不是另一套自研 Runtime。 |
+| `plugins` | 所有游戏都能复用的运行能力只实现一次，并遵循 DSH 插件生命周期。 |
+| `contracts` | Harness 与 C#、Lua、C++ 等 Mod 都依赖同一份线协议，契约不能反向依赖某个 TypeScript 插件。 |
+| `games/<game>` | 同一游戏的 Harness Plugin、Native Bridge 与 Pack 必须一起测试、定版和发行。 |
+| `tests` | 把协议正确、插件可装配和真实状态改变分别验证，避免把构建成功当成游戏接入成功。 |
+| `distribution` | 源代码包和用户安装包具有不同组合方式、版本与校验规则。 |
+
+依赖方向必须保持单向：
+
+```text
+Desktop → DSH Profile → Shared Plugins → Game Harness Plugin
+                                           ↓
+                                    Bridge Contract
+                                           ↓
+                                   Native Bridge → Game API
+```
+
+新增能力时的归属规则：
+
+- DSH 已经提供：在 Profile 中装配，不重写；
+- 跨游戏且需要运行：放进 `plugins/`；
+- 某游戏的知识、工具或编排：放进该游戏的 `harness-plugin/`；
+- 必须进入游戏进程调用原生 API：放进 `native-bridge/`；
+- 只是跨语言数据格式：放进 `contracts/`；
+- 只负责安装、版本和校验：放进 `pack/` 或 `distribution/`。
+
 ## Game Pack
 
 一个游戏的可独立安装包同时包含：
@@ -87,5 +120,20 @@ state → Agent → semantic tool call → permission/schema validation
 ```
 
 随后再用一个真实游戏验证同一条链路。构建成功不等于接入成功；必须能观察到状态变化、调用参数、游戏侧执行结果和最终状态。
+
+当前仓库已经实现第一条 Fake Game 纵向切片：
+
+- `game-core` 和 `game-transport` 是可由 Cordis 装载、可卸载的 DSH 插件；
+- `fake-game-harness` 注册真实 DSH Tool：`fake_collect_coin`；
+- Harness Plugin 依次调用 `game.observe → game.move → game.collect → game.observe`；
+- Fake Native Bridge 执行权威状态变更；
+- 集成测试验证位置、体力、金币、revision、Trace 与插件卸载清理。
+
+运行验证：
+
+```powershell
+pnpm install
+pnpm check
+```
 
 更完整的产品定位与架构说明见 [AI_GAME_ENGINE_IDEOLOGY.html](docs/AI_GAME_ENGINE_IDEOLOGY.html)。
