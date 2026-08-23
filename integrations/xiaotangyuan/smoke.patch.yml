@@ -1,0 +1,15 @@
+- id: xiaotangyuan-game
+  config:
+    port: 33145
+    vision:
+      enabled: false
+    speech:
+      enabled: false
+    media:
+      enabled: false
+    proactiveChat:
+      enabled: false
+    memory:
+      enabled: false
+    feedback:
+      enabled: false

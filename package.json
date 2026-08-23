@@ -7,10 +7,15 @@
   "scripts": {
     "build": "pnpm -r --if-present build",
     "test": "pnpm --filter @ai-native-game-harness/integration-tests test",
-    "check": "pnpm run build && pnpm run test"
+    "check": "pnpm run build && pnpm run test",
+    "integration:xiaotangyuan": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/integrate-xiaotangyuan-plugin.ps1",
+    "dsh:update:check": "node scripts/check-dsh-update.mjs"
   },
   "engines": {
     "node": ">=22.19"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.1.0-rc.6"
   },
   "devDependencies": {
     "@types/node": "24.10.0",

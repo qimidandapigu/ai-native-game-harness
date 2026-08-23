@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1",
+  "id": "xiaotangyuan-legacy",
+  "packageName": "@qimidandapigu/dsh-xiaotangyuan-game",
+  "profilePatch": "runtime/dsh-profile/xiaotangyuan.patch.yml",
+  "smokePatch": "integrations/xiaotangyuan/smoke.patch.yml",
+  "compatibility": {
+    "dsh": "0.1.0-rc.6",
+    "testedDsh": [
+      "0.1.0-rc.6",
+      "0.1.1-rc.2"
+    ],
+    "cordis": "4.0.1"
+  },
+  "development": {
+    "expectedVersion": "0.7.7",
+    "defaultSource": "../dsh-xiaotangyuan-game/apps/harness-plugin"
+  },
+  "stable": {
+    "version": "0.5.1",
+    "url": "https://github.com/qimidandapigu/dsh-xiaotangyuan-game/releases/download/plugin-v0.5.1/qimidandapigu-dsh-xiaotangyuan-game-0.5.1.tgz",
+    "size": 66536124,
+    "sha256": "06fd8af0d95a0a95193fc5ed165158ce2218511da5018474c748da754808525d"
+  }
+}

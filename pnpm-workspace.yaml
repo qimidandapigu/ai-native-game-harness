@@ -3,4 +3,5 @@ packages:
   - plugins/*
   - games/*/harness-plugin
   - games/*/native-bridge
+  - integrations/*
   - tests/*

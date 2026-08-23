@@ -1,6 +1,8 @@
 node_modules/
 dist/
 coverage/
+.artifacts/
+.tmp/
 *.tgz
 *.log
 .DS_Store

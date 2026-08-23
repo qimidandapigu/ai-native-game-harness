@@ -136,4 +136,30 @@ pnpm install
 pnpm check
 ```
 
+## 当前可用程度
+
+目前是“可开发、可接插件”的源码阶段，还不是普通用户可下载安装的桌面应用：
+
+- Fake Game 已完成 `state → tool → Bridge → authoritative state` 自动化闭环；
+- `dsh-xiaotangyuan-game` 的本地 `0.7.7` Harness Plugin 已能打包、安装到隔离 DSH Profile、合并配置并真实启动 WebSocket Gateway；
+- 已在固定版 DSH `0.1.0-rc.6` 和升级候选 `0.1.1-rc.2` 上启动验证，端口使用 `33145`，不占用日常实例的 `32145`；
+- 尚未实现 Electron 桌面壳、Windows 安装器和正式 Release，因此现在不能下载 `.exe` 安装。
+
+本地复现小汤圆插件接入：
+
+```powershell
+pnpm integration:xiaotangyuan
+```
+
+这条命令从相邻的 `dsh-xiaotangyuan-game/apps/harness-plugin` 打包开发版插件，安装到仓库内忽略的隔离 Profile，并验证最终装配配置；不会修改用户的日常 DSH Profile。
+
+接下来按产品闭环实现：
+
+1. 最小 Electron 桌面壳：启动/停止内置 DSH、打开产品窗口并显示运行错误；
+2. 把经过验证的 DSH Profile、共享插件和小汤圆插件装进桌面发行目录；
+3. 接入一个真实游戏的 Native Bridge，完成游戏内验收；
+4. 生成 Windows 安装包、校验和与 GitHub Release。
+
+DSH 不自动追新，但可以受控升级。运行 `pnpm dsh:update:check` 查看候选版本，升级规则见 [UPGRADING_DSH.md](docs/UPGRADING_DSH.md)。
+
 更完整的产品定位与架构说明见 [AI_GAME_ENGINE_IDEOLOGY.html](docs/AI_GAME_ENGINE_IDEOLOGY.html)。

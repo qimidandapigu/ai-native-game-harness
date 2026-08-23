@@ -1,0 +1,8 @@
+- insert:
+    - id: ai-native-xiaotangyuan-legacy
+      name: '@qimidandapigu/dsh-xiaotangyuan-game'
+      config:
+        host: 127.0.0.1
+        port: 32145
+        feedback:
+          enabled: false
