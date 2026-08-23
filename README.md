@@ -40,7 +40,8 @@ Mod 不是另一个 Agent，也不负责规划、记忆或调用模型。Harness
 
 ```text
 AI Native Game Harness/
-├─ desktop/                     # 最小 Electron 启动、窗口和 Windows 打包
+├─ apps/
+│  └─ desktop/                 # 最小 Electron 启动、窗口和 Windows 打包
 ├─ runtime/                     # 固定版本的 DSH 发行配置与启动入口
 ├─ plugins/                     # 跨游戏复用的标准 DSH 插件
 │  ├─ game-core/                # 游戏上下文、状态与统一领域服务
@@ -138,12 +139,24 @@ pnpm check
 
 ## 当前可用程度
 
-目前是“可开发、可接插件”的源码阶段，还不是普通用户可下载安装的桌面应用：
+目前已进入“可构建桌面安装包”的开发预览阶段：
 
 - Fake Game 已完成 `state → tool → Bridge → authoritative state` 自动化闭环；
 - `dsh-xiaotangyuan-game` 的本地 `0.7.7` Harness Plugin 已能打包、安装到隔离 DSH Profile、合并配置并真实启动 WebSocket Gateway；
-- 已在固定版 DSH `0.1.0-rc.6` 和升级候选 `0.1.1-rc.2` 上启动验证，端口使用 `33145`，不占用日常实例的 `32145`；
-- 尚未实现 Electron 桌面壳、Windows 安装器和正式 Release，因此现在不能下载 `.exe` 安装。
+- 源码基线仍固定 DSH `0.1.0-rc.6`；桌面发行 Runtime 固定为已验证的 `0.1.1-rc.2`，端口使用 `33145`，不占用日常实例的 `32145`；
+- Electron 桌面壳会管理内置 DSH 进程、隔离用户 Profile、启动状态页和 DSH Web 窗口；
+- 可在 Windows 本地构建 `.exe` 安装包，但尚未创建签名和正式 GitHub Release，因此 GitHub 暂无公开下载按钮。
+
+| 能力 | 当前状态 |
+| --- | --- |
+| Fake Game 权威闭环 | 已实现并有自动化测试 |
+| `game-core` / `game-transport` / Bridge v1 | 已实现 |
+| 小汤圆 `0.7.7` 插件打包、隔离安装和 Gateway 启动 | 已验证 |
+| Electron 启动内置 DSH、隔离 Profile、显示状态 | 已实现 |
+| Windows NSIS `.exe` | 本地已构建，未签名、未发布 |
+| 产品专属分析页与游戏连接中心 | 尚未实现 |
+| 首个真实游戏 Game Pack 的最终游戏内验收 | 尚未完成 |
+| GitHub Release 与自动升级 | 尚未完成 |
 
 本地复现小汤圆插件接入：
 
@@ -153,12 +166,19 @@ pnpm integration:xiaotangyuan
 
 这条命令从相邻的 `dsh-xiaotangyuan-game/apps/harness-plugin` 打包开发版插件，安装到仓库内忽略的隔离 Profile，并验证最终装配配置；不会修改用户的日常 DSH Profile。
 
-接下来按产品闭环实现：
+构建桌面安装包：
 
-1. 最小 Electron 桌面壳：启动/停止内置 DSH、打开产品窗口并显示运行错误；
-2. 把经过验证的 DSH Profile、共享插件和小汤圆插件装进桌面发行目录；
-3. 接入一个真实游戏的 Native Bridge，完成游戏内验收；
-4. 生成 Windows 安装包、校验和与 GitHub Release。
+```powershell
+pnpm desktop:dist
+```
+
+产物写入 `distribution/desktop/`。开发时运行 `pnpm desktop:start`，不要求另行安装 DSH，但仓库开发命令本身需要 Node.js 和 pnpm。未来正式发布的 `.exe` 才面向无需开发环境的普通玩家。
+
+接下来按产品闭环继续：
+
+1. 接入一个真实游戏的 Native Bridge，完成游戏内验收；
+2. 补产品图标、代码签名、升级清单和崩溃诊断；
+3. 生成校验和并发布 GitHub Release。
 
 DSH 不自动追新，但可以受控升级。运行 `pnpm dsh:update:check` 查看候选版本，升级规则见 [UPGRADING_DSH.md](docs/UPGRADING_DSH.md)。
 

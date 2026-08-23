@@ -9,7 +9,11 @@
     "test": "pnpm --filter @ai-native-game-harness/integration-tests test",
     "check": "pnpm run build && pnpm run test",
     "integration:xiaotangyuan": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/integrate-xiaotangyuan-plugin.ps1",
-    "dsh:update:check": "node scripts/check-dsh-update.mjs"
+    "dsh:update:check": "node scripts/check-dsh-update.mjs",
+    "desktop:prepare": "pnpm integration:xiaotangyuan && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-desktop-runtime.ps1",
+    "desktop:start": "pnpm integration:xiaotangyuan && pnpm --filter @ai-native-game-harness/desktop start",
+    "desktop:pack": "pnpm desktop:prepare && pnpm --filter @ai-native-game-harness/desktop run pack",
+    "desktop:dist": "pnpm desktop:prepare && pnpm --filter @ai-native-game-harness/desktop dist"
   },
   "engines": {
     "node": ">=22.19"

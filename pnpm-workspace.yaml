@@ -1,7 +1,10 @@
 packages:
+  - apps/*
   - contracts/*
   - plugins/*
   - games/*/harness-plugin
   - games/*/native-bridge
   - integrations/*
   - tests/*
+onlyBuiltDependencies:
+  - electron

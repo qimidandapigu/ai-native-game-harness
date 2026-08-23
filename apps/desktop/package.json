@@ -1,0 +1,25 @@
+{
+  "name": "@ai-native-game-harness/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Windows desktop distribution for AI Native Game Harness.",
+  "type": "module",
+  "main": "src/main.mjs",
+  "files": [
+    "src",
+    "electron-builder.config.mjs"
+  ],
+  "scripts": {
+    "start": "electron .",
+    "pack": "cross-env NODE_OPTIONS=--max-old-space-size=12288 electron-builder --projectDir ../../.artifacts/desktop-app --config ../../apps/desktop/electron-builder.config.mjs --dir",
+    "dist": "cross-env NODE_OPTIONS=--max-old-space-size=12288 electron-builder --projectDir ../../.artifacts/desktop-app --config ../../apps/desktop/electron-builder.config.mjs --win nsis"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.1.1-rc.2"
+  },
+  "devDependencies": {
+    "cross-env": "10.1.0",
+    "electron": "43.4.1",
+    "electron-builder": "26.15.3"
+  }
+}
