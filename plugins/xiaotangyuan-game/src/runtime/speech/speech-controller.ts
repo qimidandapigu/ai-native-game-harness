@@ -10,7 +10,6 @@ import type { SpeechRecognitionProvider, SpeechSynthesisProvider, StreamingRecog
 export interface VoiceInteractionHandler {
   recordingStarted(processId: number): void
   recordingStopped(processId: number): void
-  transcriptReady(processId: number, transcript: string): void
   respond(processId: number, transcript: string, signal: AbortSignal): Promise<{ reply: string, speechPlayed: boolean }>
   failed(processId: number, message: string): void
 }
@@ -205,7 +204,6 @@ export class SpeechController {
       if (provider?.startStreaming !== undefined) {
         live.session = provider.startStreaming({
           format: { sampleRate: event.sampleRate, bitsPerSample: event.bitsPerSample, channels: event.channels },
-          onPartial: text => this.handler.transcriptReady(event.processId, text),
         }, controller.signal).then(session => {
           for (const chunk of live.buffered) session.push(chunk)
           live.buffered.length = 0
@@ -269,7 +267,6 @@ export class SpeechController {
         }, controller.signal)
       }
       const asrFinished = performance.now()
-      this.handler.transcriptReady(event.processId, transcript)
       const response = await this.handler.respond(event.processId, transcript, controller.signal)
       const agentFinished = performance.now()
       if (!response.speechPlayed) await this.speak(response.reply, controller.signal)

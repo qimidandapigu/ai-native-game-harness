@@ -1,0 +1,15 @@
+- id: xiaotangyuan-game
+  config:
+    port: 33145
+    vision:
+      enabled: true
+      maxWidth: 768
+    speech:
+      enabled: true
+      provider: auto
+      credentialRef: VOLCENGINE_API_KEY
+      ttsResourceId: seed-tts-2.0
+      ttsVoice: ICL_uranus_zh_female_yuanqitianmei_tob
+    media:
+      enabled: true
+      pushToTalkVirtualKey: 86

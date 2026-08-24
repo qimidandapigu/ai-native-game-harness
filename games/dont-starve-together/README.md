@@ -2,7 +2,7 @@
 
 让《饥荒联机版》的切斯特接入 DeepSeek Harness。按住 `F8` 说话、松开发送，按 `Shift+V` 重新生成上一条回答。
 
-本项目统一维护在 `dsh-xiaotangyuan-game/games/dont-starve-together`。请从单仓库根目录运行 `pnpm check:dst` 和 `pnpm build:dst`；不要再向旧 `dont-starve-ai-mod` 仓库提交功能代码。
+本项目统一维护在 `ai-native-game-harness/games/dont-starve-together`。请从主仓库根目录运行 `pnpm check:dst`；构建发行包使用 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-dont-starve-release.ps1`。不要再向旧 `dsh-xiaotangyuan-game` 或 `dont-starve-ai-mod` 仓库提交功能代码。
 
 ## 架构
 

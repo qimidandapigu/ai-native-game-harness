@@ -36,7 +36,7 @@ Mod 不是另一个 Agent，也不负责规划、记忆或调用模型。Harness
 
 这不是给 DSH 增加一个“游戏模式”，也不是要求用户先安装另一个 DSH 应用。最终用户安装的是一个完整的 AI Native Game Harness 桌面应用，其中已经打包了所需的 DSH Runtime 和官方游戏插件。
 
-## 目标目录
+## 当前仓库结构
 
 ```text
 AI Native Game Harness/
@@ -55,10 +55,10 @@ AI Native Game Harness/
 │  └─ xiaotangyuan-game/        # 已迁入的多游戏 DSH 插件与当前产品能力
 ├─ contracts/                   # 跨进程线协议与 Schema；它是契约，不是插件
 ├─ games/
-│  └─ oxygen-not-included/
-│     ├─ harness-plugin/        # DSH 插件：知识、工具、编排、Bridge API client
-│     ├─ native-bridge/         # 薄 C# Mod：状态、动作、事件 API
-│     └─ pack/                  # manifest、校验和与发行脚本
+│  ├─ fake-game/               # 确定性的端到端测试游戏
+│  ├─ stardew-valley/          # 星露谷 C# Bridge、外观包与发行脚本
+│  ├─ dont-starve-together/    # 饥荒 Lua Mod、Adapter 与发行脚本
+│  └─ oxygen-not-included/     # 缺氧 Harness Adapter、C# Bridge 与发行脚本
 └─ tests/
    ├─ fake-game/                # 快速、确定性的完整闭环
    ├─ protocol/                 # 跨版本契约测试
@@ -146,6 +146,8 @@ pnpm check
 - `dsh-xiaotangyuan-game` 的本地 `0.7.7` Harness Plugin 已能打包、安装到隔离 DSH Profile、合并配置并真实启动 WebSocket Gateway；
 - 源码基线仍固定 DSH `0.1.0-rc.6`；桌面发行 Runtime 固定为已验证的 `0.1.1-rc.2`，端口使用 `33145`，不占用日常实例的 `32145`；
 - Electron 桌面壳会管理内置 DSH 进程、隔离用户 Profile、启动状态页和 DSH Web 窗口；
+- 桌面游戏版使用独立运行配置：默认按住 `V` 语音，松开后进入 Agent；通用插件源码默认键仍为 `F8`；
+- 流式 ASR 的中间转写和最终转写只在 Harness 内部送入 Agent，不再把玩家原话重复显示到游戏气泡；
 - 可在 Windows 本地构建 `.exe` 安装包，但尚未创建签名和正式 GitHub Release，因此 GitHub 暂无公开下载按钮。
 
 | 能力 | 当前状态 |
@@ -154,6 +156,7 @@ pnpm check
 | `game-core` / `game-transport` / Bridge v1 | 已实现 |
 | 小汤圆 `0.7.7` 插件打包、隔离安装和 Gateway 启动 | 已验证 |
 | Electron 启动内置 DSH、隔离 Profile、显示状态 | 已实现 |
+| 桌面配置启用视觉、语音和媒体，默认 Push-to-Talk 为 `V` | 已实现 |
 | Windows NSIS `.exe` | 本地已构建，未签名、未发布 |
 | 产品专属分析页与游戏连接中心 | 尚未实现 |
 | 首个真实游戏 Game Pack 的最终游戏内验收 | 尚未完成 |
@@ -182,7 +185,7 @@ pnpm integration:xiaotangyuan
 pnpm desktop:dist
 ```
 
-产物写入 `distribution/desktop/`，安装后的应用和桌面快捷方式显示为 **AI Native Game Harness 游戏版**，并使用游戏手柄与 AI 核心组合图标。开发时运行 `pnpm desktop:start`，不要求另行安装 DSH，但仓库开发命令本身需要 Node.js 和 pnpm。未来正式发布的 `.exe` 才面向无需开发环境的普通玩家。
+产物写入 `distribution/desktop/`，安装后的应用和桌面快捷方式显示为 **AI Native Game Harness 游戏版**，并使用游戏手柄与 AI 核心组合图标。桌面运行使用 `integrations/xiaotangyuan/desktop.patch.yml`，不会误用为了装配测试而关闭视觉、语音和媒体的 `smoke.patch.yml`。开发时运行 `pnpm desktop:start`，不要求另行安装 DSH，但仓库开发命令本身需要 Node.js 和 pnpm。未来正式发布的 `.exe` 才面向无需开发环境的普通玩家。
 
 接下来按产品闭环继续：
 

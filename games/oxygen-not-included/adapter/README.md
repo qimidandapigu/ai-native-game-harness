@@ -30,5 +30,5 @@ dsh plugin --profile web add "https://github.com/qimidandapigu/dsh-xiaotangyuan-
 打包独立 Adapter：
 
 ```powershell
-pnpm pack:oni-adapter
+pnpm --filter @qimidandapigu/oni-adapter pack --pack-destination .release/oni
 ```

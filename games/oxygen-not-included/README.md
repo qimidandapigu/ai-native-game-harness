@@ -17,27 +17,26 @@ AI credentials, screenshot capture, ASR, TTS, memory, and model selection belong
 AIHarness, not to the Mod. The Bridge contains no direct model or speech client.
 
 Current compatible versions are ONI Adapter `0.1.5`, C# Bridge `0.6.6`, and
-Harness plugin `0.7.0`. The Harness sends the player text and current game-window
-image to one image-capable Agent. It does not run a separate image-to-text model
-before the conversation model, and it currently omits structured ONI observation
-from the model prompt.
+Harness plugin `0.7.7`. The Harness sends the player text, current game-window
+image, and validated `AI-Native Game Context v1` to one image-capable Agent. It
+does not run a separate image-to-text model before the conversation model.
 
 Build the bridge with:
 
 ```powershell
-pnpm build:oni
+dotnet build games/oxygen-not-included/bridge/DoubaoAI.ONI.csproj -c Release
 ```
 
 Build the versioned Bridge ZIP and refresh its signed-hash distribution manifest with:
 
 ```powershell
-pnpm pack:oni
+powershell -NoProfile -ExecutionPolicy Bypass -File games/oxygen-not-included/bridge/tools/PackageRelease.ps1
 ```
 
 Build the separately installable Harness Adapter package with:
 
 ```powershell
-pnpm pack:oni-adapter
+pnpm --filter @qimidandapigu/oni-adapter pack --pack-destination .release/oni
 ```
 
 After the resulting `.release/oni/dsh-xiaotangyuan-game-oni-<version>.zip` is

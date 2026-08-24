@@ -16,16 +16,15 @@
 
 ## 安装
 
-`0.7.6` 是当前源码版本，尚未公开发布。公开稳定版仍为 `0.5.1`；开发测试请先在仓库根目录构建：
+`0.7.7` 是当前源码版本，尚未公开发布。公开稳定版仍为 `0.5.1`；开发测试请先在仓库根目录构建：
 
 ```powershell
 pnpm install
-pnpm build:media
-pnpm check
-pnpm pack:plugin
+pnpm check:xiaotangyuan
+pnpm integration:xiaotangyuan
 ```
 
-然后安装生成的本地包：
+`integration:xiaotangyuan` 会同时构建 Windows 媒体 Host、插件和隔离 DSH Profile。然后安装 `.artifacts/xiaotangyuan/` 中生成的本地包：
 
 ```powershell
 dsh plugin --profile web add ".\qimidandapigu-dsh-xiaotangyuan-game-0.7.7.tgz"
@@ -62,7 +61,7 @@ Gateway 只允许 `127.0.0.1`、`localhost` 或 `::1`，不会暴露到局域网
 | `speech.ttsResourceId` | `seed-tts-1.0` | 当前火山 TTS 资源 |
 | `speech.ttsVoice` | 内置中文女声 | TTS 发音人 |
 | `media.enabled` | `true` | 启用 Windows 媒体 Host |
-| `media.pushToTalkVirtualKey` | `119` | Windows Virtual-Key，默认 `F8` |
+| `media.pushToTalkVirtualKey` | `119` | 通用插件默认 `F8`；桌面游戏版通过独立配置覆盖为 `V`（`86`） |
 | `media.executablePath` | 插件内置路径 | 自定义媒体 Host 路径 |
 | `proactiveChat.enabled` | `true` | 让已连接游戏中的小精灵主动说话 |
 | `proactiveChat.intervalSeconds` | `180` | 玩家没有交互后触发主动聊天的统一间隔 |
@@ -109,7 +108,7 @@ Provider 接口是厂商无关的，但 `0.7.6` 实际内置的语音实现只�
 正文增量显示；成句文本立即 TTS；PCM 音频边返回边播放
 ```
 
-游戏 Agent 直接使用支持图片输入的模型，不先生成视觉描述，也不再串接第二个对话模型；同一请求会携带游戏窗口截图和经过校验、限长的 `AI-Native Game Context v1`。默认 `F8` 仅在游戏窗口位于前台时触发录音。再次按下语音键会中止当前回复和音频播放。一个 profile 当前只有一个全局键，可用 Virtual-Key `81` 配置 Q、`86` 配置 V。Gateway 还提供 `chat.retry`（保留会话但禁止重复反馈）和 `assistant.compose`（一次性生成，不污染对话记忆）。
+游戏 Agent 直接使用支持图片输入的模型，不先生成视觉描述，也不再串接第二个对话模型；同一请求会携带游戏窗口截图和经过校验、限长的 `AI-Native Game Context v1`。通用插件默认 `F8`，桌面游戏版默认 `V`，都只在已连接的游戏窗口位于前台时触发录音。流式 ASR 的中间转写和最终转写只在 Harness 内部交给 Agent，不再把玩家原话重复回显到游戏气泡。再次按下语音键会中止当前回复和音频播放。一个 profile 当前只有一个全局键，可用 Virtual-Key `81` 配置 Q、`86` 配置 V。Gateway 还提供 `chat.retry`（保留会话但禁止重复反馈）和 `assistant.compose`（一次性生成，不污染对话记忆）。
 
 主动聊天由 Harness 统一调度，默认在玩家连续 3 分钟没有文字或语音交互后触发。Harness 会截取对应游戏窗口，把画面交给该游戏 Agent，并通过 Adapter 显示回复；语音可用时同时播放 TTS。星露谷、饥荒和缺氧共用这一设置，Adapter 不再分别维护聊天计时器。
 
@@ -171,4 +170,4 @@ media/windows-x64/XtyMediaHost.exe
 5. 不迁移旧版 `config.json`，避免把旧直连模型 Key 带进新架构。
 6. TypeScript ONI Adapter 作为独立 Harness 插件运行，不复制到《缺氧》Mod 目录。
 
-更多用户步骤见[安装指南](../../docs/INSTALLATION.md)，故障定位见[排错指南](../../docs/TROUBLESHOOTING.md)。
+更多用户步骤见[安装指南](../../docs/xiaotangyuan/INSTALLATION.md)，故障定位见[排错指南](../../docs/xiaotangyuan/TROUBLESHOOTING.md)。

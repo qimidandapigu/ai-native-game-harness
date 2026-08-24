@@ -1,5 +1,7 @@
 # dsh-xiaotangyuan-game
 
+> 历史说明：这是旧独立仓库的 README 快照，仅用于理解迁移前产品；当前开发、构建和发布请以主仓库根目录 [README](../../README.md) 为准。
+
 > 历史快照：本文保留迁移前的项目说明和旧 Release 链接。当前唯一源码仓库是 `ai-native-game-harness`，请勿按照本文建立第二条开发线。
 
 小汤圆游戏 AI 的单仓库。DeepSeek Harness 插件承载通用 Agent、模型、多模态、语音、媒体和安装能力；每个游戏只保留必须调用游戏 API 的薄 Bridge，游戏知识与专属工具放进可选 Adapter。
@@ -88,7 +90,7 @@ dsh plugin --profile web add "https://github.com/qimidandapigu/dsh-xiaotangyuan-
 
 通用源码默认键是 `F8`（Virtual-Key `119`）。当前版本每个 Harness profile 只有一个全局语音键；可将 `media.pushToTalkVirtualKey` 设为 `81` 使用 `Q`，或设为 `86` 使用 `V`。按前台游戏自动切换 Q/V 尚未实现，文档不会把它描述成现有能力。
 
-完整前置条件、凭据配置和升级说明见[安装指南](docs/INSTALLATION.md)。
+完整前置条件、凭据配置和升级说明见[安装指南](INSTALLATION.md)。
 
 ## 仓库目录
 
@@ -124,18 +126,18 @@ tools/                       跨游戏小汤圆素材生成工具
 
 ## 文档
 
-- [安装与升级](docs/INSTALLATION.md)
-- [常见问题与排错](docs/TROUBLESHOOTING.md)
-- [架构和职责边界](docs/ARCHITECTURE.md)
-- [结构化状态与记忆隔离设计](docs/CONTEXT_AND_MEMORY_DESIGN.md)
-- [开发与发布](docs/DEVELOPMENT.md)
+- [安装与升级](INSTALLATION.md)
+- [常见问题与排错](TROUBLESHOOTING.md)
+- [架构和职责边界](ARCHITECTURE.md)
+- [结构化状态与记忆隔离设计](CONTEXT_AND_MEMORY_DESIGN.md)
+- [开发与发布](DEVELOPMENT.md)
 - [更新记录](CHANGELOG.md)
-- [星露谷适配器](games/stardew-valley/README.md)
-- [饥荒联机版 Mod 与 Adapter](games/dont-starve-together/README.md)
-- [缺氧 Adapter 与 Bridge](games/oxygen-not-included/README.md)
-- [自动反馈接收端](apps/feedback-receiver/README.md)
-- [Harness 插件配置](apps/harness-plugin/README.md)
-- [游戏协议 v1](protocol/v1/README.md)
+- [星露谷适配器](../../games/stardew-valley/README.md)
+- [饥荒联机版 Mod 与 Adapter](../../games/dont-starve-together/README.md)
+- [缺氧 Adapter 与 Bridge](../../games/oxygen-not-included/README.md)
+- [自动反馈接收端](../../apps/feedback-receiver/README.md)
+- [Harness 插件配置](../../plugins/xiaotangyuan-game/README.md)
+- [游戏协议 v1](../../protocol/v1/README.md)
 
 ## 安装与安全原则
 
@@ -160,7 +162,7 @@ pnpm build:media
 pnpm pack:plugin
 ```
 
-更多构建、测试和发版约束见[开发与发布](docs/DEVELOPMENT.md)。
+更多构建、测试和发版约束见[开发与发布](DEVELOPMENT.md)。
 
 ## 许可证
 

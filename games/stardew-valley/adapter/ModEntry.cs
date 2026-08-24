@@ -23,6 +23,7 @@ public sealed class ModEntry : Mod
     private object? latestObservation;
     private bool textRequestInFlight;
     private bool observationInFlight;
+    private string? assistantStatus;
 
     public override void Entry(IModHelper helper)
     {
@@ -36,8 +37,10 @@ public sealed class ModEntry : Mod
             if (!string.IsNullOrWhiteSpace(text)) this.speechBubble.ShowStatus(text);
         });
         this.client.AssistantPresented += text => this.mainThreadActions.Enqueue(() => this.speechBubble.Show(text));
-        this.client.AssistantStatusChanged += (status, transcript) => this.mainThreadActions.Enqueue(() =>
+        this.client.AssistantStatusChanged += (status, _) => this.mainThreadActions.Enqueue(() =>
         {
+            if (string.Equals(this.assistantStatus, status, StringComparison.Ordinal)) return;
+            this.assistantStatus = status;
             if (status == "ready")
             {
                 this.speechBubble.Clear();
@@ -49,13 +52,8 @@ public sealed class ModEntry : Mod
             }
             else if (status == "thinking")
             {
-                this.speechBubble.ShowStatus(string.IsNullOrWhiteSpace(transcript)
-                    ? "正在思考……"
-                    : $"听到：{transcript}\n正在思考……");
-                Game1.addHUDMessage(new HUDMessage(
-                    string.IsNullOrWhiteSpace(transcript) ? "小汤圆正在思考……" : $"你说：{transcript}",
-                    HUDMessage.newQuest_type
-                ));
+                this.speechBubble.ShowStatus("正在思考……");
+                Game1.addHUDMessage(new HUDMessage("小汤圆正在思考……", HUDMessage.newQuest_type));
             }
         });
         this.client.AssistantFailed += message => this.mainThreadActions.Enqueue(() =>
@@ -76,7 +74,7 @@ public sealed class ModEntry : Mod
         helper.ConsoleCommands.Add("xty_growth", "查看小汤圆的三条成长分支进度。", this.OnGrowthCommand);
 
         this.Monitor.Log(
-            $"小汤圆星露谷适配器已加载。按 {this.config.TextChatKey} 输入文字；在游戏为前台时按住 F8 进行 Harness 语音对话。",
+            $"小汤圆星露谷适配器已加载。按 {this.config.TextChatKey} 输入文字；桌面版 Harness 默认在游戏前台时按住 V 进行语音对话。",
             LogLevel.Info
         );
     }
@@ -186,6 +184,7 @@ public sealed class ModEntry : Mod
         this.client.SetSaveId(null);
         this.textRequestInFlight = false;
         this.observationInFlight = false;
+        this.assistantStatus = null;
         this.latestObservation = null;
         this.speechBubble.Clear();
         this.growth.Reset();
