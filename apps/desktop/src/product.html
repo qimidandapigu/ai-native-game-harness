@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Native Game Harness</title>
+  <link rel="stylesheet" href="product.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div><strong>AI Native</strong><small>Game Harness</small></div>
+      </div>
+      <nav class="primary-nav" aria-label="主导航">
+        <button class="nav-item active" data-page="chat" aria-current="page"><span class="nav-icon">◇</span><span>对话</span></button>
+        <button class="nav-item" data-page="analysis"><span class="nav-icon">⌁</span><span>分析</span></button>
+        <button class="nav-item" data-page="adapters"><span class="nav-icon">⌘</span><span>Adapter 中心</span></button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="runtime-pulse"><i></i><span>Harness Core 在线</span></div>
+        <small>Protocol 1.0 · Local runtime</small>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button class="mobile-menu" aria-label="打开导航">☰</button>
+        <div>
+          <p class="eyebrow">CONNECTED GAME</p>
+          <h1 id="page-title">与游戏一起思考</h1>
+        </div>
+        <div class="game-pill"><i></i><span id="game-name">等待游戏连接</span><b id="live-status">WAIT</b></div>
+      </header>
+
+      <section class="page active" id="page-chat" aria-labelledby="page-title">
+        <div class="chat-layout">
+          <div class="conversation">
+            <div class="messages" id="messages" aria-live="polite">
+              <article class="message assistant">
+                <div class="avatar">AI</div>
+                <div class="bubble">
+                  <span class="role">游戏伙伴</span>
+                  <p>Harness Core 已经启动。连接一个游戏 Adapter 后，我就能读取状态并执行游戏能力。</p>
+                </div>
+              </article>
+            </div>
+            <form class="composer" id="chat-form">
+              <label for="message-input">给游戏伙伴一个目标</label>
+              <div class="input-row">
+                <textarea id="message-input" rows="1" placeholder="例如：帮我去捡那枚金币" required></textarea>
+                <button type="submit" class="send" aria-label="发送">↑</button>
+              </div>
+              <div class="suggestions">
+                <button type="button" data-prompt="现在游戏是什么状态？">查看游戏状态</button>
+                <button type="button" data-prompt="帮我去捡金币">去捡金币</button>
+              </div>
+            </form>
+          </div>
+
+          <aside class="state-panel">
+            <div class="panel-heading"><div><p class="eyebrow">AUTHORITATIVE STATE</p><h2>实时游戏状态</h2></div><span id="revision-badge">REV 0</span></div>
+            <div class="mini-map" aria-label="Mock Game 地图">
+              <div class="grid-lines"></div>
+              <div class="coin" id="coin-marker"><span>●</span><small>金币</small></div>
+              <div class="player" id="player-marker"><span>◆</span><small>玩家</small></div>
+            </div>
+            <div class="stats">
+              <div><span>位置</span><strong id="stat-position">0, 0</strong></div>
+              <div><span>体力</span><strong id="stat-energy">10</strong></div>
+              <div><span>金币</span><strong id="stat-coins">0</strong></div>
+            </div>
+            <button class="secondary" id="reset-game" disabled>重置游戏</button>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="page-analysis" aria-labelledby="page-title">
+        <div class="analysis-grid">
+          <article class="metric-card"><span>已连接 Adapter</span><strong id="metric-adapters">1</strong><small>来自公开协议</small></article>
+          <article class="metric-card"><span>权威状态版本</span><strong id="metric-revision">0</strong><small>由游戏侧递增</small></article>
+          <article class="metric-card"><span>追踪事件</span><strong id="metric-traces">0</strong><small>本地会话记录</small></article>
+        </div>
+        <article class="trace-card">
+          <div class="panel-heading"><div><p class="eyebrow">OBSERVABILITY</p><h2>运行轨迹</h2></div><span>最近 20 条</span></div>
+          <div class="trace-list" id="trace-list"></div>
+        </article>
+      </section>
+
+      <section class="page" id="page-adapters" aria-labelledby="page-title">
+        <div class="section-intro"><div><p class="eyebrow">GAME ADAPTER PROTOCOL</p><h2>连接游戏，不绑定运行时</h2><p>每个游戏只需实现统一的观察、动作与事件接口。Agent 实现可以替换，游戏 Adapter 不必改写。</p></div><button class="primary" id="refresh-adapters">刷新连接</button></div>
+        <div class="adapter-list" id="adapter-list"></div>
+        <article class="architecture-note">
+          <span>依赖方向</span>
+          <div class="flow"><b>桌面产品</b><i>→</i><b>Harness Core</b><i>→</i><b>Adapter Protocol</b><i>→</i><b>你的游戏</b></div>
+          <small>DSH Binding 是可选接线，不属于核心协议。</small>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="product.js"></script>
+</body>
+</html>

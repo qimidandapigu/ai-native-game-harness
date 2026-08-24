@@ -1,10 +1,52 @@
 # AI Native Game Harness
 
-AI Native Game Harness 是一个面向 AI 原生与 AI 连接型游戏的 **DeepSeek Harness 游戏发行版**。
+AI Native Game Harness 是一个面向 AI 原生与 AI 连接型游戏、基于 DeepSeek Harness（DSH）构建的游戏产品运行层与 Adapter 框架。
 
-它复用 DeepSeek Harness（DSH）已经提供的模型、Agent、工具、会话、权限、配置和插件生命周期，不重新实现一套通用 Agent 运行时；本项目专注于游戏领域插件、桌面产品、游戏接入协议和可独立安装的 Game Pack。
+它复用 DSH 的模型、Agent、Tool、Session、凭据、权限和插件生命周期，在模型/Agent 与游戏之间补充稳定的游戏状态、动作安全、Game Pack、跨进程协议和可观测性接口。
 
-## 产品边界
+**架构决策：产品默认优先使用 DSH；只有经过可复现测试证明 DSH 不匹配的能力，才允许由本项目最小化替换。** `harness-core` 不依赖 DSH 类型是为了边界清晰和独立测试，不代表产品默认抛开 DSH。详见 [ADR 0001](docs/decisions/0001-dsh-first-reuse-policy.md)。
+
+## 产品层与可测试核心
+
+```text
+apps/
+  desktop/          对话页、分析页、Adapter 中心
+
+packages/
+  harness-core/     Agent、会话、能力与生命周期接口
+  adapter-protocol/ 游戏通信协议与 JSON Schema
+  adapter-websocket/本机跨进程 Host 与可重连参考客户端
+  game-pack/        剧情、角色、玩法和资源清单
+  dsh-binding/      默认产品接线：DSH Agent 会话 ↔ 游戏 Harness Core
+
+examples/
+  mock-game/        不依赖真实游戏与 DSH 的参考 Adapter
+```
+
+游戏内核的依赖方向是 `dsh-binding → harness-core → adapter-protocol → 游戏 Adapter`。DSH 负责通用 AI Runtime，Harness Core 负责游戏动作策略与 Trace；核心包不反向依赖 DSH，默认产品仍由固定版本 DSH 驱动。
+
+运行独立 Mock 闭环和产品界面：
+
+```powershell
+pnpm install
+pnpm platform:test
+pnpm mock:start
+pnpm desktop:demo
+```
+
+`mock:start` 和 `desktop:demo` 是不依赖真实游戏的协议一致性测试夹具。当前代码中的 `desktop:start` 仍启动独立 Platform Runtime 原型，`desktop:dsh` 启动已经验证的 DSH 路径；这只是当前实现状态，目标默认路径是在完善 `dsh-binding` 后由 Desktop 内置并启动固定版本 DSH。
+
+## 默认产品边界（DSH-first）
+
+- **DSH Runtime**：默认提供模型、Agent、Tool Calling、Session、配置、凭据、权限、日志与插件生命周期。
+- **Desktop**：打包并管理固定版本 DSH、产品窗口、对话页、分析页和 Adapter 中心。
+- **DSH Binding**：把 DSH Agent 的游戏 Tool Call 接到 Harness Core，并把动作结果返回 DSH Agent。
+- **Harness Core**：统一 Adapter 注册、游戏动作校验、revision、能力路由和 Trace；不重造通用 Agent Runtime。
+- **Game Adapter**：运行在游戏侧或独立进程，提供观察、动作、事件和权威结果。
+- **Game Pack**：分发剧情、角色、玩法数据、资源和 Adapter 入口清单。
+- **Standalone Agent Driver**：仅用于 Mock 测试或经过 ADR 替换门槛确认的具体缺口。
+
+## DSH-first 主路径
 
 - **DSH Runtime**：提供通用 AI 运行能力和 Cordis 插件容器。
 - **我们的 DSH 插件**：提供游戏状态、语义工具、记忆、语音、视觉、UI、安装和跨进程连接等游戏能力。
@@ -24,17 +66,15 @@ Mod 不是另一个 Agent，也不负责规划、记忆或调用模型。Harness
   → 权威结果与新状态原路返回
 ```
 
-## 为什么基于 DSH
-
 我们需要的模型、Agent、工具、会话、设置、凭据、授权、日志和插件生命周期，与 DeepSeek Harness 已解决的问题相同。重写这些基础设施不会形成游戏产品的独特价值，也更难达到上游的兼容性和稳定性。
 
-因此本项目遵循三个原则：
+这一条现有发行路径遵循三个原则：
 
 1. 复用并固定经过验证的 DSH 运行时版本，包括其命名空间下的 Cordis 依赖。
 2. 游戏能力尽量实现为标准 DSH 插件，不塞进 Electron Main，也不复制到每个 Mod。
 3. 上游升级作为独立变更执行，通过 Fake Game、协议兼容和真实游戏闭环测试后再合入，而不是自动追随最新版。
 
-这不是给 DSH 增加一个“游戏模式”，也不是要求用户先安装另一个 DSH 应用。最终用户安装的是一个完整的 AI Native Game Harness 桌面应用，其中已经打包了所需的 DSH Runtime 和官方游戏插件。
+这不是要求用户先安装另一个 DSH 应用。正式发行版会内置固定版本 DSH Runtime；我们的产品在其上装配游戏插件、Harness Core 和 Game Adapter 能力。其他 Agent Host 可以作为经过验证的扩展接入，但不改变 DSH-first 默认策略。
 
 ## 目标目录
 
@@ -73,7 +113,7 @@ AI Native Game Harness/
 
 | 目录 | 拆分原因 |
 | --- | --- |
-| `apps/desktop` | Electron 必须在 DSH 启动前存在，但它只管理进程、窗口和系统集成，不拥有游戏业务。 |
+| `apps/desktop` | 管理窗口、内置 DSH 子进程、产品 IPC 和系统集成；不拥有具体游戏规则。 |
 | `runtime/dsh-profile` | 集中固定 DSH 版本与插件装配；这是发行配置，不是另一套自研 Runtime。 |
 | `plugins` | 所有游戏都能复用的运行能力只实现一次，并遵循 DSH 插件生命周期。 |
 | `contracts` | Harness 与 C#、Lua、C++ 等 Mod 都依赖同一份线协议，契约不能反向依赖某个 TypeScript 插件。 |
@@ -84,11 +124,11 @@ AI Native Game Harness/
 依赖方向必须保持单向：
 
 ```text
-Desktop → DSH Profile → Shared Plugins → Game Harness Plugin
-                                           ↓
-                                    Bridge Contract
-                                           ↓
-                                   Native Bridge → Game API
+Desktop → pinned DSH Runtime → DSH Agent / Tools
+                                ↓
+                           dsh-binding
+                                ↓
+Harness Core → Adapter Protocol → Game Adapter → Game API
 ```
 
 新增能力时的归属规则：
@@ -143,9 +183,11 @@ pnpm check
 目前已进入“可构建桌面安装包”的开发预览阶段：
 
 - Fake Game 已完成 `state → tool → Bridge → authoritative state` 自动化闭环；
+- 独立 Platform Runtime 原型已能托管 Harness Core 和 WebSocket Adapter Host，并通过安全 IPC 驱动对话页、分析页和 Adapter 中心；它是测试夹具，不是目标默认 AI Runtime；
+- Agent Driver 已改为双向动作循环：Agent 只提出动作，Core 统一校验、执行并把结果和新状态回传；
 - `dsh-xiaotangyuan-game` 的本地 `0.7.7` Harness Plugin 已能打包、安装到隔离 DSH Profile、合并配置并真实启动 WebSocket Gateway；
 - 源码基线仍固定 DSH `0.1.0-rc.6`；桌面发行 Runtime 固定为已验证的 `0.1.1-rc.2`，端口使用 `33145`，不占用日常实例的 `32145`；
-- Electron 桌面壳会管理内置 DSH 进程、隔离用户 Profile、启动状态页和 DSH Web 窗口；
+- Electron 已分别保留独立测试原型和内置 DSH 路径；当前代码默认尚未切回 DSH-first，需在正式 `dsh-binding` 闭环通过后纠正；
 - 可在 Windows 本地构建 `.exe` 安装包，但尚未创建签名和正式 GitHub Release，因此 GitHub 暂无公开下载按钮。
 
 | 能力 | 当前状态 |
@@ -153,9 +195,11 @@ pnpm check
 | Fake Game 权威闭环 | 已实现并有自动化测试 |
 | `game-core` / `game-transport` / Bridge v1 | 已实现 |
 | 小汤圆 `0.7.7` 插件打包、隔离安装和 Gateway 启动 | 已验证 |
-| Electron 启动内置 DSH、隔离 Profile、显示状态 | 已实现 |
+| 独立 Core + Adapter Host 测试夹具 | 已实现并有自动化测试，不是目标默认 Runtime |
+| Agent action → Core execute → action-result 循环 | 已实现，含拒绝和动作上限测试 |
+| Electron 内置 DSH 主路径 | 已保留旧链路；待接入新 Core action-result 循环后恢复为默认 |
 | Windows NSIS `.exe` | 本地已构建，未签名、未发布 |
-| 产品专属分析页与游戏连接中心 | 尚未实现 |
+| 产品专属对话页、分析页与 Adapter 中心 | 已通过 IPC 接入独立 Runtime |
 | 首个真实游戏 Game Pack 的最终游戏内验收 | 尚未完成 |
 | GitHub Release 与自动升级 | 尚未完成 |
 
@@ -182,13 +226,13 @@ pnpm integration:xiaotangyuan
 pnpm desktop:dist
 ```
 
-产物写入 `distribution/desktop/`，安装后的应用和桌面快捷方式显示为 **AI Native Game Harness 游戏版**，并使用游戏手柄与 AI 核心组合图标。开发时运行 `pnpm desktop:start`，不要求另行安装 DSH，但仓库开发命令本身需要 Node.js 和 pnpm。未来正式发布的 `.exe` 才面向无需开发环境的普通玩家。
+产物写入 `distribution/desktop/`，安装后的应用和桌面快捷方式显示为 **AI Native Game Harness 游戏版**。当前开发命令中，`pnpm desktop:demo` 用于独立 Mock 测试，`pnpm desktop:dsh` 用于内置 DSH 链路；完成正式 Binding 后，产品默认启动命令应指向 DSH-first 主路径。
 
 接下来按产品闭环继续：
 
-1. 接入一个真实游戏的 Native Bridge，完成游戏内验收；
-2. 补代码签名、升级清单和崩溃诊断；
-3. 生成校验和并发布 GitHub Release。
+1. 复用小汤圆已经验证的 DSH Agent 会话，完成 `dsh-binding → Harness Core → action-result → DSH Agent` 闭环；
+2. 通过 Fake Game 与真实游戏测试后，将 Desktop 默认启动恢复为内置 DSH 主路径；
+3. 完成真实游戏 Game Pack 验收，再补代码签名、升级清单、崩溃诊断和 GitHub Release。
 
 DSH 不自动追新，但可以受控升级。运行 `pnpm dsh:update:check` 查看候选版本，升级规则见 [UPGRADING_DSH.md](docs/UPGRADING_DSH.md)。
 

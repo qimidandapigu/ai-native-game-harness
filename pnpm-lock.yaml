@@ -27,10 +27,19 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@ai-native-game-harness/adapter-websocket':
+        specifier: workspace:*
+        version: link:../../packages/adapter-websocket
+      '@ai-native-game-harness/harness-core':
+        specifier: workspace:*
+        version: link:../../packages/harness-core
+    devDependencies:
+      '@ai-native-game-harness/mock-game':
+        specifier: workspace:*
+        version: link:../../examples/mock-game
       '@deepseek-ai/dsh':
         specifier: 0.1.1-rc.2
         version: 0.1.1-rc.2(2ed3300448a4c681d1e8082fd70ef815)
-    devDependencies:
       cross-env:
         specifier: 10.1.0
         version: 10.1.0
@@ -57,6 +66,18 @@ importers:
         version: 4.125.0(@cloudflare/workers-types@5.20260823.1)
 
   contracts/bridge-v1: {}
+
+  examples/mock-game:
+    dependencies:
+      '@ai-native-game-harness/adapter-protocol':
+        specifier: workspace:*
+        version: link:../../packages/adapter-protocol
+      '@ai-native-game-harness/adapter-websocket':
+        specifier: workspace:*
+        version: link:../../packages/adapter-websocket
+      '@ai-native-game-harness/harness-core':
+        specifier: workspace:*
+        version: link:../../packages/harness-core
 
   games/fake-game/harness-plugin:
     dependencies:
@@ -110,6 +131,35 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@opentelemetry/api@1.9.1)(@types/node@24.10.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+
+  packages/adapter-protocol: {}
+
+  packages/adapter-websocket:
+    dependencies:
+      '@ai-native-game-harness/adapter-protocol':
+        specifier: workspace:*
+        version: link:../adapter-protocol
+      ws:
+        specifier: 8.21.3
+        version: 8.21.3
+    devDependencies:
+      '@types/ws':
+        specifier: 8.18.1
+        version: 8.18.1
+
+  packages/dsh-binding:
+    dependencies:
+      '@ai-native-game-harness/harness-core':
+        specifier: workspace:*
+        version: link:../harness-core
+
+  packages/game-pack: {}
+
+  packages/harness-core:
+    dependencies:
+      '@ai-native-game-harness/adapter-protocol':
+        specifier: workspace:*
+        version: link:../adapter-protocol
 
   plugins/game-core:
     dependencies:
@@ -210,6 +260,34 @@ importers:
         specifier: 0.1.0-rc.6
         version: 0.1.0-rc.6(f1ac1ba7fb5b7eb26b710a9a1824d53c)
     devDependencies:
+      vitest:
+        specifier: 4.0.18
+        version: 4.0.18(@opentelemetry/api@1.9.1)(@types/node@24.10.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+
+  tests/platform:
+    dependencies:
+      '@ai-native-game-harness/adapter-protocol':
+        specifier: workspace:*
+        version: link:../../packages/adapter-protocol
+      '@ai-native-game-harness/adapter-websocket':
+        specifier: workspace:*
+        version: link:../../packages/adapter-websocket
+      '@ai-native-game-harness/game-pack':
+        specifier: workspace:*
+        version: link:../../packages/game-pack
+      '@ai-native-game-harness/harness-core':
+        specifier: workspace:*
+        version: link:../../packages/harness-core
+      '@ai-native-game-harness/mock-game':
+        specifier: workspace:*
+        version: link:../../examples/mock-game
+      ws:
+        specifier: 8.21.3
+        version: 8.21.3
+    devDependencies:
+      '@types/ws':
+        specifier: 8.18.1
+        version: 8.18.1
       vitest:
         specifier: 4.0.18
         version: 4.0.18(@opentelemetry/api@1.9.1)(@types/node@24.10.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)

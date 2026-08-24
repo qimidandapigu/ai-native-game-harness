@@ -1,0 +1,21 @@
+{
+  "name": "@ai-native-game-harness/platform-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-native-game-harness/adapter-protocol": "workspace:*",
+    "@ai-native-game-harness/adapter-websocket": "workspace:*",
+    "@ai-native-game-harness/game-pack": "workspace:*",
+    "@ai-native-game-harness/harness-core": "workspace:*",
+    "@ai-native-game-harness/mock-game": "workspace:*",
+    "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.1",
+    "vitest": "4.0.18"
+  }
+}

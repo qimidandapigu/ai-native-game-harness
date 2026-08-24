@@ -1,0 +1,13 @@
+{
+  "name": "@ai-native-game-harness/game-pack",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Portable story, character, gameplay and asset manifest for games.",
+  "type": "module",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "schemas"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@ai-native-game-harness/harness-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agent, session, capability and lifecycle interfaces for AI-native games.",
+  "type": "module",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ai-native-game-harness/adapter-protocol": "workspace:*"
+  }
+}

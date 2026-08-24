@@ -3,7 +3,8 @@ import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync, m
 import { dirname, join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, dialog, shell, utilityProcess } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from 'electron'
+import { PlatformRuntime } from './platform-runtime.mjs'
 
 const require = createRequire(import.meta.url)
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -12,6 +13,10 @@ let mainWindow
 let dshProcess
 let dshExitCode = null
 let quitting = false
+let shutdownComplete = false
+let platformRuntime
+let platformUnsubscribe
+let demoAdapterProcess
 
 function sendStatus(message, detail = '') {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -178,7 +183,66 @@ async function startRuntime() {
   await mainWindow.loadURL(url)
 }
 
+function validateChatInput(input) {
+  if (!input || typeof input !== 'object') throw new Error('对话请求格式无效。')
+  const message = typeof input.message === 'string' ? input.message.trim() : ''
+  if (!message) throw new Error('请输入消息。')
+  if (message.length > 8_000) throw new Error('消息过长，最多 8000 个字符。')
+  return {
+    message,
+    sessionId: typeof input.sessionId === 'string' && input.sessionId ? input.sessionId.slice(0, 200) : 'desktop',
+    gameId: typeof input.gameId === 'string' && input.gameId ? input.gameId.slice(0, 200) : undefined,
+  }
+}
+
+function requirePlatformRuntime() {
+  if (!platformRuntime) throw new Error('Platform Runtime 尚未启动。')
+  return platformRuntime
+}
+
+function registerPlatformIpc() {
+  ipcMain.handle('platform:info', () => requirePlatformRuntime().info())
+  ipcMain.handle('platform:snapshot', () => requirePlatformRuntime().snapshot())
+  ipcMain.handle('platform:chat', (_event, input) => requirePlatformRuntime().chat(validateChatInput(input)))
+  ipcMain.handle('platform:reset', (_event, input) => {
+    const gameId = typeof input?.gameId === 'string' && input.gameId ? input.gameId.slice(0, 200) : undefined
+    return requirePlatformRuntime().reset(gameId)
+  })
+}
+
+function startDemoAdapter(adapterUrl) {
+  const clientPath = join(repoRoot, 'examples', 'mock-game', 'dist', 'client.js')
+  if (!existsSync(clientPath)) throw new Error(`Mock Adapter 尚未构建：${clientPath}`)
+  demoAdapterProcess = utilityProcess.fork(clientPath, [], {
+    cwd: repoRoot,
+    env: { ...process.env, MOCK_ADAPTER_URL: adapterUrl },
+    serviceName: 'AI Native Game Harness Mock Adapter',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  const collect = (data) => appendRuntimeLog(`[mock-adapter] ${data.toString()}`)
+  demoAdapterProcess.stdout?.on('data', collect)
+  demoAdapterProcess.stderr?.on('data', collect)
+}
+
+async function startPlatformRuntime() {
+  const demo = process.env.AI_GAME_HARNESS_DEMO === '1'
+  const port = Number.parseInt(process.env.AI_GAME_HARNESS_ADAPTER_PORT ?? '43145', 10)
+  let createAgent
+  if (demo) {
+    const { MockAgentDriver } = await import('@ai-native-game-harness/mock-game/agent')
+    createAgent = () => new MockAgentDriver()
+  }
+  platformRuntime = new PlatformRuntime({ port, createAgent })
+  const info = await platformRuntime.start()
+  platformUnsubscribe = platformRuntime.subscribe((snapshot) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('platform-snapshot', snapshot)
+  })
+  if (demo) startDemoAdapter(info.adapterUrl)
+  await mainWindow.loadFile(join(desktopRoot, 'src', 'product.html'))
+}
+
 function createWindow() {
+  const legacyDsh = process.env.AI_GAME_HARNESS_LEGACY_DSH === '1'
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -200,20 +264,34 @@ function createWindow() {
     void shell.openExternal(url)
     return { action: 'deny' }
   })
-  void mainWindow.loadFile(join(desktopRoot, 'src', 'status.html')).then(() => startRuntime()).catch(async (error) => {
+  const start = legacyDsh
+    ? mainWindow.loadFile(join(desktopRoot, 'src', 'status.html')).then(() => startRuntime())
+    : startPlatformRuntime()
+  void start.catch(async (error) => {
     sendStatus('启动失败', error instanceof Error ? error.message : String(error))
     await dialog.showMessageBox(mainWindow, {
       type: 'error',
       title: 'AI Native Game Harness 游戏版启动失败',
-      message: '内置 DSH Runtime 未能启动。',
+      message: legacyDsh ? '兼容 DSH Runtime 未能启动。' : '独立 Platform Runtime 未能启动。',
       detail: error instanceof Error ? error.message : String(error),
     })
   })
 }
 
+registerPlatformIpc()
 app.whenReady().then(createWindow)
 app.on('window-all-closed', () => app.quit())
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
+  if (shutdownComplete) return
+  event.preventDefault()
+  if (quitting) return
   quitting = true
-  if (dshProcess?.pid) dshProcess.kill()
+  void (async () => {
+    if (demoAdapterProcess?.pid) demoAdapterProcess.kill()
+    platformUnsubscribe?.()
+    await platformRuntime?.close()
+    if (dshProcess?.pid) dshProcess.kill()
+    shutdownComplete = true
+    app.quit()
+  })()
 })

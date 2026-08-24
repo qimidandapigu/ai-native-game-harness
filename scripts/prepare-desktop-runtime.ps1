@@ -60,6 +60,24 @@ try {
 New-Item -ItemType Directory -Force -Path $appRoot | Out-Null
 Copy-Item -LiteralPath $sourceRoot -Destination $appRoot -Recurse -Force
 
+$appModules = Join-Path $appRoot 'node_modules'
+$scopeRoot = Join-Path $appModules '@ai-native-game-harness'
+New-Item -ItemType Directory -Force -Path $scopeRoot | Out-Null
+
+foreach ($packageName in @('adapter-protocol', 'adapter-websocket', 'harness-core')) {
+  $packageRoot = Join-Path $repoRoot "packages/$packageName"
+  $packageTarget = Join-Path $scopeRoot $packageName
+  New-Item -ItemType Directory -Force -Path $packageTarget | Out-Null
+  Copy-Item -LiteralPath (Join-Path $packageRoot 'package.json') -Destination $packageTarget -Force
+  Copy-Item -LiteralPath (Join-Path $packageRoot 'dist') -Destination $packageTarget -Recurse -Force
+}
+
+$webSocketSource = Join-Path $repoRoot 'packages/adapter-websocket/node_modules/ws'
+if (-not (Test-Path -LiteralPath $webSocketSource -PathType Container)) {
+  throw "Desktop WebSocket dependency was not found: $webSocketSource"
+}
+Copy-Item -LiteralPath $webSocketSource -Destination (Join-Path $appModules 'ws') -Recurse -Force
+
 $stagePackage = [ordered]@{
   name = '@ai-native-game-harness/desktop'
   version = '0.1.0'
@@ -69,6 +87,11 @@ $stagePackage = [ordered]@{
   license = 'MIT'
   type = 'module'
   main = 'src/main.mjs'
+  dependencies = [ordered]@{
+    '@ai-native-game-harness/adapter-websocket' = '0.1.0'
+    '@ai-native-game-harness/harness-core' = '0.1.0'
+    'ws' = '8.21.3'
+  }
 }
 [IO.File]::WriteAllText((Join-Path $appRoot 'package.json'), ($stagePackage | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
 

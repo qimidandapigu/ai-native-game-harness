@@ -1,5 +1,7 @@
 packages:
   - apps/*
+  - packages/*
+  - examples/*
   - contracts/*
   - plugins/*
   - games/*/harness-plugin
