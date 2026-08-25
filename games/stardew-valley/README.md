@@ -48,7 +48,7 @@
 注意：
 
 - `T` 是 `StardewAgentMod` 的游戏内按键，可在 `config.json` 中修改。
-- `F8` 不是 SMAPI 按键；它由 Harness 的 Windows 媒体 Host 监听，可通过 `media.pushToTalkVirtualKey` 修改。
+- `V` 不是 SMAPI 按键；它由 Harness 的 Windows 媒体 Host 监听，可通过 `media.pushToTalkVirtualKey` 修改。
 - 麦克风和扬声器不由游戏 MOD 直接访问。
 
 ## 游戏配置
@@ -88,4 +88,4 @@ Mods\StardewAgentMod\config.json
 3. 确认四个组件只有一份。
 4. 通过 SMAPI 重启游戏。
 
-出现 T/V 无反应、重复 MOD 或宠物不显示时，参见[排错指南](../../docs/TROUBLESHOOTING.md)。
+出现 T/V 无反应、重复 MOD 或宠物不显示时，参见[排错指南](../../docs/xiaotangyuan/TROUBLESHOOTING.md)。

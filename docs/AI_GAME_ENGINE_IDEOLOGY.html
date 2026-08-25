@@ -703,11 +703,11 @@
   <main id="top">
     <section class="hero reveal" aria-labelledby="hero-title">
       <div>
-        <div class="eyebrow">Product doctrine · v5 · 2026-08-24</div>
+        <div class="eyebrow">Product doctrine · v5 · 2026-08-25</div>
         <h1 id="hero-title"><span class="gradient-text">AI-Native</span><br>Game Harness</h1>
         <p class="hero-copy">
           一套面向 <strong>AI 原生与 AI 连接型游戏</strong> 的可视化承载与编排系统：复用 DeepSeek Harness 的模型、Agent、工具、会话和插件能力，再补上游戏连接、安装、记忆、视觉、语音与安全边界。
-          当前同时保留已经验证的 DSH 模型链路与独立 Game Adapter 测试切片；dsh-binding 的 Tool-to-Core 映射已经实现，下一步是把它装入真实 DSH Agent 作用域并接成默认产品链，而不是重写模型 Runtime。
+          当前源码已统一到一个仓库：DSH Session 是默认 Agent 主链，Game Harness Core 与 Adapter Protocol 承载游戏边界；桌面版启用视觉、语音和媒体并默认使用 V 键说话。《缺氧》无游戏协议测试和游戏侧分段分析已经完成，真实游戏最终验收与正式签名 Release 仍在推进。
         </p>
         <div class="actions">
           <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看新项目 ↗</a>
@@ -733,7 +733,7 @@
           <div class="stack-card games">
             <div class="game-chip">星露谷<br>C#</div>
             <div class="game-chip">饥荒<br>Lua</div>
-            <div class="game-chip">任意游戏<br>Any stack</div>
+            <div class="game-chip">缺氧<br>C# + TS</div>
           </div>
         </div>
       </div>
@@ -1010,7 +1010,7 @@
         <article class="feature card">
           <div class="feature-icon">APP</div>
           <h3>Windows 桌面开发包</h3>
-          <p>Electron 已能启动内置 DSH、隔离用户 Profile、装配小汤圆 <span class="mono">0.7.7</span>、显示启动状态并生成 NSIS <span class="mono">.exe</span>；目前仍是未签名的本地开发产物。</p>
+          <p>Electron 已能启动内置 DSH、隔离用户 Profile、装配小汤圆 <span class="mono">0.7.7</span>、显示启动状态并生成 NSIS <span class="mono">.exe</span>。桌面运行配置会启用视觉、语音与媒体，默认按住 <span class="mono">V</span> 说话；目前仍是未签名的本地开发产物。</p>
         </article>
         <article class="feature card">
           <div class="feature-icon">WIRE</div>
@@ -1023,8 +1023,8 @@
         <span>小汤圆已经验证 DSH 模型选择、Credentials、Agent Session、Tool Calling、流式回复、记忆和多模态；产品页已接入 DSH Session 公开文本流与 Core Trace。下一步是用真实游戏验收完整链路，不能跳过现有能力去重写模型客户端。</span>
       </div>
       <div class="state-law card">
-        <strong>默认链路已经纠正</strong>
-        <span><span class="mono">desktop:start</span> 与 <span class="mono">desktop:dsh</span> 都启动内置 DSH 产品链；Standalone Platform Runtime 只由 <span class="mono">desktop:demo</span> 启动，用于确定性测试，不再承担默认产品 Runtime。</span>
+        <strong>当前已实现</strong>
+        <span><span class="mono">desktop:start</span> 与 <span class="mono">desktop:dsh</span> 启动内置 DSH 产品链；<span class="mono">desktop:demo</span> 只承担确定性测试。<span class="mono">fake_collect_coin</span> 已完成权威动作闭环，桌面配置启用视觉、语音和媒体，玩家转写只在 Harness 内交给 Agent。尚未完成代码签名、GitHub Release 和真实游戏存档内的最终验收。</span>
       </div>
     </section>
 
@@ -1092,8 +1092,8 @@
       </div>
       <div class="timeline">
         <article class="phase card"><div class="phase-num">SOURCE · 已迁入</div><h3>统一源码资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
-        <article class="phase card"><div class="phase-num">PHASE 1 · 已完成</div><h3>跑通最小闭环</h3><ul><li>固定 DSH Runtime Profile 与插件版本</li><li>实现 Game Core、Transport 与 Fake Harness Plugin</li><li>完成 DSH 持久事件与游戏侧 Trace 关联、权威状态验收</li></ul></article>
-        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>真实游戏端到端验收</h3><ul><li>真实游戏通过同一 Adapter 权威结果验收</li><li>核对产品页的 Session、Tool、Action、耗时与重连</li><li>验证打包后的内置 DSH 产品链</li></ul></article>
+        <article class="phase card"><div class="phase-num">PHASE 1 · 已完成</div><h3>跑通最小闭环</h3><ul><li>固定 DSH Runtime Profile 与插件版本</li><li>实现 Game Core、Transport 与 Fake Harness Plugin</li><li>完成 DSH 事件、游戏侧 Trace 和权威状态验收</li></ul></article>
+        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>真实游戏端到端验收</h3><ul><li>Electron、专属页面和 Windows 安装包已可构建</li><li>桌面运行配置已启用视觉、语音和媒体能力</li><li>用真实游戏核对 Session、Action、分段耗时与重连</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 3</div><h3>开放开发生态</h3><ul><li>多语言 Native Bridge SDK</li><li>Game Pack 签名、权限与兼容范围</li><li>官方目录、测试与认证</li></ul></article>
       </div>
     </section>

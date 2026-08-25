@@ -36,7 +36,7 @@ function runtimePaths() {
     : join(repoRoot, '.artifacts', 'xiaotangyuan')
   const patchPath = packaged
     ? join(resourceRoot, 'config', 'xiaotangyuan.patch.yml')
-    : join(repoRoot, 'integrations', 'xiaotangyuan', 'smoke.patch.yml')
+    : join(repoRoot, 'integrations', 'xiaotangyuan', 'desktop.patch.yml')
   const pluginArchive = readdirSync(pluginRoot)
     .filter((name) => /^qimidandapigu-dsh-xiaotangyuan-game-.+\.tgz$/.test(name))
     .sort()

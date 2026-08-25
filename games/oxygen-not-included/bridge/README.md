@@ -22,13 +22,13 @@
 构建：
 
 ```powershell
-pnpm build:oni
+dotnet build games/oxygen-not-included/bridge/DoubaoAI.ONI.csproj -c Release
 ```
 
 发布包与安装清单：
 
 ```powershell
-pnpm pack:oni
+powershell -NoProfile -ExecutionPolicy Bypass -File games/oxygen-not-included/bridge/tools/PackageRelease.ps1
 ```
 
 Harness 中的 `oxygen_not_included_mod_detect` / `oxygen_not_included_mod_install`

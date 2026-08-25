@@ -147,7 +147,9 @@ Harness 会调用 `oxygen_not_included_mod_detect` 和 `oxygen_not_included_mod_
 - `T`：打开游戏内文字输入框。
 - 配置的 Push-to-Talk 键：游戏窗口在前台时按住录音，松开提交。
 
-`T` 由 SMAPI 适配器处理。语音键由 Harness 中的 Windows 媒体 Host 全局监听，并且只允许当前已连接的前台游戏进程触发。源码默认值为 `F8`（Virtual-Key `119`）；`Q` 是 `81`，`V` 是 `86`。
+`T` 由 SMAPI 适配器处理。语音键由 Harness 中的 Windows 媒体 Host 全局监听，并且只允许当前已连接的前台游戏进程触发。通用插件源码默认值为 `F8`（Virtual-Key `119`）；AI Native Game Harness 桌面游戏版通过独立配置默认使用 `V`（`86`），`Q` 是 `81`。
+
+松开语音键后，最终转写会在 Harness 内部直接进入游戏 Agent。当前桌面版不会把流式中间转写或玩家完整原话重复显示到游戏气泡，只显示“正在听”和“正在思考”等阶段状态。
 
 `0.7.1` 的一个 Harness profile 只支持一个全局 Push-to-Talk 键，不会按前台游戏自动切换。要在缺氧中使用 Q，可在 profile 的 `cordis.patch.yml` 中覆盖：
 

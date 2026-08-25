@@ -1,6 +1,6 @@
 # AI-Native Game Context v1
 
-`ai-native.game-context.v1` 是小汤圆 Harness 与所有游戏 Adapter 共用、面向 AI 理解与推理的结构化观察标准。JSON Schema 位于 [`protocol/v1/schemas/ai-native-game-context-v1.schema.json`](../protocol/v1/schemas/ai-native-game-context-v1.schema.json)。
+`ai-native.game-context.v1` 是小汤圆 Harness 与所有游戏 Adapter 共用、面向 AI 理解与推理的结构化观察标准。JSON Schema 位于 [`protocol/v1/schemas/ai-native-game-context-v1.schema.json`](../../protocol/v1/schemas/ai-native-game-context-v1.schema.json)。
 
 ## 边界
 

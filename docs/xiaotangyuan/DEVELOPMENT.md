@@ -11,7 +11,7 @@
 ## 职责边界
 
 ```text
-apps/harness-plugin
+plugins/xiaotangyuan-game
   通用 Agent、模型、视觉、ASR/TTS、媒体、安装器
 
 apps/windows-media-host
@@ -43,29 +43,25 @@ games/oxygen-not-included/bridge
 ```powershell
 pnpm install
 pnpm check
-pnpm check:dst
-pnpm check:feedback
-pnpm build:stardew
-pnpm build:dst
-pnpm build:media
-pnpm build:oni
-pnpm pack:oni
-pnpm pack:plugin
+pnpm check:xiaotangyuan
+pnpm integration:xiaotangyuan
+pnpm desktop:dist
+dotnet build games/stardew-valley/adapter/StardewAgentMod.csproj -c Release
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-dont-starve-release.ps1
+dotnet build games/oxygen-not-included/bridge/DoubaoAI.ONI.csproj -c Release
 ```
 
 命令含义：
 
 | 命令 | 输出或验证 |
 |---|---|
-| `pnpm check` | TypeScript 编译与 Vitest 测试 |
-| `pnpm check:dst` | 饥荒 Python 单元测试与字节码编译 |
-| `pnpm check:feedback` | 反馈 Worker 类型检查与单元测试 |
-| `pnpm build:stardew` | `StardewAgentMod.dll` 与 SMAPI MOD zip |
-| `pnpm build:dst` | 饥荒玩家包，并自动刷新同仓库 distribution 清单的大小与 SHA-256 |
-| `pnpm build:media` | 自包含 Windows x64 `XtyMediaHost.exe` |
-| `pnpm pack:plugin` | Harness `.tgz`，必须包含媒体 Host |
-| `pnpm build:oni` | 编译缺氧 C# Bridge |
-| `pnpm pack:oni` | 生成缺氧 Bridge ZIP 并刷新发布清单 |
+| `pnpm check` | Game Core、Transport、Fake Game 的构建与集成测试 |
+| `pnpm check:xiaotangyuan` | 饥荒、反馈接收端、ONI Adapter 和小汤圆插件的完整检查 |
+| `pnpm integration:xiaotangyuan` | 构建媒体 Host 与小汤圆插件，生成 `.tgz`，安装进隔离 DSH Profile 并验证装配 |
+| `pnpm desktop:dist` | 准备内置 DSH Runtime、小汤圆插件和桌面配置，生成 Windows NSIS 安装包 |
+| `dotnet build games/stardew-valley/adapter/StardewAgentMod.csproj -c Release` | 编译星露谷 `StardewAgentMod.dll` |
+| `scripts/build-dont-starve-release.ps1` | 生成饥荒玩家包，并刷新同仓库 distribution 清单的大小与 SHA-256 |
+| `dotnet build games/oxygen-not-included/bridge/DoubaoAI.ONI.csproj -c Release` | 编译缺氧 C# Bridge |
 
 ## 发布物边界
 
@@ -100,8 +96,8 @@ dsh-xiaotangyuan-game-stardew-<adapter-version>.zip
 
 ## 版本规则
 
-- Harness 插件修改：递增 `package.json` 与 `apps/harness-plugin/package.json`。
-- 饥荒 Mod 修改：递增 `games/dont-starve-together` 中的三个版本来源，再运行 `pnpm build:dst` 刷新发布清单。
+- Harness 插件修改：递增 `plugins/xiaotangyuan-game/package.json`，并同步 `integrations/xiaotangyuan/manifest.json` 的开发版本。
+- 饥荒 Mod 修改：递增 `games/dont-starve-together` 中的三个版本来源，再运行 `scripts/build-dont-starve-release.ps1` 刷新发布清单。
 - 尚未创建远端 tag/Release 的版本必须标记为“源码版本”或“未发布”，不能在安装文档中给出失效 URL。
 - 星露谷 DLL 或内容包修改：同时递增适配器清单、内容包清单、第一方 zip、Release tag 和 distribution 清单。
 - 协议发生不兼容变化：新增协议版本，不能静默改变 `protocol/v1` 语义。
@@ -128,9 +124,9 @@ dsh-xiaotangyuan-game-stardew-<adapter-version>.zip
 
 - 工作树中不包含研究下载、临时包或用户的无关修改。
 - `pnpm check` 通过。
-- `pnpm build:dst` 通过，且饥荒清单与本地资产大小和 SHA-256 一致。
-- `pnpm check:feedback` 通过。
-- 星露谷代码变更时 `pnpm build:stardew` 为 0 警告、0 错误。
+- `pnpm check:xiaotangyuan` 通过。
+- 饥荒代码变更时 `scripts/build-dont-starve-release.ps1` 通过，且清单与本地资产大小和 SHA-256 一致。
+- 星露谷代码变更时对应 `dotnet build` 为 0 警告、0 错误。
 - 插件包中存在 `media/windows-x64/XtyMediaHost.exe`。
 - Release 资产的远端大小和 digest 与本地一致。
 - GitHub `main` 已包含生成该资产的源提交。

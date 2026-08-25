@@ -1,7 +1,7 @@
 # 快速开始
 
 1. 构建并安装 AIHarness 游戏插件。
-2. 运行 `pnpm build:oni` 构建缺氧 Bridge。
+2. 从主仓库根目录运行 `dotnet build games/oxygen-not-included/bridge/DoubaoAI.ONI.csproj -c Release` 构建缺氧 Bridge。
 3. 将 Bridge 输出和 `assets`、`mod.yaml`、`mod_info.yaml` 安装到缺氧本地 Mod 目录。
 4. 启动 AIHarness，再启动《缺氧》。
 

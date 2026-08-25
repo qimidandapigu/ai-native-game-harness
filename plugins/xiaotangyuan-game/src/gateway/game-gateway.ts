@@ -405,11 +405,6 @@ export class GameGateway implements VoiceInteractionHandler {
     }
   }
 
-  transcriptReady(processId: number, transcript: string): void {
-    const connection = this.connectionForProcess(processId)
-    if (connection !== undefined) this.notify(connection, 'assistant.status', { status: 'thinking', transcript })
-  }
-
   async respond(processId: number, transcript: string, _signal: AbortSignal): Promise<{ reply: string, speechPlayed: boolean }> {
     const connection = this.connectionForProcess(processId)
     if (connection?.session === undefined) throw new Error('前台游戏没有连接到小汤圆 Gateway')

@@ -35,7 +35,7 @@ export default {
       to: `plugins/${archiveName}`,
     },
     {
-      from: resolve(repoRoot, 'integrations/xiaotangyuan/smoke.patch.yml'),
+      from: resolve(repoRoot, 'integrations/xiaotangyuan/desktop.patch.yml'),
       to: 'config/xiaotangyuan.patch.yml',
     },
   ],

@@ -57,7 +57,7 @@ Adapter 应使用 `text` 替换正在显示的临时气泡，而不是自行拼�
 
 ## 后续扩展
 
-当前统一状态格式见 [AI-Native Game Context v1](../../docs/AI_NATIVE_GAME_CONTEXT_V1.md)。Harness 会兼容转换三个游戏的旧 observation，新 Adapter 必须直接发送 `ai-native.game-context.v1`。后续协议将增加：
+当前统一状态格式见 [AI-Native Game Context v1](../../docs/xiaotangyuan/AI_NATIVE_GAME_CONTEXT_V1.md)。Harness 会兼容转换三个游戏的旧 observation，新 Adapter 必须直接发送 `ai-native.game-context.v1`。后续协议将增加：
 
 - 游戏事件上报。
 - 游戏工具发现。
