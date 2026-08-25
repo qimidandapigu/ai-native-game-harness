@@ -16,7 +16,7 @@
 | 语音媒体 Host | Windows x64 |
 | 饥荒联机版 Mod | 源码 `0.2.23`；公开清单仍以实际 Release 为准 |
 | 缺氧 Adapter | `0.1.5` |
-| 缺氧 C# Bridge | `0.6.6` |
+| 缺氧 C# Bridge | 源码 `0.6.7`；公开版本仍以实际 Release 为准 |
 
 文字对话和游戏适配器不应依赖具体模型厂商。当前 `0.7.7` 源码中的语音 Provider 实现是火山引擎；游戏会话由 DSH 中支持图片输入的模型直接接收玩家文字、截图和统一结构化 Context 并回答，不再串联第二个对话模型。
 
@@ -44,10 +44,10 @@ dsh plugin --profile web list
 
 ```text
 Harness Web：http://127.0.0.1:3080
-游戏 Gateway：ws://127.0.0.1:32145
+游戏 Gateway：ws://127.0.0.1:33145
 ```
 
-如果还安装着旧包 `@qimidandapigu/dsh-game-agent`，应先移除旧包，避免两个 Gateway 争用 `32145`。
+如果还安装着旧包 `@qimidandapigu/dsh-game-agent`，应先移除旧包，避免两个 Gateway 争用 `33145`。
 
 ## 2. 配置模型和语音凭据
 
@@ -118,11 +118,13 @@ dont_starve_mod_install
 
 ## 5. 安装缺氧 Adapter 与 C# Bridge
 
-缺氧能力是可选 Adapter，不随通用 Harness 插件下载。先安装已经发布的 Adapter：
+缺氧能力由独立的 ONI Adapter 提供，不属于通用 Harness 插件本体。当前 Windows Game Edition 会预装这个独立包，无需重复安装；只安装通用插件或自行组装 DSH Runtime 时，才需要单独添加已发布的 Adapter：
 
 ```powershell
 dsh plugin --profile web add "https://github.com/qimidandapigu/dsh-xiaotangyuan-game/releases/download/oni-v0.6.1/qimidandapigu-oni-adapter-0.1.3.tgz"
 ```
+
+上面的命令是当前已经公开的旧版安装包。仓库里的 ONI Adapter 源码已经是 `0.1.5`，但在新的 GitHub Release 真正发布前，不把本地构建产物当作公开版本。
 
 重启 Harness、刷新页面并新建对话，然后发送：
 
@@ -151,16 +153,7 @@ Harness 会调用 `oxygen_not_included_mod_detect` 和 `oxygen_not_included_mod_
 
 松开语音键后，最终转写会在 Harness 内部直接进入游戏 Agent。当前桌面版不会把流式中间转写或玩家完整原话重复显示到游戏气泡，只显示“正在听”和“正在思考”等阶段状态。
 
-`0.7.1` 的一个 Harness profile 只支持一个全局 Push-to-Talk 键，不会按前台游戏自动切换。要在缺氧中使用 Q，可在 profile 的 `cordis.patch.yml` 中覆盖：
-
-```yaml
-- id: xiaotangyuan-game
-  config:
-    media:
-      pushToTalkVirtualKey: 81
-```
-
-如果同一 profile 还要让星露谷或饥荒使用 V，需要将该值改为 `86`；按游戏自动映射属于后续能力。
+一个 Harness profile 仍只有一个全局 Push-to-Talk 键；桌面游戏版将它设为 `V`，供星露谷和饥荒使用。缺氧不修改这个全局键：Bridge 在游戏内捕获 `Q`，经 ONI Adapter 发送 `voice.start` / `voice.stop`，因此三款游戏可以共用同一个桌面 Runtime。
 
 ## 升级与备份
 

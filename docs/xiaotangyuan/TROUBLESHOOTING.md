@@ -44,12 +44,12 @@ XiaoTangYuan Companion 0.5.0
 1. 游戏已经进入存档，不是在标题界面加载 MOD 的中间阶段。
 2. 星露谷窗口在前台；媒体 Host 会核对前台进程 ID。
 3. Harness 正在运行，并且插件版本是 `0.5.1` 或更新版本；饥荒链路要求 `0.6.1`。
-4. `127.0.0.1:32145` 正在监听。
+4. `127.0.0.1:33145` 正在监听。
 5. Windows 默认录音设备可用，且没有被独占。
 6. `media.enabled` 与 `speech.enabled` 没有关闭。
-7. `media.pushToTalkVirtualKey` 与实际按键一致：`F8=119`、`Q=81`、`V=86`。通用插件源码默认是 F8，桌面游戏版默认是 V；一个 Harness profile 当前只能配置一个全局语音键。
+7. `media.pushToTalkVirtualKey` 与实际按键一致：`F8=119`、`V=86`。通用插件源码默认是 F8，桌面游戏版的全局键是 V；缺氧由 Mod 单独捕获 Q 并发送 `voice.start` / `voice.stop`，不占用全局热键。
 
-如果松开按键后仍长期显示“正在听”，先确认 Harness 的 `3080` 与 Gateway 的 `32145` 仍在监听。`0.7.1` 起松键会立即切换为“正在思考”，并在 30 秒后强制停止异常录音；旧版本在 ASR 返回前会错误地保留“正在听”状态。
+如果松开按键后仍长期显示“正在听”，先确认 Harness Web 界面与 Gateway 的 `33145` 仍在监听。`0.7.1` 起松键会立即切换为“正在思考”，并在 30 秒后强制停止异常录音；旧版本在 ASR 返回前会错误地保留“正在听”状态。
 
 桌面游戏版不会把流式 ASR 中间转写或玩家完整原话回显到游戏气泡。松开后直接显示“正在思考”属于正常行为；需要排查识别内容时应查看 Harness 侧诊断信息，而不是等待游戏内出现“你说了什么”。
 
@@ -62,7 +62,7 @@ XiaoTangYuan Companion 0.5.0
 ```powershell
 dsh plugin --profile web list
 Get-NetTCPConnection -State Listen |
-  Where-Object LocalPort -In 3080,32145
+  Where-Object LocalPort -In 33145
 ```
 
 ## 出现“正在听”，但松开后失败
@@ -100,14 +100,13 @@ XiaoTangYuan Companion
 
 ## Harness 页面能用，但游戏连不上
 
-检查两端口：
+检查游戏版 Gateway：
 
 ```text
-3080   Harness Web
-32145  小汤圆游戏 Gateway
+33145  小汤圆游戏版 Gateway
 ```
 
-Gateway 只绑定本机回环地址。若 `32145` 被占用，检查是否同时安装或启动了旧的 `@qimidandapigu/dsh-game-agent`。
+Gateway 只绑定本机回环地址。若 `33145` 被占用，检查是否同时启动了另一份 AI Native Game Harness 游戏版。
 
 ## 饥荒启动时报 `jingling.zip` 缺失
 
@@ -145,14 +144,14 @@ Steam 启动项必须是一整行，并保留 `%command%`：
 
 ## 缺氧按 Q 没反应
 
-先确认 profile 中确实配置了 `pushToTalkVirtualKey: 81`，然后检查四层：
+缺氧不依赖全局 `pushToTalkVirtualKey`。它在游戏内捕获 Q，通过 ONI Adapter 向 Harness 发送 `voice.start` / `voice.stop`。请检查四层：
 
 ```powershell
 dsh plugin --profile web list --depth 0
 Get-Process OxygenNotIncluded,XtyMediaHost -ErrorAction SilentlyContinue
 Get-NetTCPConnection -State Listen |
-  Where-Object LocalPort -In 3080,32145
-Get-NetTCPConnection -State Established -LocalPort 32145 -ErrorAction SilentlyContinue
+  Where-Object LocalPort -In 33145
+Get-NetTCPConnection -State Established -LocalPort 33145 -ErrorAction SilentlyContinue
 ```
 
 正常状态应同时满足：
@@ -160,7 +159,7 @@ Get-NetTCPConnection -State Established -LocalPort 32145 -ErrorAction SilentlyCo
 - Harness 插件 `0.7.7` 和 ONI Adapter `0.1.5` 已安装；
 - `XtyMediaHost.exe` 正在运行；
 - 缺氧窗口位于前台；
-- `32145` 除监听外还有一个来自 ONI Adapter 的已建立连接；
+- `33145` 除监听外还有一个来自 ONI Adapter 的已建立连接；
 - 当前进程目录存在 `%LOCALAPPDATA%\XiaoTangYuan\oni-bridge\<PID>\session.json`。
 
 ONI Adapter `0.1.3` 修复了 Windows 桥目录丢失反斜杠、旧 PID 被错误选择，以及 CONNECTING WebSocket 关闭时拖垮 Harness 的问题。若目录中保留旧 PID 子目录无需手工删除；Adapter 只选择仍存活且最新的进程。
@@ -202,6 +201,6 @@ Harness `0.7.1` 只调用一次支持图片输入的 Agent，并启用 PCM 流�
 - `StardewAgentMod`、Content Patcher、TrinketTinker 和外观包版本。
 - `SMAPI-latest.txt` 中从“Loading mods”到“Mods loaded and ready”的相关片段。
 - 按 `T`、按住配置的语音键、松开后分别出现什么现象。
-- Harness 是否能监听 `32145`。
+- Harness 是否能监听 `33145`。
 
 请先遮盖 API Key、Token 和其他凭据；日志中不应主动加入这些秘密。

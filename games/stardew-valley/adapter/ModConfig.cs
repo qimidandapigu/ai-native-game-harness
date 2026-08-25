@@ -4,7 +4,7 @@ namespace StardewAgentMod;
 
 internal sealed class ModConfig
 {
-    public string GatewayUrl { get; set; } = "ws://127.0.0.1:32145";
+    public string GatewayUrl { get; set; } = "ws://127.0.0.1:33145";
 
     public SButton TextChatKey { get; set; } = SButton.T;
 

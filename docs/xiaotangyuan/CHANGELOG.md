@@ -2,7 +2,12 @@
 
 本项目分别发布 Harness 插件和游戏适配器；两条版本线独立递增。
 
-## Harness 0.7.7 / 星露谷 0.6.1 / 饥荒 0.2.23 / 缺氧 0.6.6 + Adapter 0.1.5 - 未发布
+## Harness 0.7.7 / 星露谷 0.6.1 / 饥荒 0.2.23 / 缺氧 0.6.7 + Adapter 0.1.5 - 未发布
+
+- 游戏版 Gateway 默认端口统一为 `33145`，并增加跨桌面配置、星露谷、饥荒和缺氧 Adapter 的一致性测试。
+- `integration:xiaotangyuan` 现在安装小汤圆和 ONI Adapter，启动桌面同版本 DSH，以本地模拟多模态模型完成 Adapter、状态和对话冒烟闭环后自动清理。
+- 桌面发行 Runtime 内置独立 ONI Adapter；通用小汤圆插件与游戏专属 Adapter 的代码和 Bundle 边界保持分离。
+- 缺氧 Bridge 支持按住 `Q` 发送 `voice.start`、松开发送 `voice.stop`，并在跟随精灵旁显示聆听、思考和回答状态。
 
 - 定义 `AI-Native Game Context v1` 与 JSON Schema，统一三个游戏及未来 Adapter 的 `meta、scene、player、companion、entities、objectives、ui、extensions`。
 - Harness 在入口校验、清理并兼容转换旧 observation；标准 Context 与当前窗口截图在同一次多模态请求中发送，模型终于能直接使用血量、背包、实体、任务和光标等精确事实。

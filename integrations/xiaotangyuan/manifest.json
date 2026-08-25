@@ -17,6 +17,11 @@
     "expectedVersion": "0.7.7",
     "defaultSource": "plugins/xiaotangyuan-game"
   },
+  "oniAdapter": {
+    "packageName": "@qimidandapigu/oni-adapter",
+    "expectedVersion": "0.1.5",
+    "source": "games/oxygen-not-included/adapter"
+  },
   "stable": {
     "version": "0.5.1",
     "url": "https://github.com/qimidandapigu/dsh-xiaotangyuan-game/releases/download/plugin-v0.5.1/qimidandapigu-dsh-xiaotangyuan-game-0.5.1.tgz",

@@ -48,7 +48,7 @@ def _check(settings: Settings) -> int:
     try:
         parsed = urlparse(settings.gateway_url)
         with socket.create_connection(
-            (parsed.hostname or "127.0.0.1", parsed.port or 32145),
+            (parsed.hostname or "127.0.0.1", parsed.port or 33145),
             timeout=settings.connection_timeout_seconds,
         ):
             print("Harness：端口已就绪")

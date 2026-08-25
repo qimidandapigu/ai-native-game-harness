@@ -6,6 +6,8 @@ $manifestPath = Join-Path $repoRoot 'integrations/xiaotangyuan/manifest.json'
 $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
 $archiveName = "qimidandapigu-dsh-xiaotangyuan-game-$($manifest.development.expectedVersion).tgz"
 $archivePath = Join-Path $repoRoot ".artifacts/xiaotangyuan/$archiveName"
+$oniArchiveName = "qimidandapigu-oni-adapter-$($manifest.oniAdapter.expectedVersion).tgz"
+$oniArchivePath = Join-Path $repoRoot ".artifacts/xiaotangyuan/$oniArchiveName"
 $runtimeRoot = Join-Path $repoRoot '.artifacts/desktop-runtime'
 $appRoot = Join-Path $repoRoot '.artifacts/desktop-app'
 $sourceRoot = Join-Path $repoRoot 'apps/desktop/src'
@@ -13,6 +15,9 @@ $artifactRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot '.artifacts'))
 
 if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
   throw "Desktop plugin archive was not found: $archivePath"
+}
+if (-not (Test-Path -LiteralPath $oniArchivePath -PathType Leaf)) {
+  throw "Desktop ONI Adapter archive was not found: $oniArchivePath"
 }
 
 foreach ($generatedRoot in @($runtimeRoot, $appRoot)) {
@@ -48,6 +53,9 @@ try {
     pnpm --ignore-workspace --config.node-linker=hoisted add --prod --save-exact --ignore-scripts $archivePath | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "runtime plugin installation failed with exit code $LASTEXITCODE" }
 
+    pnpm --ignore-workspace --config.node-linker=hoisted add --prod --save-exact --ignore-scripts $oniArchivePath | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "runtime ONI Adapter installation failed with exit code $LASTEXITCODE" }
+
     node (Join-Path $PSScriptRoot 'patch-desktop-dsh-runtime.mjs') $runtimeRoot | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "runtime compatibility patch failed with exit code $LASTEXITCODE" }
   } finally {
@@ -76,5 +84,6 @@ $stagePackage = [ordered]@{
   app = $appRoot
   runtime = $runtimeRoot
   plugin = $archivePath
+  oniAdapter = $oniArchivePath
   dsh = $manifest.compatibility.desktopDsh
 } | ConvertTo-Json

@@ -11,12 +11,14 @@ the fairy panel and shows unlock state, stored element, and mass.
 
 The TypeScript ONI Adapter lives in `adapter/` as its own installable Harness plugin. It
 bridges this Mod to the local AIHarness Gateway and registers ONI-specific tools. The
-generic Harness package does not depend on it, so other players do not download ONI code.
+generic Harness plugin does not depend on it. The current Windows Game Edition bundles
+the separate ONI Adapter for out-of-box support, while other distributions can still
+omit or independently install that Adapter.
 
 AI credentials, screenshot capture, ASR, TTS, memory, and model selection belong to
 AIHarness, not to the Mod. The Bridge contains no direct model or speech client.
 
-Current compatible versions are ONI Adapter `0.1.5`, C# Bridge `0.6.6`, and
+Current compatible versions are ONI Adapter `0.1.5`, C# Bridge `0.6.7`, and
 Harness plugin `0.7.7`. The Harness sends the player text, current game-window
 image, and validated `AI-Native Game Context v1` to one image-capable Agent. It
 does not run a separate image-to-text model before the conversation model.
@@ -50,6 +52,11 @@ game directory:
 ```text
 %USERPROFILE%\Documents\Klei\OxygenNotIncluded\mods\Local\DoubaoAI
 ```
+
+With the desktop game edition running, hold `Q` inside Oxygen Not Included to
+talk and release it to submit. The ONI Bridge sends `voice.start` and
+`voice.stop` to Harness through the Adapter because the game's `V` key is
+already occupied. Text chat remains available from the fairy panel.
 
 Pass `-p:GameManagedDir=<ONI managed directory>` if the local Steam installation is not at
 the configured path. Do not package `bin/`, `obj/`, `dist/`, logs, or a local `config.json`.

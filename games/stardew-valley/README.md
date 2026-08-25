@@ -61,7 +61,7 @@ Mods\StardewAgentMod\config.json
 
 | 字段 | 默认值 | 说明 |
 |---|---|---|
-| `GatewayUrl` | `ws://127.0.0.1:32145` | Harness Gateway |
+| `GatewayUrl` | `ws://127.0.0.1:33145` | 游戏版 Harness Gateway |
 | `TextChatKey` | `T` | 游戏内文字对话键 |
 | `BubbleYOffset` | `220` | 气泡相对位置 |
 | `ShowCompanion` | `true` | 是否装备隐藏小汤圆同伴 |

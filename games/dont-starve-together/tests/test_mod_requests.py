@@ -35,7 +35,7 @@ class ModRequestTests(unittest.TestCase):
     def make_app(self, root: Path) -> tuple[ChesterApp, FakeGateway]:
         gateway = FakeGateway()
         settings = SimpleNamespace(
-            gateway_url="ws://127.0.0.1:32145",
+            gateway_url="ws://127.0.0.1:33145",
             connection_timeout_seconds=1.0,
             request_timeout_seconds=10.0,
             request_file=root / "requests.json",

@@ -57,7 +57,7 @@ dotnet build games/oxygen-not-included/bridge/DoubaoAI.ONI.csproj -c Release
 |---|---|
 | `pnpm check` | Game Core、Transport、Fake Game 的构建与集成测试 |
 | `pnpm check:xiaotangyuan` | 饥荒、反馈接收端、ONI Adapter 和小汤圆插件的完整检查 |
-| `pnpm integration:xiaotangyuan` | 构建媒体 Host 与小汤圆插件，生成 `.tgz`，安装进隔离 DSH Profile 并验证装配 |
+| `pnpm integration:xiaotangyuan` | 构建媒体 Host、小汤圆与 ONI Adapter 包，启动桌面同版本 DSH，并用本地模拟模型验证 Web、Gateway、状态和对话闭环 |
 | `pnpm desktop:dist` | 准备内置 DSH Runtime、小汤圆插件和桌面配置，生成 Windows NSIS 安装包 |
 | `dotnet build games/stardew-valley/adapter/StardewAgentMod.csproj -c Release` | 编译星露谷 `StardewAgentMod.dll` |
 | `scripts/build-dont-starve-release.ps1` | 生成饥荒玩家包，并刷新同仓库 distribution 清单的大小与 SHA-256 |
@@ -118,7 +118,7 @@ dsh-xiaotangyuan-game-stardew-<adapter-version>.zip
 9. 饥荒包同时包含 `ChesterAI.exe`、`modmain.lua`、`modinfo.lua` 与 `anim/jingling.zip`。
 10. 反馈接收端只授予目标仓库 Issues 写权限，并验证签名、时间戳和 nonce。
 
-构建成功不等于游戏内验证成功。发布后仍需重启对应游戏，检查游戏日志，并完成一次真实文字/语音对话。缺氧还要确认 ONI Adapter 已建立到 `32145` 的连接、媒体 Host 存活且当前 PID 的桥目录被选中。
+构建成功不等于游戏内验证成功。发布后仍需重启对应游戏，检查游戏日志，并完成一次真实文字/语音对话。缺氧还要确认 ONI Adapter 已建立到 `33145` 的连接、媒体 Host 存活且当前 PID 的桥目录被选中。
 
 ## 发布前检查表
 
@@ -131,4 +131,4 @@ dsh-xiaotangyuan-game-stardew-<adapter-version>.zip
 - Release 资产的远端大小和 digest 与本地一致。
 - GitHub `main` 已包含生成该资产的源提交。
 - `git ls-remote --tags origin` 已确认目标 tag 是否真实存在，文档状态与远端一致。
-- 正式 Harness profile 升级后，确认 `3080` 与 `32145` 正常监听。
+- 正式 Harness profile 升级后，确认 Web 界面与 `33145` 正常监听。

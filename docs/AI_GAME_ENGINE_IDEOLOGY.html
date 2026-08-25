@@ -702,11 +702,11 @@
   <main id="top">
     <section class="hero reveal" aria-labelledby="hero-title">
       <div>
-        <div class="eyebrow">Product doctrine · v5 · 2026-08-25</div>
+        <div class="eyebrow">Product doctrine · v6 · 2026-08-26</div>
         <h1 id="hero-title"><span class="gradient-text">AI-Native</span><br>Game Harness</h1>
         <p class="hero-copy">
           一套面向 <strong>AI 原生与 AI 连接型游戏</strong> 的可视化承载与编排系统：复用 DeepSeek Harness 的模型、Agent、工具、会话和插件能力，再补上游戏连接、安装、记忆、视觉、语音与安全边界。
-          当前源码已统一到一个仓库：Fake Game、三个真实游戏接入、小汤圆插件和 Windows Game Edition 共同维护。桌面版会启用视觉、语音和媒体能力并默认使用 V 键说话；真实游戏最终验收和正式签名 Release 仍在推进。
+          当前源码已统一到一个仓库：Fake Game、三个真实游戏接入、小汤圆插件和 Windows Game Edition 共同维护。游戏版统一使用本机 <strong>33145</strong>，星露谷与饥荒按 V 说话，缺氧由游戏 Mod 用 Q 控制 Harness 录音；真实游戏最终验收和正式签名 Release 仍在推进。
         </p>
         <div class="actions">
           <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看新项目 ↗</a>
@@ -961,13 +961,13 @@
         </article>
         <article class="feature card">
           <div class="feature-icon">LOOP</div>
-          <h3>Fake Game 权威闭环</h3>
-          <p><span class="mono">game-core</span>、<span class="mono">game-transport</span>、Bridge v1、Fake Harness Plugin 和 Fake Native Bridge 已运行；测试验证状态、动作、回执、Trace 与卸载清理。</p>
+          <h3>两级可运行闭环</h3>
+          <p>Fake Game 验证工具、状态、回执与 Trace；小汤圆集成测试还会启动桌面同版本 DSH，装入通用插件和 ONI Adapter，用本地模拟模型完成一次 Adapter 握手、状态更新和真实流式对话。</p>
         </article>
         <article class="feature card">
           <div class="feature-icon">APP</div>
           <h3>Windows 桌面开发包</h3>
-          <p>Electron 已能启动内置 DSH、隔离用户 Profile、装配小汤圆 <span class="mono">0.7.7</span>、显示启动状态并生成 NSIS <span class="mono">.exe</span>。桌面运行配置会启用视觉、语音与媒体，默认按住 <span class="mono">V</span> 说话；目前仍是未签名的本地开发产物。</p>
+          <p>Electron 已能启动内置 DSH、隔离用户 Profile、装配小汤圆 <span class="mono">0.7.7</span> 和独立 ONI Adapter <span class="mono">0.1.5</span>，并生成 NSIS <span class="mono">.exe</span>。星露谷/饥荒按 <span class="mono">V</span>，缺氧按 <span class="mono">Q</span>；目前仍是未签名的本地开发产物。</p>
         </article>
       </div>
       <div class="state-law card">
@@ -976,7 +976,7 @@
       </div>
       <div class="state-law card">
         <strong>当前已实现</strong>
-        <span><span class="mono">fake_collect_coin</span> 已实际执行 observe → move → collect → observe；仓库内的小汤圆 <span class="mono">0.7.7</span> 已打包进隔离 Profile 并真实启动 Gateway；<span class="mono">desktop:dist</span> 已生成带游戏版图标的 Windows 安装器。桌面配置与装配测试配置已经分离，玩家语音转写只在 Harness 内部交给 Agent，不再回显到游戏气泡。尚未完成代码签名、GitHub Release 和真实游戏存档内的最终验收，所以这些本地产物还不是公开稳定版。</span>
+        <span><span class="mono">fake_collect_coin</span> 已执行 observe → move → collect → observe；<span class="mono">integration:xiaotangyuan</span> 已能用随机空闲端口启动内置 DSH 和本地模拟模型，验证 Web、Gateway、Adapter、结构化状态与对话后自动清理进程；三个游戏默认连接统一为 <span class="mono">33145</span>。缺氧 Bridge <span class="mono">0.6.7</span> 已加入 Q 键录音生命周期和精灵旁状态提示，但尚未创建对应 Release，也尚未完成真实存档验收。</span>
       </div>
     </section>
 
@@ -1044,7 +1044,7 @@
       <div class="timeline">
         <article class="phase card"><div class="phase-num">SOURCE · 已迁入</div><h3>统一源码资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 1 · 已完成</div><h3>跑通最小闭环</h3><ul><li>固定 DSH Runtime Profile 与插件版本</li><li>实现 Game Core、Transport 与 Fake Harness Plugin</li><li>完成 Trace 回放和权威状态验收</li></ul></article>
-        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>形成独立产品</h3><ul><li>Electron、游戏版品牌与 Windows 安装包已可构建</li><li>桌面运行配置已启用视觉、语音和媒体能力</li><li>完成真实游戏验收、专属页面与正式发布</li></ul></article>
+        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>形成独立产品</h3><ul><li>Electron、游戏版品牌与 Windows 安装包已可构建</li><li>内置 DSH、双插件和本地模型冒烟闭环已自动化</li><li>完成真实游戏验收、专属页面与正式发布</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 3</div><h3>开放开发生态</h3><ul><li>多语言 Native Bridge SDK</li><li>Game Pack 签名、权限与兼容范围</li><li>官方目录、测试与认证</li></ul></article>
       </div>
     </section>

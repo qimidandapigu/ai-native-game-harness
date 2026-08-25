@@ -138,7 +138,7 @@ function isLoopback(hostname: string): boolean {
 
 export function resolveConfig(config: Config = {}): ResolvedConfig {
   const host = config.host ?? '127.0.0.1'
-  const port = config.port ?? 32145
+  const port = config.port ?? 33145
 
   if (host !== '127.0.0.1' && host !== 'localhost' && host !== '::1') {
     throw new Error('dsh-xiaotangyuan-game only permits loopback hosts')

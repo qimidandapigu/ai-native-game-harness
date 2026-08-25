@@ -52,7 +52,7 @@ namespace DoubaoAI.ONI.Harness
             {
                 ["adapterId"] = "qimidandapigu.oxygen-not-included-fairy",
                 ["gameId"] = "oxygen-not-included",
-                ["version"] = "0.6.6",
+                ["version"] = "0.6.7",
                 ["protocolVersion"] = "1.1",
                 ["capabilities"] = new JArray("assistant.text-stream"),
                 ["processId"] = Process.GetCurrentProcess().Id,
@@ -91,6 +91,16 @@ namespace DoubaoAI.ONI.Harness
                 ["text"] = text,
                 ["context"] = new JObject { ["observation"] = Observation(snapshot, command) }
             });
+        }
+
+        internal void StartVoice()
+        {
+            Enqueue("voice.start", new JObject());
+        }
+
+        internal void StopVoice()
+        {
+            Enqueue("voice.stop", new JObject());
         }
 
         internal void Compose(string text, GameSnapshot snapshot, PlayerCommandSnapshot command)

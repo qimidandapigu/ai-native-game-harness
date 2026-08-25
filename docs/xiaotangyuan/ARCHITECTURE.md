@@ -170,4 +170,4 @@ Harness 对话
 
 ## 可选游戏 Adapter
 
-通用 Harness 插件只提供跨游戏能力和安装入口。必须携带大量游戏知识或动作工具的 Adapter（例如缺氧）独立安装；未安装该 Adapter 的玩家不会下载对应代码，也不会把其 Prompt、工具或记忆注入其他游戏。
+通用 Harness 插件只提供跨游戏能力和安装入口。必须携带大量游戏知识或动作工具的 Adapter（例如缺氧）仍是独立 DSH Bundle，可以单独安装、升级和选择性加载。当前 Windows Game Edition 为了开箱支持三款官方游戏，会把 ONI Adapter 一起打入桌面发行包；这不会把 ONI 代码合并进通用插件，也不改变其他发行版按需组合 Adapter 的边界。
