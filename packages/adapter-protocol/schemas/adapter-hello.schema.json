@@ -21,7 +21,13 @@
           "name": { "type": "string", "minLength": 1 },
           "kind": { "enum": ["observation", "action", "presentation"] },
           "description": { "type": "string" },
-          "requiresApproval": { "type": "boolean" }
+          "requiresApproval": { "type": "boolean" },
+          "inputSchema": {
+            "type": "object",
+            "required": ["type"],
+            "properties": { "type": { "const": "object" } },
+            "additionalProperties": true
+          }
         }
       }
     }

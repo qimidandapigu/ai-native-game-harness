@@ -74,6 +74,8 @@ export interface AdapterCapability {
   kind: CapabilityKind
   description: string
   requiresApproval?: boolean
+  /** JSON Schema object for action arguments. DSH Binding exposes this to the model unchanged. */
+  inputSchema?: JsonObject
 }
 
 export interface AdapterHello {
@@ -115,6 +117,13 @@ export interface ActionResult {
   ok: boolean
   revision: number
   result?: Record<string, JsonValue>
+  /** Optional measured segments. Omit a segment when that layer cannot measure it. */
+  timing?: {
+    /** Adapter -> native game bridge -> Adapter round trip. */
+    bridgeRoundTripMs?: number
+    /** Time spent executing the command inside the game process. */
+    gameExecutionMs?: number
+  }
   error?: {
     code: string
     message: string
@@ -160,6 +169,11 @@ export function assertAdapterHello(value: AdapterHello): void {
   for (const capability of value.capabilities) {
     if (!capability.name.trim()) throw new Error('Capability name is required')
     if (names.has(capability.name)) throw new Error(`Duplicate capability: ${capability.name}`)
+    if (capability.inputSchema !== undefined) {
+      if (!isJsonObject(capability.inputSchema) || capability.inputSchema.type !== 'object') {
+        throw new Error(`Capability inputSchema must be an object-rooted JSON Schema: ${capability.name}`)
+      }
+    }
     names.add(capability.name)
   }
 }
@@ -175,6 +189,13 @@ export function assertActionResult(request: ActionRequest, result: ActionResult)
   if (request.requestId !== result.requestId) throw new Error('Action result requestId mismatch')
   if (!Number.isSafeInteger(result.revision) || result.revision < 0) throw new Error('Action result revision is invalid')
   if (!result.ok && !result.error) throw new Error('Failed action result must include an error')
+  if (result.timing !== undefined) {
+    for (const [name, value] of Object.entries(result.timing)) {
+      if (value !== undefined && (!Number.isFinite(value) || value < 0)) {
+        throw new Error(`Action result timing ${name} must be a non-negative finite number`)
+      }
+    }
+  }
 }
 
 export function assertActionRequest(value: ActionRequest, expectedGameId?: string): void {

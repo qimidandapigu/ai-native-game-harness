@@ -19,7 +19,8 @@
     "@deepseek-ai/cordis": "4.0.1"
   },
   "dependencies": {
-    "@ai-native-game-harness/bridge-contract": "workspace:*"
+    "@ai-native-game-harness/bridge-contract": "workspace:*",
+    "@ai-native-game-harness/harness-core": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.1"

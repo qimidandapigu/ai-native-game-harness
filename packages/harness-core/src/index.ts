@@ -52,6 +52,7 @@ export type AgentEvent =
   | { type: 'done'; text: string }
 
 export interface AgentDriver {
+  /** Standalone conformance-test seam. The shipped product uses DSH Agent sessions. */
   stream(request: AgentRequest): AsyncGenerator<AgentEvent, void, AgentActionFeedback>
 }
 
@@ -117,7 +118,7 @@ export class HarnessCore {
         adapterId: hello.adapterId,
       })
       if (status === 'connected') {
-        void this.observe(hello.gameId).catch(() => undefined)
+        void this.observe(hello.gameId, 'system', { reason: 'reconnect' }).catch(() => undefined)
       }
     })
     this.#adapters.set(hello.gameId, connected)
@@ -125,7 +126,7 @@ export class HarnessCore {
       adapterId: hello.adapterId,
       protocolVersion: hello.protocolVersion,
     })
-    await this.observe(hello.gameId)
+    await this.observe(hello.gameId, 'system', { reason: 'initial' })
     return { ...hello, connectedAt, status: connected.status }
   }
 
@@ -137,12 +138,36 @@ export class HarnessCore {
     }))
   }
 
-  async observe(gameId: string, sessionId = 'system'): Promise<GameObservation> {
+  async disconnectAdapter(gameId: string): Promise<void> {
+    const connected = this.#adapters.get(gameId)
+    if (connected === undefined) return
+    this.#adapters.delete(gameId)
+    this.#observations.delete(gameId)
+    connected.unsubscribe?.()
+    connected.unsubscribeConnection?.()
+    await connected.adapter.close?.()
+    this.#trace('system', gameId, 'adapter.disconnected', {
+      adapterId: connected.hello.adapterId,
+      reason: 'removed',
+    })
+  }
+
+  async observe(
+    gameId: string,
+    sessionId = 'system',
+    context: { requestId?: string; reason?: 'initial' | 'manual' | 'post-action' | 'reconnect' } = {},
+  ): Promise<GameObservation> {
     const connected = this.#requireAdapter(gameId)
+    const startedAt = performance.now()
     const observation = await connected.adapter.observe()
     assertObservation(observation, gameId)
     this.#observations.set(gameId, observation)
-    this.#trace(sessionId, gameId, 'game.observed', { revision: observation.revision })
+    this.#trace(sessionId, gameId, 'game.observed', {
+      revision: observation.revision,
+      adapterRoundTripMs: Math.max(0, Math.round(performance.now() - startedAt)),
+      ...(context.requestId === undefined ? {} : { requestId: context.requestId }),
+      ...(context.reason === undefined ? {} : { reason: context.reason }),
+    })
     return observation
   }
 
@@ -152,9 +177,8 @@ export class HarnessCore {
     args: Record<string, JsonValue>,
     options: { sessionId?: string; expectedRevision?: number; requestId?: string } = {},
   ): Promise<ActionResult> {
+    const validationStartedAt = performance.now()
     const connected = this.#requireAdapter(gameId)
-    const declared = connected.hello.capabilities.some((item) => item.kind === 'action' && item.name === capability)
-    if (!declared) throw new Error(`Adapter does not declare action capability: ${capability}`)
     const request: ActionRequest = {
       requestId: options.requestId ?? randomUUID(),
       gameId,
@@ -162,16 +186,92 @@ export class HarnessCore {
       arguments: args,
       expectedRevision: options.expectedRevision,
     }
-    assertActionRequest(request, gameId)
-    const result = await connected.adapter.execute(request)
-    assertActionResult(request, result)
+    try {
+      const declared = connected.hello.capabilities.some((item) => item.kind === 'action' && item.name === capability)
+      if (!declared) throw new Error(`Adapter does not declare action capability: ${capability}`)
+      assertActionRequest(request, gameId)
+    } catch (error) {
+      this.#trace(options.sessionId ?? 'system', gameId, 'action.executed', {
+        requestId: request.requestId,
+        capability,
+        ok: false,
+        revision: this.#observations.get(gameId)?.revision ?? 0,
+        stage: 'core-validation',
+        coreValidationMs: Math.max(0, Math.round(performance.now() - validationStartedAt)),
+        adapterRoundTripMs: 0,
+        durationMs: 0,
+        errorCode: 'CORE_VALIDATION_FAILED',
+      })
+      throw error
+    }
+    const coreValidationMs = Math.max(0, Math.round(performance.now() - validationStartedAt))
+    const adapterStartedAt = performance.now()
+    let result: ActionResult
+    try {
+      result = await connected.adapter.execute(request)
+      assertActionResult(request, result)
+    } catch (error) {
+      const adapterRoundTripMs = Math.max(0, Math.round(performance.now() - adapterStartedAt))
+      const rawCode = typeof error === 'object' && error !== null && 'code' in error ? (error as { code?: unknown }).code : undefined
+      const errorCode = typeof rawCode === 'string' || typeof rawCode === 'number' ? rawCode : 'ADAPTER_EXECUTION_FAILED'
+      this.#trace(options.sessionId ?? 'system', gameId, 'action.executed', {
+        requestId: request.requestId,
+        capability,
+        ok: false,
+        revision: this.#observations.get(gameId)?.revision ?? 0,
+        stage: 'adapter',
+        coreValidationMs,
+        adapterRoundTripMs,
+        durationMs: adapterRoundTripMs,
+        errorCode,
+      })
+      throw error
+    }
+    const adapterRoundTripMs = Math.max(0, Math.round(performance.now() - adapterStartedAt))
     this.#trace(options.sessionId ?? 'system', gameId, 'action.executed', {
+      requestId: request.requestId,
       capability,
       ok: result.ok,
       revision: result.revision,
+      coreValidationMs,
+      adapterRoundTripMs,
+      // Compatibility alias for existing consumers. New analysis views should
+      // use the named segments above and the Adapter-reported timing below.
+      durationMs: adapterRoundTripMs,
+      ...(result.timing?.bridgeRoundTripMs === undefined ? {} : { bridgeRoundTripMs: result.timing.bridgeRoundTripMs }),
+      ...(result.timing?.gameExecutionMs === undefined ? {} : { gameExecutionMs: result.timing.gameExecutionMs }),
+      ...(result.ok ? {} : { errorCode: result.error?.code ?? 'UNKNOWN' }),
     })
-    await this.observe(gameId, options.sessionId)
+    await this.observe(gameId, options.sessionId, { requestId: request.requestId, reason: 'post-action' })
     return result
+  }
+
+  /**
+   * Execute one action requested by an Agent host such as DSH. This is the
+   * shared action/action-result boundary used by both the standalone test
+   * driver and the default DSH Binding.
+   */
+  async dispatchAgentAction(
+    request: Omit<AgentRequest, 'message' | 'observation'>,
+    action: AgentActionRequest,
+    options: { actionNumber?: number } = {},
+  ): Promise<AgentActionFeedback> {
+    const callId = action.callId?.trim() || randomUUID()
+    this.#trace(request.sessionId, request.gameId, 'agent.event', {
+      eventType: 'action',
+      callId,
+      capability: action.capability,
+      ...(options.actionNumber === undefined ? {} : { actionNumber: options.actionNumber }),
+    })
+    const feedback = await this.#executeAgentAction(request, action, callId)
+    this.#trace(request.sessionId, request.gameId, 'agent.event', {
+      eventType: 'action-result',
+      callId,
+      capability: feedback.capability,
+      ok: feedback.result.ok,
+      revision: feedback.result.revision,
+    })
+    return feedback
   }
 
   async *chat(
@@ -179,6 +279,8 @@ export class HarnessCore {
     request: Omit<AgentRequest, 'observation'>,
     options: AgentChatOptions = {},
   ): AsyncIterable<AgentEvent> {
+    // Deterministic Mock/standalone conformance loop only. Production DSH Tool
+    // calls enter through dispatchAgentAction(), not through a second Agent runtime.
     const maxActions = options.maxActions ?? 12
     if (!Number.isSafeInteger(maxActions) || maxActions < 1 || maxActions > 100) {
       throw new Error('maxActions must be an integer from 1 to 100')
@@ -191,10 +293,14 @@ export class HarnessCore {
       while (!step.done) {
         const event = step.value
         if (event.type !== 'action') {
-          this.#trace(request.sessionId, request.gameId, 'agent.event', {
-            eventType: event.type,
-            text: 'text' in event ? event.text : '',
-          })
+          // Reasoning/analysis content is deliberately not persisted in the
+          // auditable trace. Public output is represented by type and size only.
+          if (event.type !== 'analysis') {
+            this.#trace(request.sessionId, request.gameId, 'agent.event', {
+              eventType: event.type,
+              characters: 'text' in event ? event.text.length : 0,
+            })
+          }
           yield event
           step = await stream.next()
           continue
@@ -204,23 +310,10 @@ export class HarnessCore {
         if (actionCount > maxActions) throw new Error(`Agent action limit exceeded: ${maxActions}`)
         const callId = event.callId?.trim() || randomUUID()
         const action: AgentActionRequest = { ...event, callId }
-        this.#trace(request.sessionId, request.gameId, 'agent.event', {
-          eventType: action.type,
-          callId,
-          capability: action.capability,
-          actionNumber: actionCount,
-        })
         yield action
 
-        const feedback = await this.#executeAgentAction(request, action, callId)
+        const feedback = await this.dispatchAgentAction(request, action, { actionNumber: actionCount })
         const resultEvent: AgentEvent = { type: 'action-result', ...feedback }
-        this.#trace(request.sessionId, request.gameId, 'agent.event', {
-          eventType: resultEvent.type,
-          callId,
-          capability: feedback.capability,
-          ok: feedback.result.ok,
-          revision: feedback.result.revision,
-        })
         yield resultEvent
         step = await stream.next(feedback)
       }
@@ -242,13 +335,7 @@ export class HarnessCore {
   }
 
   async close(): Promise<void> {
-    for (const connected of this.#adapters.values()) {
-      connected.unsubscribe?.()
-      connected.unsubscribeConnection?.()
-      await connected.adapter.close?.()
-    }
-    this.#adapters.clear()
-    this.#observations.clear()
+    for (const gameId of [...this.#adapters.keys()]) await this.disconnectAdapter(gameId)
     this.#publish()
   }
 
@@ -259,7 +346,7 @@ export class HarnessCore {
   }
 
   async #executeAgentAction(
-    request: Omit<AgentRequest, 'observation'>,
+    request: Omit<AgentRequest, 'message' | 'observation'>,
     action: AgentActionRequest,
     callId: string,
   ): Promise<AgentActionFeedback> {

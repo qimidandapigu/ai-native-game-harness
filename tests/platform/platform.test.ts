@@ -10,6 +10,7 @@ import {
   type GameEvent,
 } from '@ai-native-game-harness/adapter-protocol'
 import { ReconnectingAdapterClient, WebSocketAdapterHost } from '@ai-native-game-harness/adapter-websocket'
+import { bindDshGameTools, type DshToolRegistry } from '@ai-native-game-harness/dsh-binding'
 import { assertGamePackManifest } from '@ai-native-game-harness/game-pack'
 import {
   HarnessCore,
@@ -23,6 +24,32 @@ import { MockGameAdapter } from '@ai-native-game-harness/mock-game/adapter'
 // Desktop runtime is intentionally plain ESM so Electron can load it without a second bundle step.
 // @ts-expect-error JavaScript entry points do not publish declarations.
 import { PlatformRuntime } from '../../apps/desktop/src/platform-runtime.mjs'
+// @ts-expect-error JavaScript entry points do not publish declarations.
+import { normalizeSessionStats, visibleDshChunk } from '../../apps/desktop/src/dsh-product-runtime.mjs'
+
+type BoundTool = Parameters<DshToolRegistry['register']>[0]
+
+class MockDshToolRegistry implements DshToolRegistry {
+  readonly definitions = new Map<string, BoundTool>()
+
+  register(definition: BoundTool): () => void {
+    if (this.definitions.has(definition.name)) throw new Error(`duplicate DSH tool: ${definition.name}`)
+    this.definitions.set(definition.name, definition)
+    return () => this.definitions.delete(definition.name)
+  }
+
+  async execute(name: string, args: unknown, callId: string): Promise<unknown> {
+    const definition = this.definitions.get(name)
+    if (definition === undefined) throw new Error(`unknown DSH tool: ${name}`)
+    return await definition.execute(args, {
+      callId,
+      signal: new AbortController().signal,
+      agent: { id: 'dsh-test-session' },
+      deferContext: () => undefined,
+      concludeTurn: () => undefined,
+    } as never)
+  }
+}
 
 describe('independent platform boundary', () => {
   it('rejects an Adapter with an unsupported protocol version', () => {
@@ -56,6 +83,54 @@ describe('independent platform boundary', () => {
     await core.close()
   })
 
+  it('binds standard DSH Tools to the authoritative Core action boundary', async () => {
+    const core = new HarnessCore()
+    await core.connectAdapter(new MockGameAdapter())
+    const tools = new MockDshToolRegistry()
+    const binding = bindDshGameTools(tools, core, 'mock-game')
+
+    try {
+      expect(binding.toolNames).toEqual([
+        'game_mock-game_game_move',
+        'game_mock-game_game_collect',
+        'game_mock-game_game_reset',
+      ])
+      expect(tools.definitions.get('game_mock-game_game_move')?.parameters).toMatchObject({
+        type: 'object',
+        required: ['x', 'y'],
+      })
+
+      const rejected = await tools.execute('game_mock-game_game_collect', {}, 'dsh-rejected') as {
+        result: { ok: boolean; error?: { code: string } }
+        observation: { revision: number }
+      }
+      expect(rejected).toMatchObject({
+        callId: 'dsh-rejected',
+        capability: 'game.collect',
+        result: { ok: false, error: { code: 'OUT_OF_RANGE' } },
+        observation: { revision: 0 },
+      })
+      const rejectedText = tools.definitions.get('game_mock-game_game_collect')?.output.render({}, rejected as never)[0]
+      expect(rejectedText).toMatchObject({ type: 'text' })
+      expect(rejectedText?.type === 'text' ? rejectedText.text : '').toContain('Do not claim this action succeeded')
+
+      const moved = await tools.execute('game_mock-game_game_move', { x: 2, y: 1 }, 'dsh-move')
+      expect(moved).toMatchObject({
+        callId: 'dsh-move',
+        capability: 'game.move',
+        result: { ok: true, revision: 1 },
+        observation: { gameId: 'mock-game', revision: 1 },
+      })
+      expect(core.listTraces().filter(trace =>
+        trace.kind === 'agent.event' && ['action', 'action-result'].includes(String(trace.detail.eventType)),
+      )).toHaveLength(4)
+    } finally {
+      binding.dispose()
+      expect(tools.definitions.size).toBe(0)
+      await core.close()
+    }
+  })
+
   it('hosts the Desktop Core and remote Adapter as one independent runtime', async () => {
     const runtime = new PlatformRuntime({
       port: 0,
@@ -73,15 +148,91 @@ describe('independent platform boundary', () => {
 
     try {
       await client.waitUntilConnected(3_000)
-      const result = await runtime.chat({ sessionId: 'desktop-test', message: '帮我去捡金币' })
+      const streamed: Array<{ type: string }> = []
+      const result = await runtime.chat(
+        { sessionId: 'desktop-test', message: '帮我去捡金币' },
+        (event: { type: string }) => streamed.push(event),
+      )
       expect(result.events.some((event: { type: string; capability?: string }) => event.type === 'action' && event.capability === 'game.collect')).toBe(true)
+      expect(streamed).toEqual(result.events)
+      expect(streamed.some((event) => event.type === 'analysis')).toBe(false)
       expect(result.snapshot.observations[0]?.state.player).toMatchObject({ x: 2, y: 1, coins: 1 })
+      expect(result.snapshot.traces.find((trace: { kind: string }) => trace.kind === 'action.executed')?.detail).toMatchObject({
+        capability: 'game.move',
+        ok: true,
+        coreValidationMs: expect.any(Number),
+        adapterRoundTripMs: expect.any(Number),
+        bridgeRoundTripMs: 3,
+        gameExecutionMs: 2,
+        durationMs: expect.any(Number),
+      })
+      const moveTrace = result.snapshot.traces.find((trace: { kind: string; detail: { capability?: string } }) => trace.kind === 'action.executed' && trace.detail.capability === 'game.move')
+      const postMoveObservation = result.snapshot.traces.find((trace: { kind: string; detail: { reason?: string; requestId?: string } }) => trace.kind === 'game.observed' && trace.detail.reason === 'post-action' && trace.detail.requestId === moveTrace?.detail.requestId)
+      expect(postMoveObservation?.detail).toMatchObject({ adapterRoundTripMs: expect.any(Number), reason: 'post-action' })
 
       const reset = await runtime.reset('mock-game')
       expect(reset.observations[0]?.state.player).toMatchObject({ x: 0, y: 0, coins: 0 })
     } finally {
       await client.stop()
       await runtime.close()
+    }
+  })
+
+  it('exposes only public DSH text chunks to the product page', () => {
+    const hidden = visibleDshChunk({
+      type: 'assistant/chunk',
+      data: { chunk: { type: 'reasoning-delta', text: 'private chain of thought' } },
+    })
+    const visible = visibleDshChunk({
+      type: 'assistant/chunk',
+      data: { chunk: { type: 'text-delta', text: '公开回答' } },
+    })
+    expect(hidden).toBeUndefined()
+    expect(visible).toEqual({ type: 'text-delta', text: '公开回答' })
+  })
+
+  it('accepts only finite non-negative values from the official DSH sessionStats projection', () => {
+    expect(normalizeSessionStats({
+      turns: 2,
+      steps: 3,
+      llmMs: 420,
+      toolMs: -1,
+      ttftMs: Number.NaN,
+      ttftSteps: 2,
+      decodeMs: 180,
+      decodeTokens: 64,
+    })).toEqual({
+      turns: 2,
+      steps: 3,
+      llmMs: 420,
+      toolMs: 0,
+      ttftMs: 0,
+      ttftSteps: 2,
+      decodeMs: 180,
+      decodeTokens: 64,
+    })
+  })
+
+  it('never persists Agent analysis text in Core Trace', async () => {
+    const core = new HarnessCore()
+    await core.connectAdapter(new MockGameAdapter())
+    const driver: AgentDriver = {
+      async *stream(): AsyncGenerator<AgentEvent, void, AgentActionFeedback> {
+        yield { type: 'analysis', text: 'private chain of thought' }
+        yield { type: 'done', text: '公开回答' }
+      },
+    }
+    try {
+      for await (const _event of core.chat(driver, {
+        sessionId: 'privacy-test',
+        gameId: 'mock-game',
+        message: '测试',
+      })) { /* consume */ }
+      const serialized = JSON.stringify(core.listTraces())
+      expect(serialized).not.toContain('private chain of thought')
+      expect(serialized).toContain('"eventType":"done"')
+    } finally {
+      await core.close()
     }
   })
 

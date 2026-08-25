@@ -19,8 +19,8 @@
         <button class="nav-item" data-page="adapters"><span class="nav-icon">⌘</span><span>Adapter 中心</span></button>
       </nav>
       <div class="sidebar-foot">
-        <div class="runtime-pulse"><i></i><span>Harness Core 在线</span></div>
-        <small>Protocol 1.0 · Local runtime</small>
+        <div class="runtime-pulse"><i></i><span id="runtime-name">Runtime 启动中</span></div>
+        <small id="runtime-meta">Protocol 1.0 · Local runtime</small>
       </div>
     </aside>
 
@@ -42,7 +42,7 @@
                 <div class="avatar">AI</div>
                 <div class="bubble">
                   <span class="role">游戏伙伴</span>
-                  <p>Harness Core 已经启动。连接一个游戏 Adapter 后，我就能读取状态并执行游戏能力。</p>
+                  <p>产品页面已经连接到 DSH Session。公开回答会实时显示；模型隐藏思维不会进入页面或审计记录。</p>
                 </div>
               </article>
             </div>
@@ -80,21 +80,32 @@
         <div class="analysis-grid">
           <article class="metric-card"><span>已连接 Adapter</span><strong id="metric-adapters">1</strong><small>来自公开协议</small></article>
           <article class="metric-card"><span>权威状态版本</span><strong id="metric-revision">0</strong><small>由游戏侧递增</small></article>
-          <article class="metric-card"><span>追踪事件</span><strong id="metric-traces">0</strong><small>本地会话记录</small></article>
+          <article class="metric-card"><span>Session 模型耗时</span><strong id="metric-llm">0ms</strong><small id="metric-ttft">DSH 官方统计 · 尚无首字</small></article>
+          <article class="metric-card"><span>Session Tool 耗时</span><strong id="metric-tool">0ms</strong><small>DSH 官方 sessionStats</small></article>
+          <article class="metric-card"><span>Core 动作校验</span><strong id="metric-core-action">—</strong><small>发往 Adapter 前</small></article>
+          <article class="metric-card"><span>Adapter 往返</span><strong id="metric-adapter-action">—</strong><small>Core 实测</small></article>
+          <article class="metric-card"><span>Bridge 往返</span><strong id="metric-bridge-action">—</strong><small>Adapter 实测</small></article>
+          <article class="metric-card"><span>游戏内执行</span><strong id="metric-game-action">—</strong><small>游戏 Bridge 实测</small></article>
         </div>
         <article class="trace-card">
-          <div class="panel-heading"><div><p class="eyebrow">OBSERVABILITY</p><h2>运行轨迹</h2></div><span>最近 20 条</span></div>
+          <div class="panel-heading"><div><p class="eyebrow">OBSERVABILITY</p><h2>运行轨迹</h2></div><span id="metric-traces">最近 0 条</span></div>
           <div class="trace-list" id="trace-list"></div>
         </article>
       </section>
 
       <section class="page" id="page-adapters" aria-labelledby="page-title">
         <div class="section-intro"><div><p class="eyebrow">GAME ADAPTER PROTOCOL</p><h2>连接游戏，不绑定运行时</h2><p>每个游戏只需实现统一的观察、动作与事件接口。Agent 实现可以替换，游戏 Adapter 不必改写。</p></div><button class="primary" id="refresh-adapters">刷新连接</button></div>
+        <article class="runtime-card">
+          <div><span>Agent Runtime</span><strong id="runtime-agent">等待启动</strong></div>
+          <div><span>Session</span><strong id="runtime-session">—</strong></div>
+          <div><span>运行状态</span><strong id="runtime-status">—</strong></div>
+          <div><span>重连次数</span><strong id="runtime-reconnects">0</strong></div>
+        </article>
         <div class="adapter-list" id="adapter-list"></div>
         <article class="architecture-note">
           <span>依赖方向</span>
           <div class="flow"><b>桌面产品</b><i>→</i><b>Harness Core</b><i>→</i><b>Adapter Protocol</b><i>→</i><b>你的游戏</b></div>
-          <small>DSH Binding 是可选接线，不属于核心协议。</small>
+          <small>DSH Session 是默认 Agent 主链；Core Trace 与 Adapter 状态通过公开事件接回产品页。</small>
         </article>
       </section>
     </main>

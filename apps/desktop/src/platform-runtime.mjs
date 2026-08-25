@@ -61,14 +61,27 @@ export class PlatformRuntime {
   }
 
   snapshot() {
-    return this.#core.snapshot()
+    return {
+      ...this.#core.snapshot(),
+      runtime: {
+        kind: 'standalone',
+        label: 'Standalone Agent',
+        status: this.#address ? 'online' : 'offline',
+        sessionId: 'desktop',
+        agentRunning: false,
+        reconnectCount: 0,
+        adapterUrl: this.#address?.adapterUrl,
+        hiddenReasoning: 'not-exposed',
+        directActions: true,
+      },
+    }
   }
 
   subscribe(listener) {
     return this.#core.subscribe(listener)
   }
 
-  async chat({ sessionId = 'desktop', gameId, message }) {
+  async chat({ sessionId = 'desktop', gameId, message }, onEvent = () => undefined) {
     const selectedGameId = gameId ?? this.#core.listAdapters().find((adapter) => adapter.status === 'connected')?.gameId
     if (!selectedGameId) throw new Error('还没有游戏 Adapter 连接到 Harness。')
     const events = []
@@ -76,7 +89,12 @@ export class PlatformRuntime {
       sessionId,
       gameId: selectedGameId,
       message,
-    })) events.push(event)
+    })) {
+      // Analysis is an Agent-private signal, not a product-page payload.
+      if (event.type === 'analysis') continue
+      events.push(event)
+      onEvent(event)
+    }
     return { events, snapshot: this.snapshot() }
   }
 

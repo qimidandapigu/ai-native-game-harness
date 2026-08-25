@@ -3,6 +3,19 @@ import { existsSync, readFileSync, readdirSync, renameSync, statSync, writeFileS
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import {
+  ADAPTER_PROTOCOL_VERSION,
+  assertActionRequest,
+  type ActionRequest,
+  type ActionResult,
+  type AdapterCapability,
+  type AdapterConnectionState,
+  type AdapterHello,
+  type GameAdapter,
+  type GameEvent,
+  type GameObservation,
+  type JsonValue,
+} from '@ai-native-game-harness/adapter-protocol'
 import WebSocket from 'ws'
 import { resolveConfig, type Config, type OniInstallerConfig } from './config.js'
 import { detectOni, installOniMod } from './installation.js'
@@ -10,16 +23,46 @@ import { detectOni, installOniMod } from './installation.js'
 type ObjectValue = Record<string, unknown>
 type BridgeEvent = { id: string, method: string, params: ObjectValue }
 type ToolResult = { success: boolean, reply: string }
+type BridgeToolResult = ToolResult & { bridgeRoundTripMs: number; gameExecutionMs?: number }
+
+const GAME_ID = 'oxygen-not-included'
+const ADAPTER_ID = 'qimidandapigu.oxygen-not-included-fairy'
+const ADAPTER_VERSION = '0.1.5'
+const objectSchema = (properties: Record<string, JsonValue>, required: string[] = []): Record<string, JsonValue> => ({
+  type: 'object',
+  additionalProperties: false,
+  properties,
+  ...(required.length === 0 ? {} : { required }),
+})
+const actorProperties = {
+  actorScope: { type: 'string', description: 'specific or colony' },
+  actorId: { type: 'number', description: 'Duplicant id from the current observation.' },
+  urgent: { type: 'boolean' },
+} satisfies Record<string, JsonValue>
+const ONI_CAPABILITIES: AdapterCapability[] = [
+  { name: 'game.state', kind: 'observation', description: 'Current Oxygen Not Included observation.' },
+  { name: 'oni_move', kind: 'action', description: 'Move one duplicant to the current cursor cell.', inputSchema: objectSchema(actorProperties) },
+  { name: 'oni_dig', kind: 'action', description: 'Create a single-cell dig chore at the current cursor cell.', inputSchema: objectSchema(actorProperties) },
+  { name: 'oni_dig_path', kind: 'action', description: 'Create a staged dig path toward the current cursor cell.', inputSchema: objectSchema(actorProperties) },
+  { name: 'oni_build', kind: 'action', description: 'Build an allowlisted building at the current cursor cell.', inputSchema: objectSchema({ ...actorProperties, buildingKey: { type: 'string' } }, ['buildingKey']) },
+  { name: 'oni_companion_follow', kind: 'action', description: 'Change which living duplicant XiaoTangYuan follows.', inputSchema: objectSchema({ actorId: { type: 'number' } }, ['actorId']) },
+  { name: 'oni_companion_absorb_water', kind: 'action', description: 'Absorb water from the current cursor cell.', inputSchema: objectSchema({}) },
+  { name: 'oni_companion_spray_water', kind: 'action', description: 'Spray stored water into the current cursor cell.', inputSchema: objectSchema({}) },
+]
+const ONI_ACTIONS = new Set(ONI_CAPABILITIES.filter(item => item.kind === 'action').map(item => item.name))
 
 const ROLE = '你是住在《缺氧》里的小汤圆，是玩家傲娇、调皮但可靠的伙伴。使用简洁自然中文，不用 Markdown。需要操作游戏时必须调用 oni_ 开头的工具；只有工具返回 success=true 后才能说动作已经执行。玩家明确要求你改为跟随某个复制人时，调用 oni_companion_follow；不要因为普通选择或提到复制人就切换。玩家让你吸水、收水或把这里的水吸走时调用 oni_companion_absorb_water；玩家让你喷水、放水或把储水喷到这里时调用 oni_companion_spray_water。水技能是否学会、储水量和种类以当前观察及工具结果为准。'
 
 export const name = 'oni-adapter'
 export const inject = ['tools']
 
-export class OniAdapter {
+export class OniAdapter implements GameAdapter {
   private readonly seen = new Set<string>()
+  private readonly forwarded = new Set<string>()
   private readonly inbox: BridgeEvent[] = []
-  private readonly pending = new Map<string, { resolve: (value: ToolResult) => void, reject: (error: Error) => void, timer: ReturnType<typeof setTimeout> }>()
+  private readonly pending = new Map<string, { resolve: (value: BridgeToolResult) => void, reject: (error: Error) => void, timer: ReturnType<typeof setTimeout>, startedAt: number }>()
+  private readonly eventListeners = new Set<(event: GameEvent) => void>()
+  private readonly connectionListeners = new Set<(state: AdapterConnectionState) => void>()
   private socket?: WebSocket
   private processId?: number
   private saveId?: string
@@ -27,22 +70,91 @@ export class OniAdapter {
   private observation?: ObjectValue
   private timer?: ReturnType<typeof setInterval>
   private inboxDirty = false
+  private revision = 0
+  private observedAt = new Date(0).toISOString()
+  private bridgeState: AdapterConnectionState = 'disconnected'
 
   constructor(
     private readonly root: string,
-    private readonly gatewayUrl: string,
+    private readonly gatewayUrl: string | undefined,
     private readonly processAlive: (processId: number) => boolean = OniAdapter.isProcessAlive,
+    private readonly executionTimeoutMs = 15_000,
   ) {}
 
   start(): void { this.timer = setInterval(() => this.poll(), 100); this.poll() }
-  close(): void {
+  async close(): Promise<void> {
     if (this.timer !== undefined) clearInterval(this.timer)
     this.disconnect()
     for (const item of this.pending.values()) { clearTimeout(item.timer); item.reject(new Error('ONI Adapter 已关闭')) }
     this.pending.clear()
+    this.setBridgeState('disconnected')
+  }
+
+  async hello(): Promise<AdapterHello> {
+    return {
+      protocolVersion: ADAPTER_PROTOCOL_VERSION,
+      adapterId: ADAPTER_ID,
+      gameId: GAME_ID,
+      displayName: 'Oxygen Not Included / 缺氧',
+      adapterVersion: ADAPTER_VERSION,
+      capabilities: structuredClone(ONI_CAPABILITIES),
+    }
+  }
+
+  async observe(): Promise<GameObservation> {
+    if (this.observation === undefined || this.saveId === undefined) throw new Error('《缺氧》尚未连接到 AIHarness')
+    return {
+      gameId: GAME_ID,
+      saveId: this.saveId,
+      revision: this.revision,
+      observedAt: this.observedAt,
+      state: structuredClone(this.observation) as Record<string, JsonValue>,
+    }
+  }
+
+  async execute(request: ActionRequest): Promise<ActionResult> {
+    assertActionRequest(request, GAME_ID)
+    if (!ONI_ACTIONS.has(request.capability)) return this.actionError(request, 'CAPABILITY_UNAVAILABLE', `Unsupported ONI capability: ${request.capability}`)
+    if (request.expectedRevision !== undefined && request.expectedRevision !== this.revision) {
+      return this.actionError(request, 'REVISION_CONFLICT', `Expected revision ${request.expectedRevision}, current revision is ${this.revision}`)
+    }
+    try {
+      const result = await this.executeBridgeTool(request.capability, request.arguments, AbortSignal.timeout(this.executionTimeoutMs), request.requestId)
+      return {
+        requestId: request.requestId,
+        ok: result.success,
+        revision: this.revision,
+        result: { reply: result.reply },
+        timing: {
+          bridgeRoundTripMs: result.bridgeRoundTripMs,
+          ...(result.gameExecutionMs === undefined ? {} : { gameExecutionMs: result.gameExecutionMs }),
+        },
+        ...(result.success ? {} : { error: { code: 'ACTION_REJECTED', message: result.reply } }),
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      return this.actionError(request, /超时|timeout/i.test(message) ? 'REQUEST_TIMEOUT' : 'ADAPTER_DISCONNECTED', message)
+    }
+  }
+
+  subscribe(listener: (event: GameEvent) => void): () => void {
+    this.eventListeners.add(listener)
+    return () => this.eventListeners.delete(listener)
+  }
+
+  connectionState(): AdapterConnectionState { return this.bridgeState }
+
+  subscribeConnection(listener: (state: AdapterConnectionState) => void): () => void {
+    this.connectionListeners.add(listener)
+    return () => this.connectionListeners.delete(listener)
   }
 
   async executeTool(name: string, args: ObjectValue, signal: AbortSignal): Promise<ToolResult> {
+    const result = await this.executeBridgeTool(name, args, signal, randomUUID())
+    return { success: result.success, reply: result.reply }
+  }
+
+  private async executeBridgeTool(name: string, args: ObjectValue, signal: AbortSignal, callId: string): Promise<BridgeToolResult> {
     if (this.directory === undefined || this.processId === undefined) throw new Error('《缺氧》尚未连接到 AIHarness')
     const ui = typeof this.observation?.ui === 'object' && this.observation.ui !== null ? this.observation.ui as ObjectValue : undefined
     const cursor = (typeof ui?.cursor === 'object' && ui.cursor !== null ? ui.cursor : this.observation?.cursor)
@@ -50,10 +162,10 @@ export class OniAdapter {
       ? (cursor as ObjectValue).cell
       : undefined
     if (name !== 'oni_companion_follow' && targetCell === undefined) throw new Error('缺氧 Adapter 尚未收到有效的鼠标格子')
-    const callId = randomUUID()
-    const promise = new Promise<ToolResult>((resolve, reject) => {
-      const timer = setTimeout(() => { this.pending.delete(callId); reject(new Error(`缺氧工具执行超时：${name}`)) }, 15_000)
-      this.pending.set(callId, { resolve, reject, timer })
+    const promise = new Promise<BridgeToolResult>((resolve, reject) => {
+      const startedAt = performance.now()
+      const timer = setTimeout(() => { this.pending.delete(callId); reject(new Error(`缺氧工具执行超时：${name}`)) }, this.executionTimeoutMs)
+      this.pending.set(callId, { resolve, reject, timer, startedAt })
     })
     this.enqueue('tool.execute', {
       callId,
@@ -62,7 +174,12 @@ export class OniAdapter {
     })
     const abort = (): void => {
       const pending = this.pending.get(callId)
-      if (pending !== undefined) { clearTimeout(pending.timer); this.pending.delete(callId); pending.reject(new Error('缺氧工具调用已取消')) }
+      if (pending !== undefined) {
+        clearTimeout(pending.timer)
+        this.pending.delete(callId)
+        const timedOut = signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError'
+        pending.reject(new Error(timedOut ? `缺氧工具执行超时：${name}` : '缺氧工具调用已取消'))
+      }
     }
     signal.addEventListener('abort', abort, { once: true })
     try { return await promise } finally { signal.removeEventListener('abort', abort) }
@@ -91,11 +208,19 @@ export class OniAdapter {
       this.processId = undefined
       this.saveId = undefined
       this.disconnect()
+      this.setBridgeState('disconnected')
       return
     }
     this.directory = selected.directory
     const state = this.socket?.readyState
-    if (this.processId !== selected.processId || this.saveId !== selected.saveId || (state !== WebSocket.OPEN && state !== WebSocket.CONNECTING)) this.connect(selected.processId, selected.saveId)
+    if (this.processId !== selected.processId || this.saveId !== selected.saveId) {
+      this.processId = selected.processId
+      this.saveId = selected.saveId
+      if (this.gatewayUrl !== undefined) this.connect(selected.processId, selected.saveId)
+    } else if (this.gatewayUrl !== undefined && state !== WebSocket.OPEN && state !== WebSocket.CONNECTING) {
+      this.connect(selected.processId, selected.saveId)
+    }
+    this.setBridgeState('connected')
     const events = this.read(join(selected.directory, 'outbox.json'))?.events
     if (Array.isArray(events)) for (const raw of events) this.consume(raw)
     this.flushInbox()
@@ -104,27 +229,60 @@ export class OniAdapter {
   private consume(raw: unknown): void {
     if (typeof raw !== 'object' || raw === null) return
     const event = raw as BridgeEvent
-    if (typeof event.id !== 'string' || typeof event.method !== 'string' || this.seen.has(event.id)) return
+    if (typeof event.id !== 'string' || typeof event.method !== 'string') return
     if (event.method === 'tool.result') {
+      if (this.seen.has(event.id)) return
       this.seen.add(event.id)
       const callId = event.params.callId
       const pending = typeof callId === 'string' ? this.pending.get(callId) : undefined
       if (pending !== undefined) {
         clearTimeout(pending.timer); this.pending.delete(callId as string)
-        pending.resolve({ success: event.params.success === true, reply: String(event.params.reply ?? '') })
+        const gameExecutionMs = typeof event.params.gameExecutionMs === 'number' && Number.isFinite(event.params.gameExecutionMs) && event.params.gameExecutionMs >= 0
+          ? event.params.gameExecutionMs
+          : undefined
+        pending.resolve({
+          success: event.params.success === true,
+          reply: String(event.params.reply ?? ''),
+          bridgeRoundTripMs: Math.max(0, Math.round(performance.now() - pending.startedAt)),
+          ...(gameExecutionMs === undefined ? {} : { gameExecutionMs }),
+        })
       }
       return
     }
-    const context = event.params.context
-    const observation = event.method === 'state.update' ? event.params.observation
-      : typeof context === 'object' && context !== null ? (context as ObjectValue).observation : undefined
-    if (typeof observation === 'object' && observation !== null) this.observation = observation as ObjectValue
+    if (!this.seen.has(event.id)) {
+      this.seen.add(event.id)
+      const context = event.params.context
+      const observation = event.method === 'state.update' ? event.params.observation
+        : typeof context === 'object' && context !== null ? (context as ObjectValue).observation : undefined
+      if (typeof observation === 'object' && observation !== null) {
+        this.observation = observation as ObjectValue
+        const capturedAt = (observation as ObjectValue).meta
+        const rawObservedAt = typeof capturedAt === 'object' && capturedAt !== null ? (capturedAt as ObjectValue).capturedAt : undefined
+        this.observedAt = typeof rawObservedAt === 'string' && !Number.isNaN(Date.parse(rawObservedAt)) ? rawObservedAt : new Date().toISOString()
+        // Chat/assistant events may carry a duplicate observation for grounding.
+        // Only authoritative state.update events advance the concurrency token.
+        if (event.method === 'state.update') {
+          this.revision += 1
+          const gameEvent: GameEvent = {
+            eventId: event.id,
+            gameId: GAME_ID,
+            revision: this.revision,
+            occurredAt: this.observedAt,
+            type: 'state.updated',
+            payload: { saveId: this.saveId ?? 'default' },
+          }
+          for (const listener of this.eventListeners) listener(gameEvent)
+        }
+      }
+    }
     if (this.socket?.readyState !== WebSocket.OPEN) return
-    this.seen.add(event.id)
+    if (this.forwarded.has(event.id)) return
+    this.forwarded.add(event.id)
     this.forward(event)
   }
 
   private connect(processId: number, saveId: string): void {
+    if (this.gatewayUrl === undefined) return
     this.disconnect(); this.processId = processId; this.saveId = saveId
     const socket = this.socket = new WebSocket(this.gatewayUrl)
     socket.on('open', () => socket.send(JSON.stringify({ jsonrpc: '2.0', id: `oni-hello-${processId}`, method: 'adapter.hello', params: { adapterId: 'qimidandapigu.oxygen-not-included-fairy', gameId: 'oxygen-not-included', version: '0.1.5', protocolVersion: '1.1', capabilities: ['assistant.text-stream'], processId, saveId } })))
@@ -165,6 +323,21 @@ export class OniAdapter {
     socket.on('error', () => { /* closing a CONNECTING socket emits an error in ws */ })
     if (socket.readyState === WebSocket.CONNECTING) socket.terminate()
     else if (socket.readyState === WebSocket.OPEN) socket.close()
+  }
+
+  private actionError(request: ActionRequest, code: string, message: string): ActionResult {
+    return {
+      requestId: request.requestId,
+      ok: false,
+      revision: this.revision,
+      error: { code, message },
+    }
+  }
+
+  private setBridgeState(state: AdapterConnectionState): void {
+    if (this.bridgeState === state) return
+    this.bridgeState = state
+    for (const listener of this.connectionListeners) listener(state)
   }
 
   private static isProcessAlive(processId: number): boolean {

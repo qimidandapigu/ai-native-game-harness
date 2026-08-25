@@ -4,17 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@ai-native-game-harness/adapter-protocol": "workspace:*",
     "@ai-native-game-harness/adapter-websocket": "workspace:*",
+    "@ai-native-game-harness/dsh-binding": "workspace:*",
     "@ai-native-game-harness/game-pack": "workspace:*",
     "@ai-native-game-harness/harness-core": "workspace:*",
     "@ai-native-game-harness/mock-game": "workspace:*",
     "ws": "8.21.3"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-tools": "0.1.1-rc.2",
     "@types/ws": "8.18.1",
     "vitest": "4.0.18"
   }

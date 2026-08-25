@@ -1,3 +1,7 @@
 - insert:
     - id: ai-native-game-transport
       name: '@ai-native-game-harness/game-transport'
+      config:
+        host: 127.0.0.1
+        port: 33245
+        path: /adapter

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Server as HttpServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import WebSocket, { WebSocketServer } from 'ws'
 import {
   ADAPTER_PROTOCOL_VERSION,
@@ -27,6 +28,13 @@ export interface WebSocketAdapterHostOptions {
   requestTimeoutMs?: number
   heartbeatIntervalMs?: number
   onAdapterReady: (adapter: RemoteGameAdapter) => Promise<void> | void
+}
+
+export interface AdapterHostAddress {
+  host: string
+  port: number
+  path: string
+  url: string
 }
 
 interface IncomingConnection {
@@ -60,6 +68,29 @@ export class WebSocketAdapterHost {
   }
 
   listAdapters(): RemoteGameAdapter[] { return [...this.#adapters.values()] }
+
+  async ready(): Promise<AdapterHostAddress> {
+    if (this.#server.address() === null) {
+      await new Promise<void>((resolve, reject) => {
+        const onListening = (): void => {
+          this.#server.off('error', onError)
+          resolve()
+        }
+        const onError = (error: Error): void => {
+          this.#server.off('listening', onListening)
+          reject(error)
+        }
+        this.#server.once('listening', onListening)
+        this.#server.once('error', onError)
+      })
+    }
+    const address = this.#server.address() as AddressInfo | null
+    if (address === null) throw new Error('Adapter WebSocket Host is not listening')
+    const host = this.#options.host ?? address.address
+    const path = this.#options.path ?? '/adapter'
+    const urlHost = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host
+    return { host, port: address.port, path, url: `ws://${urlHost}:${address.port}${path}` }
+  }
 
   async close(): Promise<void> {
     clearInterval(this.#heartbeatTimer)

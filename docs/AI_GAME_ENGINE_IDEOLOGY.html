@@ -707,7 +707,7 @@
         <h1 id="hero-title"><span class="gradient-text">AI-Native</span><br>Game Harness</h1>
         <p class="hero-copy">
           一套面向 <strong>AI 原生与 AI 连接型游戏</strong> 的可视化承载与编排系统：复用 DeepSeek Harness 的模型、Agent、工具、会话和插件能力，再补上游戏连接、安装、记忆、视觉、语音与安全边界。
-          当前同时保留已经验证的 DSH 模型链路与独立 Game Adapter 测试切片；下一步是用正式 dsh-binding 把两者接成一条默认产品链，而不是重写模型 Runtime。
+          当前同时保留已经验证的 DSH 模型链路与独立 Game Adapter 测试切片；dsh-binding 的 Tool-to-Core 映射已经实现，下一步是把它装入真实 DSH Agent 作用域并接成默认产品链，而不是重写模型 Runtime。
         </p>
         <div class="actions">
           <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看新项目 ↗</a>
@@ -813,7 +813,7 @@
       </div>
       <div class="state-law card">
         <strong>当前结论</strong>
-        <span>直接 OpenAI-compatible Agent Driver 暂不进入路线；下一步是把现有 DSH Agent 会话通过 dsh-binding 接入 Harness Core 的 action/action-result 循环。正式规则见 ADR 0001。</span>
+        <span>直接 OpenAI-compatible Agent Driver 暂不进入路线；DSH Tool 到 Harness Core action/action-result 的 Binding 已装入真实 DSH Agent 进程，产品页面也已共享 Session 与 Core Trace。下一步是完成真实游戏 Desktop 端到端验收。正式规则见 ADR 0001。</span>
       </div>
     </section>
 
@@ -994,13 +994,13 @@
           <div class="section-kicker">05 · Build baseline</div>
           <h2>代码已经走到桌面开发预览</h2>
         </div>
-        <p class="section-summary">DSH 模型链、游戏插件闭环和独立 Adapter 测试切片都已落到代码；当前缺口是把两条已验证切片通过正式 dsh-binding 合并，而不是新写模型 Runtime。</p>
+        <p class="section-summary">DSH 模型链、游戏插件闭环、独立 Adapter 测试切片和产品页面接线都已落到代码；dsh-binding 已在真实 DSH Agent 进程中完成 Tool 到 Core action-result 的闭环。《缺氧》Adapter 也已能在不启动游戏时自动验证协议与错误路径。当前缺口是让真实游戏完成 Desktop 端到端验收，而不是新写模型 Runtime。</p>
       </div>
       <div class="surface-grid">
         <article class="feature card">
           <div class="feature-icon">CORE</div>
           <h3>固定 DSH Runtime</h3>
-          <p>源码基线固定 <span class="mono">@deepseek-ai/dsh 0.1.0-rc.6</span>；Windows 桌面发行 Runtime 固定为已验证的 <span class="mono">0.1.1-rc.2</span>，以匹配小汤圆 <span class="mono">0.7.7</span> 的插件依赖。两者都不自动追新。</p>
+          <p>源码基线与 Windows 桌面发行 Runtime 已统一固定为 <span class="mono">@deepseek-ai/dsh 0.1.1-rc.2</span>，以避免模型运行时和 Tool 插件混装。版本不自动追新。</p>
         </article>
         <article class="feature card">
           <div class="feature-icon">LOOP</div>
@@ -1015,16 +1015,16 @@
         <article class="feature card">
           <div class="feature-icon">WIRE</div>
           <h3>独立 Adapter 测试切片</h3>
-          <p>Harness Core、WebSocket Host、Mock Agent 与外置 Mock Adapter 已验证 action-result、错误反馈、动作上限和重连；它证明游戏边界，不替代 DSH 通用 Runtime。</p>
+          <p>Harness Core、WebSocket Host、Mock Agent 与外置 Mock Adapter 已验证 action-result、错误反馈、动作上限和重连；《缺氧》又通过假文件 Bridge 覆盖握手、能力、revision、动作、事件、超时与重连，不需要启动真实游戏。DSH Binding 验证了标准 DSH Tool 到 Core 的成功与拒绝回执，它们共同证明游戏边界，不替代 DSH 通用 Runtime。</p>
         </article>
       </div>
       <div class="state-law card">
-        <strong>已迁入，下一步先接线</strong>
-        <span>小汤圆已经验证 DSH 模型选择、Credentials、Agent Session、Tool Calling、流式回复、记忆和多模态；Harness Core 已验证游戏 action-result。下一步优先完善 <span class="mono">dsh-binding</span>，不能跳过现有能力去重写模型客户端。</span>
+        <strong>产品接线已完成，下一步验收真实游戏</strong>
+        <span>小汤圆已经验证 DSH 模型选择、Credentials、Agent Session、Tool Calling、流式回复、记忆和多模态；产品页已接入 DSH Session 公开文本流与 Core Trace。下一步是用真实游戏验收完整链路，不能跳过现有能力去重写模型客户端。</span>
       </div>
       <div class="state-law card">
-        <strong>当前实现偏差</strong>
-        <span>代码暂时把 Standalone Platform Runtime 设为 <span class="mono">desktop:start</span> 默认，DSH 路径由 <span class="mono">desktop:dsh</span> 显式启动。这不是最终产品决策；正式 Binding 通过 Fake Game 与真实游戏验收后，应恢复内置 DSH 为默认启动链。</span>
+        <strong>默认链路已经纠正</strong>
+        <span><span class="mono">desktop:start</span> 与 <span class="mono">desktop:dsh</span> 都启动内置 DSH 产品链；Standalone Platform Runtime 只由 <span class="mono">desktop:demo</span> 启动，用于确定性测试，不再承担默认产品 Runtime。</span>
       </div>
     </section>
 
@@ -1042,7 +1042,7 @@
         <article class="feature card"><div class="feature-icon">PLUG</div><h3>plugins</h3><p>Game Core、Transport、Memory、Media、UI、Installer 等跨游戏能力只实现一次，并遵循 DSH 的注入、事件和可逆生命周期。</p></article>
         <article class="feature card"><div class="feature-icon">WIRE</div><h3>contracts</h3><p>独立定义 Harness 与 C#、Lua、C++ Mod 共同使用的 Bridge 消息和 Schema，避免线协议反向依赖某个 TypeScript 插件。</p></article>
         <article class="feature card"><div class="feature-icon">GAME</div><h3>games / &lt;game&gt;</h3><p>同一游戏的 Harness Plugin、薄 Native Bridge 与 Pack 放在一起，确保它们共同测试、固定兼容范围并作为一个 Game Pack 发行。</p></article>
-        <article class="feature card"><div class="feature-icon">TEST</div><h3>tests</h3><p>分别验证协议兼容、DSH 插件装配、Trace 回放和最终游戏状态，明确区分“能够构建”和“真的执行成功”。</p></article>
+        <article class="feature card"><div class="feature-icon">TEST</div><h3>tests</h3><p>分别验证协议兼容、DSH 插件装配、持久 Session 事件与游戏 Trace 关联、最终游戏状态，明确区分“能够构建”和“真的执行成功”。</p></article>
         <article class="feature card"><div class="feature-icon">SHIP</div><h3>distribution</h3><p>将桌面源代码组合成完整应用，将每游戏两端代码组合成 Game Pack；发行物拥有独立版本、校验和、兼容范围与卸载信息。</p></article>
       </div>
       <div class="state-law card">
@@ -1057,12 +1057,12 @@
           <div class="section-kicker">07 · Product surfaces</div>
           <h2>引擎必须“看得见”</h2>
         </div>
-        <p class="section-summary">DSH Web、产品专属对话页、分析页和 Adapter 中心都已有代码切片；当前工作不是另起一套模型界面，而是让产品页面共享 DSH Agent 会话与 Harness Core 的可审计游戏 Trace。</p>
+        <p class="section-summary">产品专属对话页、分析页和 Adapter 中心已经共享 DSH Agent 会话与 Harness Core 的可审计游戏 Trace；DSH Web 继续提供底层会话 API，但产品窗口不再跳转到通用 DSH 页面。</p>
       </div>
       <div class="surface-grid">
         <article class="feature card"><div class="feature-icon">DSH</div><h3>已验证：模型与会话</h3><p>内置 DSH 已提供模型选择、Credentials、Agent Session、Tool Calling 和流式回复；产品继续复用，不另建模型 Runtime。</p></article>
-        <article class="feature card"><div class="feature-icon">NOW</div><h3>已实现：游戏产品页面</h3><p>独立测试切片已有对话页、结构化状态、分析 Trace 与 Adapter 中心；正式接线后由 DSH Agent 数据和 Core Trace 共同驱动。</p></article>
-        <article class="feature card"><div class="feature-icon">NEXT</div><h3>当前：统一两条数据链</h3><p>dsh-binding 连接 DSH Tool Call 与 Core action-result；页面只展示可审计事实，不展示模型隐藏思维链。</p></article>
+        <article class="feature card"><div class="feature-icon">NOW</div><h3>已接线：游戏产品页面</h3><p>对话页实时消费 DSH Session 公开文本；分析页从 DSH 历史与官方 sessionStats 投影读取通用事实和耗时，再合并 Core 的 action-result 与游戏侧 Trace，并把 Core 校验、Adapter 往返、Bridge 往返、游戏内执行和动作后观察按同一 requestId 串联；Adapter 中心消费 Core Snapshot。</p></article>
+        <article class="feature card"><div class="feature-icon">SAFE</div><h3>只展示可审计事实</h3><p><span class="mono">reasoning-delta</span> 与 Driver <span class="mono">analysis</span> 在产品边界过滤；页面只展示调用参数、结果、错误码、revision、耗时和连接状态。</p></article>
       </div>
     </section>
 
@@ -1092,8 +1092,8 @@
       </div>
       <div class="timeline">
         <article class="phase card"><div class="phase-num">SOURCE · 已迁入</div><h3>统一源码资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
-        <article class="phase card"><div class="phase-num">PHASE 1 · 已完成</div><h3>跑通最小闭环</h3><ul><li>固定 DSH Runtime Profile 与插件版本</li><li>实现 Game Core、Transport 与 Fake Harness Plugin</li><li>完成 Trace 回放和权威状态验收</li></ul></article>
-        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>合并 DSH 与游戏内核</h3><ul><li>完善 DSH Agent ↔ dsh-binding ↔ Harness Core</li><li>DSH-first 主路径通过 Fake Game 与真实游戏验收</li><li>恢复内置 DSH 为 Desktop 默认启动链</li></ul></article>
+        <article class="phase card"><div class="phase-num">PHASE 1 · 已完成</div><h3>跑通最小闭环</h3><ul><li>固定 DSH Runtime Profile 与插件版本</li><li>实现 Game Core、Transport 与 Fake Harness Plugin</li><li>完成 DSH 持久事件与游戏侧 Trace 关联、权威状态验收</li></ul></article>
+        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>真实游戏端到端验收</h3><ul><li>真实游戏通过同一 Adapter 权威结果验收</li><li>核对产品页的 Session、Tool、Action、耗时与重连</li><li>验证打包后的内置 DSH 产品链</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 3</div><h3>开放开发生态</h3><ul><li>多语言 Native Bridge SDK</li><li>Game Pack 签名、权限与兼容范围</li><li>官方目录、测试与认证</li></ul></article>
       </div>
     </section>

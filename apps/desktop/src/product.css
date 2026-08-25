@@ -95,7 +95,7 @@ textarea:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 0 0 0 3px r
 .secondary:disabled { cursor: not-allowed; opacity: .42; }
 .primary { border: 0; background: var(--mint); color: #062019; font-weight: 650; }
 
-.analysis-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+.analysis-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
 .metric-card { border: 1px solid var(--line); border-radius: 14px; padding: 18px; background: rgba(13,29,39,.75); }
 .metric-card span, .metric-card small { display: block; color: var(--muted); }
 .metric-card span { font-size: 11px; }
@@ -114,6 +114,11 @@ textarea:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 0 0 0 3px r
 .section-intro > div { max-width: 650px; }
 .section-intro h2 { font-size: 24px; margin-bottom: 9px; }
 .section-intro p:last-child { margin-bottom: 0; color: var(--muted); line-height: 1.65; font-size: 13px; }
+.runtime-card { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--line); }
+.runtime-card div { padding: 14px 16px; background: rgba(13,29,39,.92); min-width: 0; }
+.runtime-card span, .runtime-card strong { display: block; }
+.runtime-card span { color: var(--muted); font-size: 9px; margin-bottom: 6px; }
+.runtime-card strong { color: #dcebea; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adapter-list { display: grid; gap: 14px; }
 .adapter-card { padding: 20px; display: grid; grid-template-columns: 50px 1fr auto; gap: 16px; align-items: start; }
 .adapter-logo { width: 50px; height: 50px; border-radius: 13px; display: grid; place-items: center; color: var(--mint); background: var(--mint-dim); border: 1px solid rgba(101,230,196,.24); font-size: 20px; }
@@ -139,6 +144,7 @@ textarea:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 0 0 0 3px r
   .primary-nav { margin-top: 45px; }
   .chat-layout { grid-template-columns: 1fr; }
   .state-panel { display: none; }
+  .analysis-grid, .runtime-card { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 620px) {

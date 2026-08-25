@@ -13,7 +13,7 @@ apps/
   desktop/          对话页、分析页、Adapter 中心
 
 packages/
-  harness-core/     Agent、会话、能力与生命周期接口
+  harness-core/     Adapter 路由、动作校验、revision 与游戏侧 Trace
   adapter-protocol/ 游戏通信协议与 JSON Schema
   adapter-websocket/本机跨进程 Host 与可重连参考客户端
   game-pack/        剧情、角色、玩法和资源清单
@@ -23,7 +23,7 @@ examples/
   mock-game/        不依赖真实游戏与 DSH 的参考 Adapter
 ```
 
-游戏内核的依赖方向是 `dsh-binding → harness-core → adapter-protocol → 游戏 Adapter`。DSH 负责通用 AI Runtime，Harness Core 负责游戏动作策略与 Trace；核心包不反向依赖 DSH，默认产品仍由固定版本 DSH 驱动。
+游戏内核的依赖方向是 `dsh-binding → harness-core → adapter-protocol → 游戏 Adapter`。DSH 负责通用 AI Runtime，Harness Core 负责 Adapter 路由、动作校验、revision 与游戏侧 Trace；核心包不反向依赖 DSH，默认产品仍由固定版本 DSH 驱动。
 
 运行独立 Mock 闭环和产品界面：
 
@@ -34,7 +34,7 @@ pnpm mock:start
 pnpm desktop:demo
 ```
 
-`mock:start` 和 `desktop:demo` 是不依赖真实游戏的协议一致性测试夹具。当前代码中的 `desktop:start` 仍启动独立 Platform Runtime 原型，`desktop:dsh` 启动已经验证的 DSH 路径；这只是当前实现状态，目标默认路径是在完善 `dsh-binding` 后由 Desktop 内置并启动固定版本 DSH。
+`mock:start` 和 `desktop:demo` 是不依赖真实游戏的协议一致性测试夹具。`desktop:start` 与 `desktop:dsh` 现在都启动固定版本 DSH 和产品专属页面；Standalone Platform Runtime 不再是默认产品路径。
 
 ## 默认产品边界（DSH-first）
 
@@ -156,9 +156,9 @@ Game Pack 可以一键安装，但两部分运行在不同进程、承担不同�
 第一版先用 Fake Game 验证：
 
 ```text
-state → Agent → semantic tool call → permission/schema validation
+state → DSH Agent → semantic tool call → permission/schema validation
       → transport → native API wrapper → authoritative result
-      → new state → trace/replay
+      → new state → DSH durable log + correlated game trace
 ```
 
 随后再用一个真实游戏验证同一条链路。构建成功不等于接入成功；必须能观察到状态变化、调用参数、游戏侧执行结果和最终状态。
@@ -183,23 +183,29 @@ pnpm check
 目前已进入“可构建桌面安装包”的开发预览阶段：
 
 - Fake Game 已完成 `state → tool → Bridge → authoritative state` 自动化闭环；
+- 《缺氧》Adapter 已可在不启动游戏时用假文件 Bridge 自动验证协议握手、能力、revision、动作、错误、超时、事件和断线重连；
 - 独立 Platform Runtime 原型已能托管 Harness Core 和 WebSocket Adapter Host，并通过安全 IPC 驱动对话页、分析页和 Adapter 中心；它是测试夹具，不是目标默认 AI Runtime；
 - Agent Driver 已改为双向动作循环：Agent 只提出动作，Core 统一校验、执行并把结果和新状态回传；
+- `game-core + game-transport + dsh-binding` 已装入真实 DSH Agent 进程：模型能调用 Adapter 动作，Core 会把 `ActionResult` 与最新权威 Observation 返回 Agent；
+- Desktop 产品窗口现在常驻：对话页直接消费 DSH Session 的公开文本流，分析页从 DSH Session 历史与 `sessionStats` 投影读取回合/步骤/Tool 事实和官方耗时，再合并 Core 游戏侧 Trace，并分开显示 Core 校验、Adapter 往返、Bridge 往返、游戏内执行和动作后状态刷新；Adapter 中心显示连接、能力、协议版本和重连状态；
+- 模型 `reasoning-delta` 与 Standalone Driver 的 `analysis` 不进入产品 IPC 或 Core Trace；页面只记录事件类型、调用参数、结果、错误码、revision 和耗时；
 - `dsh-xiaotangyuan-game` 的本地 `0.7.7` Harness Plugin 已能打包、安装到隔离 DSH Profile、合并配置并真实启动 WebSocket Gateway；
-- 源码基线仍固定 DSH `0.1.0-rc.6`；桌面发行 Runtime 固定为已验证的 `0.1.1-rc.2`，端口使用 `33145`，不占用日常实例的 `32145`；
-- Electron 已分别保留独立测试原型和内置 DSH 路径；当前代码默认尚未切回 DSH-first，需在正式 `dsh-binding` 闭环通过后纠正；
+- 源码基线与桌面发行 Runtime 已统一固定为 DSH `0.1.1-rc.2`，端口使用 `33145`，不占用日常实例的 `32145`；
+- Electron 已恢复内置 DSH 为默认产品路径；`desktop:demo` 继续保留为不依赖模型的 Standalone 测试夹具；
 - 可在 Windows 本地构建 `.exe` 安装包，但尚未创建签名和正式 GitHub Release，因此 GitHub 暂无公开下载按钮。
 
 | 能力 | 当前状态 |
 | --- | --- |
 | Fake Game 权威闭环 | 已实现并有自动化测试 |
+| 《缺氧》无游戏 Adapter 协议测试 | 已实现；不启动 ONI 即覆盖成功、拒绝、revision 冲突、超时、事件与重连 |
 | `game-core` / `game-transport` / Bridge v1 | 已实现 |
 | 小汤圆 `0.7.7` 插件打包、隔离安装和 Gateway 启动 | 已验证 |
 | 独立 Core + Adapter Host 测试夹具 | 已实现并有自动化测试，不是目标默认 Runtime |
 | Agent action → Core execute → action-result 循环 | 已实现，含拒绝和动作上限测试 |
-| Electron 内置 DSH 主路径 | 已保留旧链路；待接入新 Core action-result 循环后恢复为默认 |
+| DSH Agent → Tool → Core → WebSocket Adapter → 权威状态 | 已实现；真实 DSH Agent + Mock Game 冒烟通过（金币 1，revision 2） |
+| Electron 内置 DSH 主路径 | 已恢复为默认；产品页不再跳转到 DSH Web |
 | Windows NSIS `.exe` | 本地已构建，未签名、未发布 |
-| 产品专属对话页、分析页与 Adapter 中心 | 已通过 IPC 接入独立 Runtime |
+| 产品专属对话页、分析页与 Adapter 中心 | 已接入 DSH Session + Core Snapshot；游戏动作四段耗时与 `requestId` 关联已进入分析页 |
 | 首个真实游戏 Game Pack 的最终游戏内验收 | 尚未完成 |
 | GitHub Release 与自动升级 | 尚未完成 |
 
@@ -226,13 +232,25 @@ pnpm integration:xiaotangyuan
 pnpm desktop:dist
 ```
 
-产物写入 `distribution/desktop/`，安装后的应用和桌面快捷方式显示为 **AI Native Game Harness 游戏版**。当前开发命令中，`pnpm desktop:demo` 用于独立 Mock 测试，`pnpm desktop:dsh` 用于内置 DSH 链路；完成正式 Binding 后，产品默认启动命令应指向 DSH-first 主路径。
+真实 DSH Agent 到 Mock Game 的第一阶段冒烟：
+
+```powershell
+pnpm smoke:dsh-adapter
+```
+
+DSH Session API、官方 `sessionStats` 投影与 Desktop 薄 Bridge 冒烟：
+
+```powershell
+pnpm smoke:dsh-product
+```
+
+产物写入 `distribution/desktop/`，安装后的应用和桌面快捷方式显示为 **AI Native Game Harness 游戏版**。当前开发命令中，`pnpm desktop:start` / `pnpm desktop:dsh` 都使用内置 DSH 产品链，`pnpm desktop:demo` 用于独立 Mock 测试。
 
 接下来按产品闭环继续：
 
-1. 复用小汤圆已经验证的 DSH Agent 会话，完成 `dsh-binding → Harness Core → action-result → DSH Agent` 闭环；
-2. 通过 Fake Game 与真实游戏测试后，将 Desktop 默认启动恢复为内置 DSH 主路径；
-3. 完成真实游戏 Game Pack 验收，再补代码签名、升级清单、崩溃诊断和 GitHub Release。
+1. 把小汤圆或另一款真实游戏接到同一套 Adapter 协议，重复第一阶段的权威结果验收；
+2. 用真实游戏跑一次 Desktop 端到端验收，核对页面里的 Session 流、Tool/Action 结果、revision、耗时和断线重连；
+3. 完成首个真实游戏 Game Pack 后，再补代码签名、升级清单、崩溃诊断和 GitHub Release。
 
 DSH 不自动追新，但可以受控升级。运行 `pnpm dsh:update:check` 查看候选版本，升级规则见 [UPGRADING_DSH.md](docs/UPGRADING_DSH.md)。
 

@@ -2,7 +2,7 @@
   "name": "@ai-native-game-harness/harness-core",
   "version": "0.1.0",
   "private": true,
-  "description": "Agent, session, capability and lifecycle interfaces for AI-native games.",
+  "description": "Game Adapter routing, authoritative action validation, revision handling, and game-side traces.",
   "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",

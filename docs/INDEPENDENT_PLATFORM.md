@@ -56,6 +56,8 @@ Game Adapter Protocol（hello / observe / execute / events）
 
 - DSH 切片：小汤圆插件已经验证真实模型选择、Agent 会话、Tool Calling、流式回复、记忆、多模态和内置 DSH Desktop 路径。
 - Standalone 切片：Mock Agent、Harness Core、WebSocket Adapter Host 和外置 Mock Adapter 已验证 `action → execute → action-result`、错误反馈、动作上限和重连。
+- Binding 切片：Adapter `inputSchema` 已注册成真实 DSH Agent 可见的标准 Tool；模型已通过 WebSocket 驱动 Mock Game 完成 `move → collect`，并收到金币 `1`、revision `2` 的权威结果。
+- 真实 Adapter 测试切片：《缺氧》通过假文件 Bridge 在不启动游戏时验证握手、观察、动作、revision 冲突、拒绝、超时、事件和重连；同一 DSH `callId` 会作为 Adapter `requestId` 原样进入 C# Bridge。
 
 Standalone 切片的存在是为了确定性测试公开游戏边界。它不是重新开发通用 AI Runtime 的授权，也不是目标产品默认。
 
@@ -72,13 +74,14 @@ DSH Agent
   → DSH Agent 继续决策或回复
 ```
 
-完成 Fake Game 和真实游戏验收后，Desktop 默认启动应使用内置、固定版本的 DSH Runtime。直接 OpenAI-compatible Driver 暂不进入路线，除非满足 ADR 0001 的替换门槛。
+Binding 已装入实际 DSH Agent 作用域并通过 Mock Game 真实模型冒烟。Desktop 产品页也已经共享 DSH Session 与 Core Trace：公开回答通过流式 IPC 到对话页，DSH Session 历史和官方 `sessionStats` 投影提供通用 Agent 事实与耗时，Core 只补充 action-result、Adapter 和游戏侧事实，Core Snapshot 驱动 Adapter 中心。游戏动作 Trace 分开记录 `coreValidationMs`、`adapterRoundTripMs`、`bridgeRoundTripMs` 和 `gameExecutionMs`，动作后的 Observation 用同一 `requestId` 关联；没有测量来源的分段保持“未提供”。`reasoning-delta` / `analysis` 在产品边界被过滤，不会作为可审计事实展示。产品页当前位于 DSH Web Client 组合之外，因此保留的是薄传输与展示 Bridge，不把它扩展成第二套 Session、日志或统计系统。当前剩余工作是让真实游戏重复同一验收，并完成安装包内的端到端 UI 验收。直接 OpenAI-compatible Driver 暂不进入路线，除非满足 ADR 0001 的替换门槛。
 
 验证命令：
 
 ```powershell
 pnpm check
 pnpm platform:test
+pnpm smoke:dsh-product
 pnpm mock:start
 pnpm desktop:dsh
 ```

@@ -2,9 +2,10 @@ import { createServer } from 'node:net'
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from 'electron'
 import { PlatformRuntime } from './platform-runtime.mjs'
+import { DshProductRuntime } from './dsh-product-runtime.mjs'
 
 const require = createRequire(import.meta.url)
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -16,6 +17,9 @@ let quitting = false
 let shutdownComplete = false
 let platformRuntime
 let platformUnsubscribe
+let dshProductRuntime
+let dshProductUnsubscribe
+let lastDshCoreSnapshot
 let demoAdapterProcess
 
 function sendStatus(message, detail = '') {
@@ -50,6 +54,12 @@ function runtimePaths() {
     patchPath,
     pluginPath: join(pluginRoot, pluginArchive),
     pluginVersion: pluginArchive.replace(/^.*-game-/, '').replace(/\.tgz$/, ''),
+    corePluginPath: packaged
+      ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-core', 'dist', 'index.js')
+      : join(repoRoot, 'plugins', 'game-core', 'dist', 'index.js'),
+    transportPluginPath: packaged
+      ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-transport', 'dist', 'index.js')
+      : join(repoRoot, 'plugins', 'game-transport', 'dist', 'index.js'),
   }
 }
 
@@ -147,17 +157,50 @@ async function waitForWeb(url, child, timeoutMs = 60_000) {
   throw new Error('等待 DSH 界面启动超时')
 }
 
+function writeProductPatch(paths, adapterPort) {
+  for (const pluginPath of [paths.corePluginPath, paths.transportPluginPath]) {
+    if (!existsSync(pluginPath)) throw new Error(`产品 Runtime 插件尚未构建：${pluginPath}`)
+  }
+  const stateRoot = join(app.getPath('userData'), 'runtime-state')
+  const productPatchPath = join(stateRoot, 'desktop-product.patch.yml')
+  mkdirSync(stateRoot, { recursive: true })
+  const coreUrl = pathToFileURL(paths.corePluginPath).href
+  const transportUrl = pathToFileURL(paths.transportPluginPath).href
+  writeFileSync(productPatchPath, `- insert:\n    - id: ai-native-game-core-product\n      name: '${coreUrl}'\n      config:\n        productSnapshotOutput: true\n    - id: ai-native-game-transport-product\n      name: '${transportUrl}'\n      config:\n        enabled: true\n        host: 127.0.0.1\n        port: ${adapterPort}\n        path: /adapter\n        requestTimeoutMs: 10000\n`)
+  return productPatchPath
+}
+
+function collectCoreSnapshots(data) {
+  const prefix = 'AI_GAME_HARNESS_SNAPSHOT '
+  collectCoreSnapshots.buffer = `${collectCoreSnapshots.buffer ?? ''}${data.toString()}`
+  const lines = collectCoreSnapshots.buffer.split(/\r?\n/)
+  collectCoreSnapshots.buffer = lines.pop() ?? ''
+  for (const line of lines) {
+    if (!line.startsWith(prefix)) continue
+    try {
+      lastDshCoreSnapshot = JSON.parse(line.slice(prefix.length))
+      dshProductRuntime?.attachCoreSnapshot(lastDshCoreSnapshot)
+    } catch (error) {
+      appendRuntimeLog(`[desktop] 无法解析 Core Snapshot：${error instanceof Error ? error.message : String(error)}\n`)
+    }
+  }
+}
+
 async function startRuntime() {
   const paths = runtimePaths()
   await ensurePlugin(paths)
   const port = await getFreePort()
+  const adapterPort = await getFreePort()
   const url = `http://127.0.0.1:${port}`
+  const adapterUrl = `ws://127.0.0.1:${adapterPort}/adapter`
+  const productPatchPath = writeProductPatch(paths, adapterPort)
   sendStatus('正在启动 AI Runtime', url)
 
   dshExitCode = null
   dshProcess = forkDsh([
     'web',
     '--patch', paths.patchPath,
+    '--patch', productPatchPath,
     '--no-open',
     '--host', '127.0.0.1',
     '--port', String(port),
@@ -169,7 +212,10 @@ async function startRuntime() {
     recentLog = `${recentLog}${text}`.slice(-12_000)
     appendRuntimeLog(text)
   }
-  dshProcess.stdout?.on('data', collect)
+  dshProcess.stdout?.on('data', (data) => {
+    collect(data)
+    collectCoreSnapshots(data)
+  })
   dshProcess.stderr?.on('data', collect)
   dshProcess.once('exit', (code) => {
     dshExitCode = code
@@ -180,7 +226,17 @@ async function startRuntime() {
   })
 
   await waitForWeb(url, dshProcess)
-  await mainWindow.loadURL(url)
+  dshProductRuntime = new DshProductRuntime({
+    baseUrl: url,
+    cwd: app.isPackaged ? app.getPath('userData') : repoRoot,
+    adapterUrl,
+  })
+  if (lastDshCoreSnapshot) dshProductRuntime.attachCoreSnapshot(lastDshCoreSnapshot)
+  await dshProductRuntime.start()
+  dshProductUnsubscribe = dshProductRuntime.subscribe((snapshot) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('platform-snapshot', snapshot)
+  })
+  await mainWindow.loadFile(join(desktopRoot, 'src', 'product.html'))
 }
 
 function validateChatInput(input) {
@@ -195,18 +251,24 @@ function validateChatInput(input) {
   }
 }
 
-function requirePlatformRuntime() {
-  if (!platformRuntime) throw new Error('Platform Runtime 尚未启动。')
-  return platformRuntime
+function requireProductRuntime() {
+  const runtime = dshProductRuntime ?? platformRuntime
+  if (!runtime) throw new Error('Product Runtime 尚未启动。')
+  return runtime
 }
 
 function registerPlatformIpc() {
-  ipcMain.handle('platform:info', () => requirePlatformRuntime().info())
-  ipcMain.handle('platform:snapshot', () => requirePlatformRuntime().snapshot())
-  ipcMain.handle('platform:chat', (_event, input) => requirePlatformRuntime().chat(validateChatInput(input)))
+  ipcMain.handle('platform:info', () => requireProductRuntime().info())
+  ipcMain.handle('platform:snapshot', () => requireProductRuntime().snapshot())
+  ipcMain.handle('platform:chat', (ipcEvent, input) => {
+    const requestId = typeof input?.requestId === 'string' ? input.requestId.slice(0, 200) : ''
+    return requireProductRuntime().chat(validateChatInput(input), (event) => {
+      if (!ipcEvent.sender.isDestroyed()) ipcEvent.sender.send('platform-chat-event', { requestId, event })
+    })
+  })
   ipcMain.handle('platform:reset', (_event, input) => {
     const gameId = typeof input?.gameId === 'string' && input.gameId ? input.gameId.slice(0, 200) : undefined
-    return requirePlatformRuntime().reset(gameId)
+    return requireProductRuntime().reset(gameId)
   })
 }
 
@@ -242,7 +304,8 @@ async function startPlatformRuntime() {
 }
 
 function createWindow() {
-  const legacyDsh = process.env.AI_GAME_HARNESS_LEGACY_DSH === '1'
+  const standaloneRuntime = process.env.AI_GAME_HARNESS_DEMO === '1' || process.env.AI_GAME_HARNESS_STANDALONE === '1'
+  const dshRuntime = !standaloneRuntime
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -264,7 +327,7 @@ function createWindow() {
     void shell.openExternal(url)
     return { action: 'deny' }
   })
-  const start = legacyDsh
+  const start = dshRuntime
     ? mainWindow.loadFile(join(desktopRoot, 'src', 'status.html')).then(() => startRuntime())
     : startPlatformRuntime()
   void start.catch(async (error) => {
@@ -272,7 +335,7 @@ function createWindow() {
     await dialog.showMessageBox(mainWindow, {
       type: 'error',
       title: 'AI Native Game Harness 游戏版启动失败',
-      message: legacyDsh ? '兼容 DSH Runtime 未能启动。' : '独立 Platform Runtime 未能启动。',
+      message: dshRuntime ? '内置 DSH Runtime 未能启动。' : 'Standalone 测试 Runtime 未能启动。',
       detail: error instanceof Error ? error.message : String(error),
     })
   })
@@ -290,6 +353,8 @@ app.on('before-quit', (event) => {
     if (demoAdapterProcess?.pid) demoAdapterProcess.kill()
     platformUnsubscribe?.()
     await platformRuntime?.close()
+    dshProductUnsubscribe?.()
+    await dshProductRuntime?.close()
     if (dshProcess?.pid) dshProcess.kill()
     shutdownComplete = true
     app.quit()

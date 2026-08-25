@@ -45,7 +45,16 @@ Adapter → Host：
       {
         "name": "game.move",
         "kind": "action",
-        "description": "Move the player."
+        "description": "Move the player.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": { "type": "integer" },
+            "y": { "type": "integer" }
+          },
+          "required": ["x", "y"]
+        }
       }
     ]
   }
@@ -77,6 +86,10 @@ Host → Adapter：
 | `system.ping` | Host → Adapter | 请求 | 检查连接是否仍能处理请求 |
 
 `game.execute` 必须携带唯一 `requestId`。可选 `expectedRevision` 用于拒绝基于旧状态生成的动作。Adapter 必须原样返回 `requestId` 和执行后的 `revision`。
+
+`ActionResult.timing` 可以返回游戏侧真正测得到的分段：`bridgeRoundTripMs` 表示 Adapter 到 Native Bridge 再返回的往返，`gameExecutionMs` 表示命令在游戏进程内的执行。无法测量的字段必须省略，不能用网络总耗时冒充。Harness Core 另行测量 `coreValidationMs`、`adapterRoundTripMs` 和动作后的状态观察，并用同一 `requestId` 关联。
+
+动作能力可以通过 `inputSchema` 声明参数结构。它是语言无关、对象根节点的 JSON Schema；DSH Binding 会把它作为标准 DSH Tool 参数直接交给模型。没有参数的动作也应声明空对象 Schema。旧 Adapter 暂时可以省略，Binding 会按开放对象处理，但正式 Game Pack 应提供明确 Schema。
 
 ## 两类错误
 

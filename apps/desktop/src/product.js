@@ -8,6 +8,14 @@ const fallback = {
   adapters: [],
   observations: [],
   traces: [],
+  runtime: {
+    kind: 'standalone',
+    label: 'Harness Core',
+    status: 'starting',
+    reconnectCount: 0,
+    hiddenReasoning: 'not-exposed',
+    directActions: true,
+  },
 }
 
 const placeholderObservation = { gameId: '', revision: 0, state: { player: { x: 0, y: 0, energy: '—', coins: '—' }, coin: { x: 2, y: 1, collected: true } } }
@@ -27,11 +35,11 @@ function setPage(name) {
   $('.sidebar').classList.remove('open')
 }
 
-async function api(path, options) {
+async function api(path, options, onEvent) {
   const platform = window.harnessDesktop?.platform
   if (platform) {
     if (path === '/api/snapshot') return await platform.snapshot()
-    if (path === '/api/chat') return await platform.chat(JSON.parse(options?.body ?? '{}'))
+    if (path === '/api/chat') return await platform.chat(JSON.parse(options?.body ?? '{}'), onEvent)
     if (path === '/api/reset') return await platform.reset(activeAdapter()?.gameId)
     throw new Error(`未知 Desktop API：${path}`)
   }
@@ -57,6 +65,7 @@ function activeAdapter() {
 function render() {
   const adapter = activeAdapter()
   const current = observation()
+  const runtime = snapshot.runtime ?? fallback.runtime
   const player = current.state?.player ?? placeholderObservation.state.player
   const coin = current.state?.coin ?? placeholderObservation.state.coin
   const connected = adapter?.status === 'connected'
@@ -74,8 +83,30 @@ function render() {
   $('#coin-marker').style.opacity = adapter && !coin.collected ? '1' : '.12'
   $('#metric-adapters').textContent = snapshot.adapters.filter((item) => item.status === 'connected').length
   $('#metric-revision').textContent = adapter ? current.revision : '—'
-  $('#metric-traces').textContent = snapshot.traces.length
-  const canReset = connected && adapter.capabilities.some((capability) => capability.kind === 'action' && capability.name === 'game.reset')
+  const sessionStats = runtime.sessionStats ?? {}
+  const llmMs = Number(sessionStats.llmMs)
+  const toolMs = Number(sessionStats.toolMs)
+  const ttftMs = Number(sessionStats.ttftMs)
+  const ttftSteps = Number(sessionStats.ttftSteps)
+  $('#metric-llm').textContent = `${Number.isFinite(llmMs) ? Math.round(llmMs) : 0}ms`
+  $('#metric-tool').textContent = `${Number.isFinite(toolMs) ? Math.round(toolMs) : 0}ms`
+  $('#metric-ttft').textContent = Number.isFinite(ttftMs) && Number.isFinite(ttftSteps) && ttftSteps > 0
+    ? `DSH 官方统计 · 平均首字 ${Math.round(ttftMs / ttftSteps)}ms`
+    : 'DSH 官方统计 · 尚无首字'
+  const latestAction = snapshot.traces.findLast?.(trace => trace.kind === 'action.executed')
+    ?? [...snapshot.traces].reverse().find(trace => trace.kind === 'action.executed')
+  setMeasuredMetric('#metric-core-action', latestAction?.detail?.coreValidationMs)
+  setMeasuredMetric('#metric-adapter-action', latestAction?.detail?.adapterRoundTripMs)
+  setMeasuredMetric('#metric-bridge-action', latestAction?.detail?.bridgeRoundTripMs)
+  setMeasuredMetric('#metric-game-action', latestAction?.detail?.gameExecutionMs)
+  $('#metric-traces').textContent = `最近 ${Math.min(snapshot.traces.length, 20)} 条`
+  $('#runtime-name').textContent = `${runtime.label ?? 'Harness Runtime'} ${runtime.status === 'online' ? '在线' : '连接中'}`
+  $('#runtime-meta').textContent = runtime.sessionId ? `Session ${runtime.sessionId}` : 'Protocol 1.0 · Local runtime'
+  $('#runtime-agent').textContent = runtime.label ?? runtime.kind ?? 'Harness Runtime'
+  $('#runtime-session').textContent = runtime.sessionId ?? 'Standalone Session'
+  $('#runtime-status').textContent = runtime.agentRunning ? 'Agent 运行中' : runtime.status === 'online' ? '已连接' : '正在重连'
+  $('#runtime-reconnects').textContent = runtime.reconnectCount ?? 0
+  const canReset = runtime.directActions !== false && connected && adapter.capabilities.some((capability) => capability.kind === 'action' && capability.name === 'game.reset')
   $('#reset-game').disabled = !canReset
   $('#reset-game').textContent = adapter ? `重置 ${adapter.displayName}` : '重置游戏'
   renderTraces()
@@ -100,14 +131,69 @@ function renderTraces() {
     time.textContent = new Date(trace.createdAt).toLocaleTimeString('zh-CN', { hour12: false })
     const kind = document.createElement('span')
     kind.className = 'trace-kind'
-    kind.textContent = trace.kind
+    kind.textContent = traceLabel(trace.kind)
     const detail = document.createElement('code')
-    detail.textContent = JSON.stringify(trace.detail)
+    detail.textContent = traceDetail(trace)
     const game = document.createElement('b')
     game.textContent = trace.gameId
     row.append(time, kind, detail, game)
     root.append(row)
   }
+}
+
+function traceLabel(kind) {
+  const labels = {
+    'dsh.turn.started': 'DSH 回合开始',
+    'dsh.turn.completed': 'DSH 回合完成',
+    'dsh.step.started': '模型步骤开始',
+    'dsh.step.completed': '模型步骤完成',
+    'dsh.tool.called': '工具调用',
+    'dsh.tool.result': '工具结果',
+    'action.executed': '游戏动作结果',
+    'game.observed': '游戏状态观察',
+    'adapter.connected': 'Adapter 已连接',
+    'adapter.disconnected': 'Adapter 已断开',
+    'adapter.reconnected': 'Adapter 已重连',
+    'agent.event': 'Agent 公开事件',
+  }
+  return labels[kind] ?? kind
+}
+
+function traceDetail(trace) {
+  const detail = { ...trace.detail }
+  // Defence in depth: legacy traces may still contain private model text.
+  delete detail.analysis
+  delete detail.reasoning
+  if (detail.eventType === 'analysis') delete detail.text
+  if (trace.kind === 'action.executed') {
+    const correlation = detail.requestId ? `requestId ${detail.requestId}` : 'requestId —'
+    const outcome = detail.ok ? '成功' : `失败 ${detail.errorCode ?? ''}`.trim()
+    return [
+      correlation,
+      detail.capability ?? '未知动作',
+      outcome,
+      `Core ${formatMeasuredMs(detail.coreValidationMs)}`,
+      `Adapter ${formatMeasuredMs(detail.adapterRoundTripMs)}`,
+      `Bridge ${formatMeasuredMs(detail.bridgeRoundTripMs)}`,
+      `游戏 ${formatMeasuredMs(detail.gameExecutionMs)}`,
+      `revision ${detail.revision ?? '—'}`,
+    ].join(' · ')
+  }
+  if (trace.kind === 'game.observed') {
+    const correlation = detail.requestId ? `requestId ${detail.requestId}` : '独立观察'
+    const reason = detail.reason === 'post-action' ? '动作后刷新' : detail.reason === 'reconnect' ? '重连刷新' : detail.reason === 'initial' ? '首次连接' : '手动刷新'
+    return `${correlation} · ${reason} · Adapter ${formatMeasuredMs(detail.adapterRoundTripMs)} · revision ${detail.revision ?? '—'}`
+  }
+  return JSON.stringify(detail)
+}
+
+function formatMeasuredMs(value) {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) && numeric >= 0 ? `${Math.round(numeric)}ms` : '未提供'
+}
+
+function setMeasuredMetric(selector, value) {
+  $(selector).textContent = formatMeasuredMs(value)
 }
 
 function renderAdapters() {
@@ -116,7 +202,7 @@ function renderAdapters() {
   if (!snapshot.adapters.length) {
     const empty = document.createElement('div')
     empty.className = 'empty'
-    empty.textContent = '尚未发现游戏 Adapter。Harness 正在等待 ws://127.0.0.1:43145/adapter。'
+    empty.textContent = `尚未发现游戏 Adapter。Harness 正在等待 ${snapshot.runtime?.adapterUrl ?? 'Adapter WebSocket'}。`
     root.append(empty)
     return
   }
@@ -176,28 +262,33 @@ async function submitMessage(text) {
   const assistant = addMessage('assistant')
   const thinking = document.createElement('div')
   thinking.className = 'thinking'
-  thinking.textContent = '正在观察游戏…'
+  thinking.textContent = 'DSH Session 正在运行（隐藏思维不展示）…'
   assistant.bubble.insertBefore(thinking, assistant.content)
+  let streamedEvents = 0
+  const handleEvent = (event) => {
+    streamedEvents += 1
+    if (event.type === 'action') thinking.textContent = `调用游戏动作 ${event.capability}…`
+    if (event.type === 'action-result') thinking.textContent = event.result.ok
+      ? `${event.capability} 已执行，状态 REV ${event.observation.revision}`
+      : `${event.capability} 被拒绝：${event.result.error?.message ?? '未知错误'}`
+    if (event.type === 'tool-call') thinking.textContent = `调用工具 ${event.tool}…`
+    if (event.type === 'tool-result') thinking.textContent = event.ok
+      ? `工具完成${Number.isFinite(event.durationMs) ? ` · ${event.durationMs}ms` : ''}`
+      : `工具失败${event.errorCode ? ` · ${event.errorCode}` : ''}`
+    if (event.type === 'text-delta') assistant.content.textContent += event.text
+    if (event.type === 'done' && !assistant.content.textContent && event.text) assistant.content.textContent = event.text
+    $('#messages').scrollTop = $('#messages').scrollHeight
+  }
   try {
     const result = await api('/api/chat', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ sessionId: 'desktop-demo', message: text.trim() }),
-    })
+    }, handleEvent)
     if (!result) throw new Error('当前页面没有连接 Platform Runtime。请从 Electron Desktop 启动。')
-    for (const event of result.events) {
-      if (event.type === 'analysis') thinking.textContent = event.text
-      if (event.type === 'action') thinking.textContent = `调用 ${event.capability}…`
-      if (event.type === 'action-result') thinking.textContent = event.result.ok
-        ? `${event.capability} 已执行，状态 REV ${event.observation.revision}`
-        : `${event.capability} 被拒绝：${event.result.error?.message ?? '未知错误'}`
-      if (event.type === 'text-delta') {
-        assistant.content.textContent += event.text
-        await new Promise((resolve) => setTimeout(resolve, 55))
-      }
-      if (event.type === 'done' && !assistant.content.textContent) assistant.content.textContent = event.text
-    }
+    if (!streamedEvents) result.events.forEach(handleEvent)
     thinking.remove()
+    if (!assistant.content.textContent) assistant.content.textContent = 'DSH Session 已完成；本轮没有公开文本输出。'
     snapshot = result.snapshot
     render()
   } catch (error) {

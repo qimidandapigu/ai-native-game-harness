@@ -31,9 +31,29 @@ export class MockGameAdapter implements GameAdapter {
       adapterVersion: '0.1.0',
       capabilities: [
         { name: 'game.observe', kind: 'observation', description: 'Read authoritative game state.' },
-        { name: 'game.move', kind: 'action', description: 'Move the player to a map coordinate.' },
-        { name: 'game.collect', kind: 'action', description: 'Collect the coin at the player position.' },
-        { name: 'game.reset', kind: 'action', description: 'Reset the deterministic demo state.' },
+        {
+          name: 'game.move',
+          kind: 'action',
+          description: 'Move the player to a map coordinate.',
+          inputSchema: {
+            type: 'object',
+            additionalProperties: false,
+            properties: { x: { type: 'integer' }, y: { type: 'integer' } },
+            required: ['x', 'y'],
+          },
+        },
+        {
+          name: 'game.collect',
+          kind: 'action',
+          description: 'Collect the coin at the player position.',
+          inputSchema: { type: 'object', additionalProperties: false, properties: {} },
+        },
+        {
+          name: 'game.reset',
+          kind: 'action',
+          description: 'Reset the deterministic demo state.',
+          inputSchema: { type: 'object', additionalProperties: false, properties: {} },
+        },
       ],
     }
   }
@@ -58,7 +78,7 @@ export class MockGameAdapter implements GameAdapter {
     if (request.capability === 'game.reset') {
       this.reset()
       this.#emit('game.reset', {})
-      return { requestId: request.requestId, ok: true, revision: this.#revision, result: { reset: true } }
+      return { requestId: request.requestId, ok: true, revision: this.#revision, result: { reset: true }, timing: { bridgeRoundTripMs: 3, gameExecutionMs: 2 } }
     }
     return this.#error(request, 'UNKNOWN_CAPABILITY', `Unknown capability: ${request.capability}`)
   }
@@ -86,7 +106,7 @@ export class MockGameAdapter implements GameAdapter {
     this.#state.player.energy -= 1
     this.#revision += 1
     this.#emit('player.moved', { x, y })
-    return { requestId: request.requestId, ok: true, revision: this.#revision, result: { x, y } }
+    return { requestId: request.requestId, ok: true, revision: this.#revision, result: { x, y }, timing: { bridgeRoundTripMs: 3, gameExecutionMs: 2 } }
   }
 
   #collect(request: ActionRequest): ActionResult {
@@ -98,7 +118,7 @@ export class MockGameAdapter implements GameAdapter {
     player.coins += 1
     this.#revision += 1
     this.#emit('coin.collected', { coins: player.coins })
-    return { requestId: request.requestId, ok: true, revision: this.#revision, result: { coins: player.coins } }
+    return { requestId: request.requestId, ok: true, revision: this.#revision, result: { coins: player.coins }, timing: { bridgeRoundTripMs: 3, gameExecutionMs: 2 } }
   }
 
   #error(request: ActionRequest, code: string, message: string): ActionResult {

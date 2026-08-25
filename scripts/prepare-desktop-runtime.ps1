@@ -57,6 +57,25 @@ try {
   Pop-Location
 }
 
+$runtimeModules = Join-Path $runtimeRoot 'node_modules'
+$runtimeScopeRoot = Join-Path $runtimeModules '@ai-native-game-harness'
+New-Item -ItemType Directory -Force -Path $runtimeScopeRoot | Out-Null
+$runtimePackages = @(
+  @{ Name = 'adapter-protocol'; Source = (Join-Path $repoRoot 'packages/adapter-protocol') },
+  @{ Name = 'adapter-websocket'; Source = (Join-Path $repoRoot 'packages/adapter-websocket') },
+  @{ Name = 'harness-core'; Source = (Join-Path $repoRoot 'packages/harness-core') },
+  @{ Name = 'dsh-binding'; Source = (Join-Path $repoRoot 'packages/dsh-binding') },
+  @{ Name = 'bridge-contract'; Source = (Join-Path $repoRoot 'contracts/bridge-v1') },
+  @{ Name = 'game-core'; Source = (Join-Path $repoRoot 'plugins/game-core') },
+  @{ Name = 'game-transport'; Source = (Join-Path $repoRoot 'plugins/game-transport') }
+)
+foreach ($runtimePackageEntry in $runtimePackages) {
+  $runtimePackageTarget = Join-Path $runtimeScopeRoot $runtimePackageEntry.Name
+  New-Item -ItemType Directory -Force -Path $runtimePackageTarget | Out-Null
+  Copy-Item -LiteralPath (Join-Path $runtimePackageEntry.Source 'package.json') -Destination $runtimePackageTarget -Force
+  Copy-Item -LiteralPath (Join-Path $runtimePackageEntry.Source 'dist') -Destination $runtimePackageTarget -Recurse -Force
+}
+
 New-Item -ItemType Directory -Force -Path $appRoot | Out-Null
 Copy-Item -LiteralPath $sourceRoot -Destination $appRoot -Recurse -Force
 

@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+let chatSequence = 0
+
 contextBridge.exposeInMainWorld('harnessDesktop', {
   onStatus(callback) {
     const listener = (_event, status) => callback(status)
@@ -9,7 +11,18 @@ contextBridge.exposeInMainWorld('harnessDesktop', {
   platform: {
     info: () => ipcRenderer.invoke('platform:info'),
     snapshot: () => ipcRenderer.invoke('platform:snapshot'),
-    chat: (input) => ipcRenderer.invoke('platform:chat', input),
+    async chat(input, onEvent) {
+      const requestId = `chat-${Date.now()}-${++chatSequence}`
+      const listener = (_event, payload) => {
+        if (payload?.requestId === requestId) onEvent?.(payload.event)
+      }
+      ipcRenderer.on('platform-chat-event', listener)
+      try {
+        return await ipcRenderer.invoke('platform:chat', { ...input, requestId })
+      } finally {
+        ipcRenderer.removeListener('platform-chat-event', listener)
+      }
+    },
     reset: (gameId) => ipcRenderer.invoke('platform:reset', { gameId }),
     onSnapshot(callback) {
       const listener = (_event, snapshot) => callback(snapshot)

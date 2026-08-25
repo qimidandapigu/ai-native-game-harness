@@ -20,6 +20,13 @@ The product follows a **DSH-first** strategy:
 4. Keep the standalone Mock Agent and standalone Platform Runtime as conformance tests and development fixtures, not as the intended default product runtime.
 5. Build a replacement only after a concrete DSH mismatch is demonstrated and recorded.
 
+The same rule applies to the product client surface:
+
+- DSH Session APIs, durable events and registered projections are the canonical source for generic Agent state and timing.
+- A product page outside the composed DSH Web client may keep a thin transport and presentation bridge, but it must not create a second Session store or independently redefine canonical DSH metrics.
+- DSH Web client plugins are reusable only inside their declared client composition. Their existence does not imply that a standalone Electron page can instantiate package-internal controllers or React views directly.
+- The DSH client connection and the Game Adapter connection are separate boundaries. Only the latter belongs to this project's public cross-process game protocol.
+
 ## Replacement gate
 
 A custom replacement for a DSH capability requires all of the following evidence:
@@ -35,7 +42,8 @@ Convenience, unfamiliarity or the existence of a framework-neutral interface is 
 
 ## Consequences
 
-- The next integration task is to connect the existing DSH Agent session/tool loop to `HarnessCore` action/action-result handling.
+- The DSH Agent session/tool loop is connected to `HarnessCore` action/action-result handling and has passed the Mock Game smoke test.
 - A direct OpenAI-compatible Agent Driver is not current roadmap work unless the replacement gate is satisfied.
 - The current standalone Desktop path remains useful for deterministic protocol testing, but the intended product default is the embedded, version-pinned DSH runtime.
-- Documentation must distinguish product default, test fixture and fallback implementation.
+- The next integration task is to repeat the same authoritative-result and product-page acceptance with a real game.
+- Documentation and tests must distinguish the product default, the standalone test fixture, DSH Host capabilities, DSH Web-only client plugins and the external Game Adapter boundary.
