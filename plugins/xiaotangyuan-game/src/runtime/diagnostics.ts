@@ -28,4 +28,3 @@ export function publishProductDiagnostic(
   process.stdout.write(`${PRODUCT_DIAGNOSTIC_PREFIX}${JSON.stringify(record)}\n`)
   return record
 }
-

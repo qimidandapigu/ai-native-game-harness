@@ -16,4 +16,3 @@ const report = await runAdapterConformance(adapter, {
 ```
 
 `report.ok` 适合开发工具展示；`assertAdapterConformance` 适合 CI，失败时会抛出包含每项检查名称的错误。它证明协议行为一致，不替代真实游戏存档验收。
-

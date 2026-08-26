@@ -25,4 +25,3 @@ const packs = await registry.list()
 const content = await registry.loadContent('your-game')
 await registry.uninstall('your-game', '1.0.0')
 ```
-
