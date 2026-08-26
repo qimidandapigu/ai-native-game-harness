@@ -6,7 +6,7 @@ AI Native Game Harness 想为玩家提供一个可以进入不同游戏的 AI �
 
 对于游戏开发者和 MOD 作者，它提供一套可复用的 AI 游戏底座。你只需要描述自己的游戏世界、状态和可执行动作，不必为每款游戏重新开发模型接入、语音、记忆、工具调用和桌面应用。
 
-> 当前处于开发预览阶段。开发者可以运行源码和演示，但面向普通玩家的一键安装包尚未正式发布。
+> `v1.0.0` 源码版本已经发布。开发者可以运行源码和演示；面向普通玩家的一键安装包仍在准备中。
 
 **[查看产品介绍](docs/AI_GAME_ENGINE_IDEOLOGY.html)** · **[接入一个新游戏](docs/INDEPENDENT_PLATFORM.md)** · **[关注正式发布](https://github.com/qimidandapigu/ai-native-game-harness/releases)**
 
