@@ -1,87 +1,110 @@
 # AI Native Game Harness
 
-让 AI 安全、统一地连接不同游戏。
+## 让游戏里的 AI 不只会聊天，还能真正理解和参与游戏
 
-AI Native Game Harness 是一个基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 构建的游戏 AI 运行层和 Adapter 框架。它复用 DSH 的模型、Agent、工具、会话和插件能力，再补充游戏状态、动作安全、跨进程通信、Game Pack 和桌面界面。
+AI Native Game Harness 想为玩家提供一个可以进入不同游戏的 AI 伙伴：它能看懂当前局面、听懂玩家说话、记住共同经历，并在游戏允许的范围内完成真实动作。
 
-> 当前处于开发预览阶段：源码和自动测试可用，但尚未发布正式安装包，也尚未完成真实游戏的最终验收。
+对于游戏开发者和 MOD 作者，它提供一套可复用的 AI 游戏底座。你只需要描述自己的游戏世界、状态和可执行动作，不必为每款游戏重新开发模型接入、语音、记忆、工具调用和桌面应用。
 
-## 它能做什么
+> 当前处于开发预览阶段。开发者可以运行源码和演示，但面向普通玩家的一键安装包尚未正式发布。
 
-- 让同一个 AI Harness 选择性连接不同游戏。
-- 从游戏读取准确状态，而不只依赖截图猜测。
-- 把 AI 动作交给游戏侧校验，并返回权威执行结果。
-- 支持文字、视觉、语音、记忆和可验证技能学习。
-- 用 Game Pack 管理每个游戏的 Adapter、Bridge、内容和版本。
-- 在桌面端提供对话、自学习、分析和 Adapter 管理界面。
+**[查看产品介绍](docs/AI_GAME_ENGINE_IDEOLOGY.html)** · **[接入一个新游戏](docs/INDEPENDENT_PLATFORM.md)** · **[关注正式发布](https://github.com/qimidandapigu/ai-native-game-harness/releases)**
 
-## 工作方式
+## 玩家能得到什么
+
+### 一个真正了解游戏的 AI 伙伴
+
+AI 不只读取聊天内容。游戏可以把角色状态、背包、附近目标、任务和当前场景准确地告诉它，让回答建立在真实局面上。
+
+### 用文字或语音一起玩
+
+玩家可以询问情况、讨论计划，也可以要求 AI 执行游戏提供的动作。动作是否成功由游戏确认，AI 不能只用一句话假装任务已经完成。
+
+### 跨存档的共同经历
+
+记忆按游戏和存档隔离。AI 可以记住重要经历，又不会用旧记忆覆盖当前游戏事实。
+
+### 会学习，但不会乱学
+
+AI 可以尝试把多步操作整理成技能。只有在真实游戏中完整试跑成功，技能才会保存；失败尝试只用于改进和排错。
+
+### 一个应用连接多款游戏
+
+未来玩家只需安装一个桌面应用，再按需安装自己玩的游戏包，不需要把所有游戏适配器和 MOD 一次性下载下来。
+
+## 对游戏开发者和 MOD 作者的价值
+
+- **更快做出 AI 玩法**：把精力放在角色、剧情、规则和游戏专属动作上。
+- **复用成熟能力**：统一使用模型、语音、视觉、记忆、会话和工具系统。
+- **不绑定单一模型厂商**：游戏接入面向能力，而不是写死某一家 API。
+- **支持不同技术栈**：游戏侧可以使用 C#、Lua、C++ 或其他语言。
+- **更容易测试和排错**：每次动作都能关联请求、结果、耗时和更新后的游戏状态。
+- **按游戏独立发布**：每个游戏包可以单独安装、升级和卸载。
+
+## 目标使用体验
 
 ```text
-玩家
-  → DeepSeek Harness Agent
-  → AI Native Game Harness
-  → 游戏 Adapter / Native Bridge
-  → 游戏 API
-  → 权威结果与新状态返回 Agent
+安装 AI Native Game Harness
+        ↓
+选择游戏并安装对应游戏包
+        ↓
+进入游戏，用文字或语音和 AI 对话
+        ↓
+AI 理解当前状态，回答或请求执行动作
+        ↓
+游戏确认结果，AI 继续观察、协作和学习
 ```
 
-DSH 负责通用 AI Runtime；本项目负责游戏连接和安全执行。游戏 Mod 保持轻量，不在游戏进程里重复实现模型、Agent 或长期记忆。
+这套体验仍在开发中。当前源码已经具备主要产品组件，但还没有达到普通玩家直接下载使用的正式版本。
 
-## 当前接入
+## 当前游戏
 
-| 游戏 | 接入形式 | 当前状态 |
+| 游戏 | 想实现的体验 | 当前阶段 |
 | --- | --- | --- |
-| 星露谷物语 | C# / SMAPI Bridge | 开发中 |
-| 饥荒联机版 | Lua Mod + Adapter | 开发中 |
-| 缺氧 | TypeScript Adapter + C# Bridge | 开发中 |
-| Mock Game | TypeScript 参考实现 | 自动测试可用 |
+| 星露谷物语 | 可对话、能理解农场生活并陪伴成长的小汤圆 | 开发验证中 |
+| 饥荒联机版 | 能观察生存状态、协助执行任务和学习技能的伙伴 | 开发验证中 |
+| 缺氧 | 能理解殖民地、复制人和建造任务的悬浮 AI 伙伴 | 开发验证中 |
+| Mock Game | 用于验证连接、动作、安全和状态更新 | 自动测试可用 |
 
-第三方游戏可以从 [`examples/adapter-starter`](examples/adapter-starter) 开始，并使用 Adapter conformance 测试检查协议兼容性。
+## 产品原则
 
-## 当前进度
+- **游戏事实优先**：物品、金钱、任务、位置和胜负以游戏返回结果为准。
+- **玩家保持控制权**：游戏只开放明确允许的动作，敏感能力需要授权。
+- **本机连接优先**：游戏与桌面应用默认通过本机通信，不向局域网公开端口。
+- **按需安装**：不同游戏的能力独立管理，不强迫用户下载无关内容。
+- **过程可解释**：可以查看 AI 调用了什么、游戏返回了什么，以及失败发生在哪一步。
 
-- Harness Core、Adapter Protocol、WebSocket Host、DSH Binding 和 Game Pack 注册表已经实现。
-- 桌面端已有对话、自学习、分析和 Adapter 中心。
-- 24 项集成测试和 18 项平台测试通过。
-- 当前源码版本：Harness Plugin `0.7.7`、ONI Adapter `0.1.6`、ONI Bridge `0.6.7`。
-- 主仓库暂时没有 GitHub Release；普通玩家安装包仍未正式发布。
-- 真实游戏存档中的状态、文字、语音和动作闭环仍待最终验收。
+## 现在可以使用吗？
 
-## 开发者快速开始
+| 使用者 | 当前建议 |
+| --- | --- |
+| 普通玩家 | 暂时等待正式 Release；目前没有推荐的一键安装包 |
+| 游戏开发者 / MOD 作者 | 可以使用 Adapter Starter 和 Mock Game 评估接入方式 |
+| 项目贡献者 | 可以运行源码、自动测试和桌面演示 |
 
-需要 Node.js 22.19+ 和 pnpm 10.28.2。
+当前已经通过 24 项集成测试和 18 项平台测试，但自动测试不等于真实游戏和正式安装包已经验收。
+
+## 开发者体验
+
+需要 Node.js 22.19+ 和 pnpm 10.28.2：
 
 ```powershell
 git clone https://github.com/qimidandapigu/ai-native-game-harness.git
 cd ai-native-game-harness
 pnpm install --frozen-lockfile
 pnpm check
-```
-
-运行不依赖真实游戏和模型的演示：
-
-```powershell
 pnpm desktop:demo
 ```
 
-目前不建议普通玩家直接从源码安装。正式 Release 发布后，README 会提供明确的下载和安装入口。
+第三方游戏接入可以从 [`examples/adapter-starter`](examples/adapter-starter) 开始。
 
-## 文档
+## 进一步了解
 
-- [产品定位与架构介绍](docs/AI_GAME_ENGINE_IDEOLOGY.html)
-- [第三方 Adapter 与平台设计](docs/INDEPENDENT_PLATFORM.md)
+- [产品定位与完整介绍](docs/AI_GAME_ENGINE_IDEOLOGY.html)
+- [第三方游戏接入说明](docs/INDEPENDENT_PLATFORM.md)
 - [游戏安装与升级](docs/xiaotangyuan/INSTALLATION.md)
 - [常见问题与排错](docs/xiaotangyuan/TROUBLESHOOTING.md)
-- [真实游戏验收清单](docs/REAL_GAME_ACCEPTANCE.md)
-- [内部开发说明](docs/INTERNAL_DEVELOPMENT.md)
-
-## 项目原则
-
-- 优先复用 DSH，不重复开发通用 Agent Runtime。
-- 游戏状态和动作结果以游戏 API 为准。
-- Harness、Adapter 和 Native Bridge 保持清晰边界。
-- 构建成功、自动测试、真实游戏验收和正式发布分别报告。
+- [内部开发状态与技术决策](docs/INTERNAL_DEVELOPMENT.md)
 
 ## License
 
