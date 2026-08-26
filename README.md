@@ -10,6 +10,16 @@ AI Native Game Harness 想为玩家提供一个可以进入不同游戏的 AI �
 
 **[查看产品介绍](docs/AI_GAME_ENGINE_IDEOLOGY.html)** · **[接入一个新游戏](docs/INDEPENDENT_PLATFORM.md)** · **[关注正式发布](https://github.com/qimidandapigu/ai-native-game-harness/releases)**
 
+## 加入小汤圆交流群
+
+想关注开发进度、交流 AI 游戏或参与测试，可以扫码加入 QQ 群。
+
+**QQ群：1043783217**
+
+<p align="center">
+  <img src="docs/assets/xiaotangyuan-qq-group.jpg" alt="小汤圆 QQ 群二维码，群号 1043783217" width="360">
+</p>
+
 ## 玩家能得到什么
 
 ### 一个真正了解游戏的 AI 伙伴
