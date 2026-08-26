@@ -352,6 +352,13 @@ export class HarnessCore {
   ): Promise<AgentActionFeedback> {
     let current = this.#observations.get(request.gameId)
     if (!current) current = await this.observe(request.gameId, request.sessionId)
+    const usesAutomaticRevision = action.expectedRevision === undefined
+    if (usesAutomaticRevision) {
+      current = await this.observe(request.gameId, request.sessionId, {
+        requestId: callId,
+        reason: 'manual',
+      })
+    }
     let result: ActionResult
     try {
       result = await this.executeAction(request.gameId, action.capability, action.arguments, {
@@ -359,6 +366,17 @@ export class HarnessCore {
         expectedRevision: action.expectedRevision ?? current.revision,
         requestId: callId,
       })
+      if (usesAutomaticRevision && !result.ok && result.error?.code === 'REVISION_CONFLICT') {
+        current = await this.observe(request.gameId, request.sessionId, {
+          requestId: callId,
+          reason: 'manual',
+        })
+        result = await this.executeAction(request.gameId, action.capability, action.arguments, {
+          sessionId: request.sessionId,
+          expectedRevision: current.revision,
+          requestId: callId,
+        })
+      }
     } catch (error) {
       result = {
         requestId: callId,

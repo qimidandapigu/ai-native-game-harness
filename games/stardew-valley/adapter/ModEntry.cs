@@ -120,7 +120,7 @@ public sealed class ModEntry : Mod
             {
                 this.textRequestInFlight = false;
                 Game1.addHUDMessage(new HUDMessage(
-                    "无法连接小汤圆，请确认 DeepSeek Harness 和插件已经启动。",
+                    "无法连接小汤圆，请确认 AI Native Game Harness 和插件已经启动。",
                     HUDMessage.error_type
                 ));
             });

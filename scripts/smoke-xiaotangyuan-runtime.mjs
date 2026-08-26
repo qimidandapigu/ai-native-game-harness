@@ -118,6 +118,14 @@ function connectGateway(url, deadline) {
   })
 }
 
+function closeSocket(socket) {
+  if (socket.readyState === WebSocket.CLOSED) return Promise.resolve()
+  return new Promise(resolveClose => {
+    socket.addEventListener('close', () => resolveClose(), { once: true })
+    socket.close(1000, 'runtime smoke reconnect')
+  })
+}
+
 function rpcClient(socket) {
   let sequence = 0
   const pending = new Map()
@@ -226,8 +234,10 @@ try {
   const deadline = Date.now() + timeoutMs
   const webUrl = `http://127.0.0.1:${webPort}`
   await waitForWeb(webUrl, dshProcess, deadline)
-  const socket = await connectGateway(`ws://127.0.0.1:${gatewayPort}`, deadline)
+  const gatewayUrl = `ws://127.0.0.1:${gatewayPort}`
+  const socket = await connectGateway(gatewayUrl, deadline)
   const rpc = rpcClient(socket)
+  let resumedSocket
   try {
     const hello = await rpc.request('adapter.hello', {
       adapterId: 'ai-native-game-harness.runtime-smoke',
@@ -260,18 +270,47 @@ try {
     if (chat?.reply !== '小汤圆桌面运行时冒烟测试通过。') {
       throw new Error(`unexpected chat reply: ${JSON.stringify(chat)}`)
     }
-    if (mock.requestCount() < 1) throw new Error('the local smoke model did not receive a request')
+    if (typeof chat?.sessionId !== 'string' || chat.sessionId === '') {
+      throw new Error(`first chat did not return a sessionId: ${JSON.stringify(chat)}`)
+    }
+
+    await closeSocket(socket)
+    resumedSocket = await connectGateway(gatewayUrl, deadline)
+    const resumedRpc = rpcClient(resumedSocket)
+    const resumedHello = await resumedRpc.request('adapter.hello', {
+      adapterId: 'ai-native-game-harness.runtime-smoke',
+      gameId: 'runtime-smoke',
+      version: '1.0.0',
+      protocolVersion: '1.1',
+      capabilities: ['assistant.text-stream'],
+      saveId: 'runtime-smoke-save',
+    })
+    if (resumedHello?.accepted !== true) throw new Error(`resumed adapter.hello was not accepted: ${JSON.stringify(resumedHello)}`)
+    const resumedChat = await resumedRpc.request('chat.send', {
+      text: '重新进入游戏后，请再次确认桌面运行时冒烟测试。',
+      context: { saveId: 'runtime-smoke-save' },
+    }, Math.max(30000, timeoutMs))
+    if (resumedChat?.reply !== '小汤圆桌面运行时冒烟测试通过。') {
+      throw new Error(`unexpected resumed chat reply: ${JSON.stringify(resumedChat)}`)
+    }
+    if (resumedChat.sessionId !== chat.sessionId) {
+      throw new Error(`game chat session was not resumed: ${chat.sessionId} -> ${resumedChat.sessionId}`)
+    }
+    if (mock.requestCount() < 2) throw new Error('the local smoke model did not receive both chat requests')
 
     console.log(JSON.stringify({
       web: webUrl,
-      gateway: `ws://127.0.0.1:${gatewayPort}`,
+      gateway: gatewayUrl,
       adapter: true,
       state: true,
       chat: true,
+      chatResumed: true,
+      sessionId: chat.sessionId,
       localModelRequests: mock.requestCount(),
     }))
   } finally {
     socket.close()
+    resumedSocket?.close()
   }
 } catch (error) {
   if (runtimeLog !== '') console.error(`--- DSH runtime log ---\n${runtimeLog}`)

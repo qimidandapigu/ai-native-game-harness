@@ -74,6 +74,7 @@ dsh-binding → harness-core → adapter-protocol → game adapter
 
 - **记忆学习**：按 `gameId + saveId` 隔离；当前 Observation 与真实 Tool 结果优先于历史记忆。
 - **技能学习**：候选程序只能调用 Adapter 已声明的 action；必须在真实 Adapter 上逐步试跑，整段成功后才能保存。
+- **技能源码 v2**：模型编写受限 TypeScript 风格源码；Harness 自行解析为 AST，只开放变量、条件、有限循环、回退、断言和 Adapter 原子，不执行任意 JavaScript。
 - **失败尝试**：只保留诊断记录，不能伪装成已学会技能。
 - **产品展示**：记忆、已验证技能和失败尝试分开显示；剧情、等级和角色成长不与技能学习混为一谈。
 
@@ -94,9 +95,16 @@ DSH Session
 - 已实现 Harness Core、Adapter Protocol、WebSocket Host、dsh-binding 和 Game Pack 注册表。
 - 已提供 Mock Game、第三方 Adapter Starter 和 Adapter conformance 检查。
 - Desktop 已有对话页、自学习页、分析页和 Adapter 中心。
+- Desktop 默认进入通用 Harness 页面，可通过按钮、菜单、快捷键和游戏页返回按钮在通用页与游戏专属页之间切换。
+- 桌面窗口、启动页和游戏页统一使用 AI Native Game Harness 品牌与小汤圆 Logo；上游 Runtime 名称不出现在玩家提示中。
 - 分析页可关联 `Session → turn → step → callId → requestId`，显示动作和语音分段耗时。
 - 诊断导出限制为最近 500 条 Trace，不包含聊天正文、语音转写或隐藏思维。
 - 未知 Adapter 使用受限额、敏感字段过滤的通用 Observation 查看器。
+- 游戏 Agent Session 使用 `gameId + saveId` 的脱敏稳定标识；同一存档重连后恢复会话，不同存档保持隔离。
+- `xiaotangyuan-skill-v2` 支持变量、条件、最多 10 次循环、`try/catch` 回退、断言和显式失败；旧 `skills-v1.json` 会迁移到 `skills-v2.json` 并保留原文件。
+- Harness Core 会在自动 revision 模式下执行前刷新状态，并对一次安全的 `REVISION_CONFLICT` 重新观察后重试；调用者显式指定 revision 时不自动重试。
+- 流式 TTS 在已经播放部分音频后失败时不再整段重播；首个音频分片前失败仍允许完整回复兼容回退。
+- ONI Adapter 使用 Bridge heartbeat 排除 Windows PID 复用产生的陈旧目录，并验证吸水、喷水动作使用当前光标格。
 - ONI Adapter 已接入动态 Adapter Protocol Host，源码版本为 `0.1.6`。
 - 小汤圆 Harness Plugin 源码版本为 `0.7.7`；缺氧 Bridge 源码版本为 `0.6.7`。
 - 桌面发行 Runtime 固定为 DSH `0.1.1-rc.2`。
@@ -108,8 +116,10 @@ DSH Session
 
 - `pnpm install --frozen-lockfile`
 - `pnpm check`
-- 24 项集成测试
-- 18 项平台测试
+- 28 项集成测试
+- 20 项平台测试
+- `pnpm check:xiaotangyuan`：饥荒 25 项、反馈服务 4 项、ONI Adapter 14 项、小汤圆插件 84 项测试
+- `pnpm desktop:prepare`：构建媒体 Host、插件与 ONI Adapter，完成 Adapter、状态、两轮对话和同存档 Session 恢复冒烟，并准备桌面 Runtime
 - 35 个 Markdown 文件的本地链接检查
 - HTML V8 浏览器检查：无控制台错误、横向溢出或失效页内链接
 
@@ -118,7 +128,7 @@ DSH Session
 - `pnpm smoke:dsh-product`：隔离 Web Runtime 在 ready 前缺少部分 `@deepseek-ai/dsh-client-ui-*` 和 `dsh-agent-presets` 包。
 - `pnpm smoke:dsh-adapter`：当前 headless 环境没有完成权威金币 `1`、revision `2` 的成功输出。
 - 最新代码拉取后尚未完成真实星露谷、饥荒或缺氧存档验收。
-- 尚未创建主仓库 GitHub Release，也没有正式签名安装包。
+- 主仓库已有 `v1.0.0` 稳定源码 Release，但仍没有正式签名的一键安装包。
 
 因此，自动测试通过只能证明代码和确定性契约，不代表桌面发行 Runtime 或真实游戏已经验收。
 
@@ -153,9 +163,10 @@ pnpm desktop:dist
 
 - 唯一源码仓库：`ai-native-game-harness`。
 - 旧仓库 `dsh-xiaotangyuan-game` 只保留历史和旧 Release，不再维护第二套源码。
-- 当前主仓库没有 GitHub Release。
+- `1.0` 分支与 `v1.0.0` 标签固定在提交 `a6921ef`，只保存 1.0 稳定源码；后续开发只进入 `main`，不能移动该标签或用开发提交覆盖稳定分支。
+- 主仓库 `v1.0.0` Release 目前只提供 GitHub 自动生成的源码归档，不包含签名安装包。
 - 旧仓库公开稳定包仍为 Harness Plugin `0.5.1`、ONI Adapter `0.1.3`。
-- 当前源码 `0.7.7 / 0.1.6 / Bridge 0.6.7` 都不能写成已公开发布版本。
+- `main` 中的 Harness Plugin `0.7.7`、ONI Adapter `0.1.6` 与 Bridge `0.6.7` 仍属于后续开发内容，不能写成 `v1.0.0` 已包含的独立公开安装包。
 - 本地构建、代码提交、Git 推送、Git 标签和 GitHub Release 是五个不同状态，必须分别报告。
 
 ## 下一步
@@ -164,7 +175,7 @@ pnpm desktop:dist
 2. 按 [真实游戏端到端验收清单](REAL_GAME_ACCEPTANCE.md) 完成至少一个真实存档闭环。
 3. 验证安装、状态、文字、语音、Action、失败、重连和诊断关联。
 4. 完成第三方 Game Pack 权限授权、可信启动和签名验证。
-5. 生成校验和、签名安装包和主仓库 GitHub Release。
+5. 生成校验和与签名安装包，作为后续主仓库 Release 的可下载资产。
 
 ## 相关内部资料
 

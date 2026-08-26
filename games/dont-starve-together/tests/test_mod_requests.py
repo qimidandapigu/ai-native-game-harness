@@ -181,7 +181,7 @@ class ModRequestTests(unittest.TestCase):
             app, _ = self.make_app(Path(directory))
             app._write_bridge_status(force=True)
             payload = json.loads(app.settings.bridge_status_file.read_text(encoding="utf-8"))
-            self.assertEqual(payload["chat_model"], "DeepSeek Harness")
+            self.assertEqual(payload["chat_model"], "AI Native Game Harness")
             self.assertTrue(payload["gateway_connected"])
             self.assertEqual(payload["schema_version"], 2)
 

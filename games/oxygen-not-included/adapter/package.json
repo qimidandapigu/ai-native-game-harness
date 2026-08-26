@@ -2,7 +2,7 @@
   "name": "@qimidandapigu/oni-adapter",
   "version": "0.1.6",
   "type": "module",
-  "description": "Selectable Oxygen Not Included Adapter for DeepSeek Harness.",
+  "description": "Selectable Oxygen Not Included Adapter for AI Native Game Harness.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

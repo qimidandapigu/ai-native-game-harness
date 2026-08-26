@@ -3,7 +3,7 @@ import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync, m
 import { dirname, join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell, utilityProcess } from 'electron'
 import { GamePackRegistry, readGamePackManifest } from '@ai-native-game-harness/game-pack'
 import { PlatformRuntime } from './platform-runtime.mjs'
 import { DshProductRuntime } from './dsh-product-runtime.mjs'
@@ -26,6 +26,109 @@ let lastDshLearningSnapshot
 const pendingDshDiagnostics = []
 let demoAdapterProcess
 let gamePackRegistry
+let runtimeWebUrl
+
+const PRODUCT_TITLE = 'AI Native Game Harness 游戏版'
+
+async function installGamePageEntry() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  const mascotUrl = `data:image/png;base64,${readFileSync(join(desktopRoot, 'src', 'assets', 'mascot-logo.png')).toString('base64')}`
+  await mainWindow.webContents.executeJavaScript(`(() => {
+    const mascotUrl = ${JSON.stringify(mascotUrl)}
+    const makeMascot = (size) => {
+      const image = document.createElement('img')
+      image.src = mascotUrl
+      image.alt = ''
+      Object.assign(image.style, {
+        width: size + 'px', height: size + 'px', flex: '0 0 auto',
+        objectFit: 'contain', imageRendering: 'pixelated'
+      })
+      return image
+    }
+    const applyProductBranding = () => {
+      const identity = document.querySelector('[class*="_brandIdentity"]')
+      if (identity && identity.dataset.aiNativeBrand !== 'true') {
+        identity.dataset.aiNativeBrand = 'true'
+        identity.replaceChildren(makeMascot(40))
+        const name = document.createElement('span')
+        name.textContent = 'AI Native Game Harness'
+        Object.assign(name.style, { font: '700 13px/1.15 system-ui, sans-serif', letterSpacing: '.01em' })
+        identity.append(name)
+        Object.assign(identity.style, { display: 'flex', alignItems: 'center', gap: '8px', height: 'auto' })
+      }
+
+      const heroMark = document.querySelector('[class*="_fishHitbox"]')
+      if (heroMark && heroMark.dataset.aiNativeBrand !== 'true') {
+        heroMark.dataset.aiNativeBrand = 'true'
+        heroMark.replaceChildren(makeMascot(42))
+      }
+    }
+    applyProductBranding()
+    if (!window.__aiNativeBrandObserver) {
+      window.__aiNativeBrandObserver = new MutationObserver(() => requestAnimationFrame(applyProductBranding))
+      window.__aiNativeBrandObserver.observe(document.documentElement, { childList: true, subtree: true })
+    }
+    if (document.getElementById('ai-native-game-page-entry')) return
+    const button = document.createElement('button')
+    button.id = 'ai-native-game-page-entry'
+    button.type = 'button'
+    button.textContent = '🎮 进入游戏版'
+    button.title = '进入 AI Native Game Harness 游戏版（Ctrl+2）'
+    Object.assign(button.style, {
+      position: 'fixed', right: '18px', bottom: '18px', zIndex: '2147483647',
+      border: '1px solid rgba(255,255,255,.18)', borderRadius: '12px',
+      padding: '10px 14px', background: '#123a3a', color: '#d8fff5',
+      boxShadow: '0 10px 30px rgba(0,0,0,.28)', cursor: 'pointer',
+      font: '600 13px system-ui, sans-serif'
+    })
+    button.addEventListener('click', () => { window.location.href = 'ai-native-game-harness://game' })
+    document.body.append(button)
+  })()`)
+}
+
+async function showHarnessPage() {
+  if (!runtimeWebUrl) throw new Error('原 Harness 页面尚未就绪。')
+  await mainWindow.loadURL(runtimeWebUrl)
+  await installGamePageEntry()
+}
+
+async function showGamePage() {
+  await mainWindow.loadFile(join(desktopRoot, 'src', 'product.html'))
+}
+
+function installApplicationMenu() {
+  const navigate = (action) => {
+    void action().catch((error) => {
+      void dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: '页面尚未就绪',
+        message: 'Harness 页面仍在启动，请稍后再试。',
+        detail: error instanceof Error ? error.message : String(error),
+      })
+    })
+  }
+
+  const template = [
+    { label: '文件', submenu: [{ role: 'close', label: '关闭窗口' }] },
+    { label: '编辑', submenu: [
+      { role: 'undo', label: '撤销' }, { role: 'redo', label: '重做' }, { type: 'separator' },
+      { role: 'cut', label: '剪切' }, { role: 'copy', label: '复制' }, { role: 'paste', label: '粘贴' },
+      { role: 'selectAll', label: '全选' },
+    ] },
+    { label: '页面', submenu: [
+      { label: '原 Harness 页面', accelerator: 'CmdOrCtrl+1', click: () => navigate(showHarnessPage) },
+      { label: '游戏版页面', accelerator: 'CmdOrCtrl+2', click: () => navigate(showGamePage) },
+    ] },
+    { label: '视图', submenu: [
+      { role: 'reload', label: '刷新' }, { role: 'forceReload', label: '强制刷新' },
+      { type: 'separator' }, { role: 'resetZoom', label: '实际大小' },
+      { role: 'zoomIn', label: '放大' }, { role: 'zoomOut', label: '缩小' },
+      { type: 'separator' }, { role: 'togglefullscreen', label: '全屏' },
+    ] },
+    { label: '窗口', submenu: [{ role: 'minimize', label: '最小化' }, { role: 'close', label: '关闭' }] },
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
 
 function packs() {
   gamePackRegistry ??= new GamePackRegistry(join(app.getPath('userData'), 'game-packs'))
@@ -106,7 +209,16 @@ function childEnvironment(paths) {
 function appendRuntimeLog(text) {
   const logRoot = join(app.getPath('userData'), 'logs')
   mkdirSync(logRoot, { recursive: true })
-  appendFileSync(join(logRoot, 'runtime.log'), text)
+  try {
+    appendFileSync(join(logRoot, 'runtime.log'), text)
+  } catch (error) {
+    if (error?.code !== 'EBUSY') throw error
+    try {
+      appendFileSync(join(logRoot, `runtime-${process.pid}.log`), text)
+    } catch {
+      // Logging must never terminate the desktop host.
+    }
+  }
 }
 
 function forkDsh(args, paths, serviceName) {
@@ -128,7 +240,7 @@ function runDshOnce(args, paths) {
     child.once('error', (_type, location, report) => rejectRun(new Error(`${location}\n${report}`)))
     child.once('exit', (code) => {
       if (code === 0) resolveRun(output)
-      else rejectRun(new Error(output.trim() || `DSH 命令退出，代码 ${code}`))
+      else rejectRun(new Error(output.trim() || `AI Runtime 命令退出，代码 ${code}`))
     })
   })
 }
@@ -181,14 +293,14 @@ function getFreePort() {
 async function waitForWeb(url, child, timeoutMs = 60_000) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
-    if (dshExitCode !== null) throw new Error(`DSH 在界面就绪前退出，代码 ${dshExitCode}`)
+    if (dshExitCode !== null) throw new Error(`AI Runtime 在界面就绪前退出，代码 ${dshExitCode}`)
     try {
       const response = await fetch(url)
       if (response.ok) return
     } catch {}
     await new Promise((resolveWait) => setTimeout(resolveWait, 300))
   }
-  throw new Error('等待 DSH 界面启动超时')
+  throw new Error('等待 AI Runtime 界面启动超时')
 }
 
 function writeProductPatch(paths, adapterPort) {
@@ -273,6 +385,7 @@ async function startRuntime() {
   })
 
   await waitForWeb(url, dshProcess)
+  runtimeWebUrl = url
   dshProductRuntime = new DshProductRuntime({
     baseUrl: url,
     cwd: app.isPackaged ? app.getPath('userData') : repoRoot,
@@ -285,7 +398,7 @@ async function startRuntime() {
   dshProductUnsubscribe = dshProductRuntime.subscribe((snapshot) => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('platform-snapshot', snapshot)
   })
-  await mainWindow.loadFile(join(desktopRoot, 'src', 'product.html'))
+  await showHarnessPage()
 }
 
 function validateChatInput(input) {
@@ -307,6 +420,8 @@ function requireProductRuntime() {
 }
 
 function registerPlatformIpc() {
+  ipcMain.handle('navigation:show-harness', () => showHarnessPage())
+  ipcMain.handle('navigation:show-game', () => showGamePage())
   ipcMain.handle('platform:info', () => requireProductRuntime().info())
   ipcMain.handle('platform:snapshot', () => requireProductRuntime().snapshot())
   ipcMain.handle('platform:chat', (ipcEvent, input) => {
@@ -422,7 +537,8 @@ function createWindow() {
     height: 820,
     minWidth: 900,
     minHeight: 620,
-    title: 'AI Native Game Harness 游戏版',
+    title: PRODUCT_TITLE,
+    icon: join(desktopRoot, 'src', 'assets', 'mascot-logo.png'),
     backgroundColor: '#08131d',
     show: false,
     webPreferences: {
@@ -432,11 +548,31 @@ function createWindow() {
       preload: join(desktopRoot, 'src', 'preload.mjs'),
     },
   })
+  installApplicationMenu()
+  mainWindow.on('page-title-updated', (event) => {
+    event.preventDefault()
+    mainWindow?.setTitle(PRODUCT_TITLE)
+  })
   mainWindow.once('ready-to-show', () => mainWindow.show())
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http://127.0.0.1:')) return { action: 'allow' }
     void shell.openExternal(url)
     return { action: 'deny' }
+  })
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (url === 'ai-native-game-harness://game') {
+      event.preventDefault()
+      void showGamePage()
+    } else if (url === 'ai-native-game-harness://harness') {
+      event.preventDefault()
+      void showHarnessPage()
+    }
+  })
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown' || input.key !== 'Escape') return
+    if (!mainWindow.webContents.getURL().startsWith('file:')) return
+    event.preventDefault()
+    void showHarnessPage()
   })
   const start = dshRuntime
     ? mainWindow.loadFile(join(desktopRoot, 'src', 'status.html')).then(() => startRuntime())
@@ -446,7 +582,7 @@ function createWindow() {
     await dialog.showMessageBox(mainWindow, {
       type: 'error',
       title: 'AI Native Game Harness 游戏版启动失败',
-      message: dshRuntime ? '内置 DSH Runtime 未能启动。' : 'Standalone 测试 Runtime 未能启动。',
+      message: dshRuntime ? '内置 AI Runtime 未能启动。' : 'Standalone 测试 Runtime 未能启动。',
       detail: error instanceof Error ? error.message : String(error),
     })
   })

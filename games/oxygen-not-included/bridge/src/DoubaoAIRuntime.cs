@@ -299,10 +299,12 @@ namespace DoubaoAI.ONI
             {
                 if (!string.IsNullOrWhiteSpace(text)) _reply = text;
                 _status = "回答中…";
-                _floatingStatus = _status;
+                // Once answer text is available, show the concrete streaming
+                // reply instead of masking it with the generic status label.
+                _floatingStatus = string.Empty;
                 _bubbleUntil = Time.unscaledTime + 12f; return;
             }
-            if (method == "assistant.present")
+            if (method == "assistant.present" || method == "assistant.text.done")
             {
                 _busy = false; _status = "回答完成";
                 _floatingStatus = string.Empty;

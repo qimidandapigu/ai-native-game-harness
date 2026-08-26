@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 import { publishProductDiagnostic } from '../diagnostics.js'
 import type { Context } from '@deepseek-ai/cordis'
@@ -18,6 +18,13 @@ export type InteractionSource = 'chat' | 'voice' | 'retry'
 
 export interface AssistantProgress extends StreamingReplyUpdate {
   source: InteractionSource
+}
+
+export function persistentGameSessionId(adapter: AdapterHello | undefined, saveId?: string): string {
+  const gameId = (adapter?.gameId ?? 'unknown').replaceAll(/[^a-zA-Z0-9._-]/g, '-').slice(0, 48)
+  const identity = `${adapter?.gameId ?? 'unknown'}\u0000${saveId ?? adapter?.saveId ?? 'default'}`
+  const digest = createHash('sha256').update(identity).digest('hex').slice(0, 24)
+  return `game-${gameId}-${digest}`
 }
 
 function latestAssistantText(events: readonly SessionEvent[], firstSeq: number): string {
@@ -86,6 +93,7 @@ export function formatGamePrompt(
 export class GameAgentSession {
   private handle?: AgentHandle
   private selection?: ModelSelection
+  private persistentSessionId?: string
   private lastRequest?: GameChatRequest
   private readonly activeStreams = new Map<string, {
     firstSeq: number
@@ -111,32 +119,57 @@ export class GameAgentSession {
     if (chunk.type === 'text-delta') active.accumulator.append(event.data.step, chunk.text)
   }
 
-  private async createAgent(selection: ModelSelection): Promise<AgentHandle> {
-    const handle = await this.ctx.agents.create({
-      sessionId: SessionId(`game-${this.adapter?.gameId ?? 'unknown'}-${randomUUID()}`),
-      meta: { cwd: process.cwd() },
-      agentOptions: { provider: selection.provider, model: selection.model },
-      setup: (agentCtx) => {
+  private setupAgent(selection: ModelSelection): (agentCtx: Context) => void {
+    return (agentCtx) => {
         const selected: ModelSelectionRef = { current: selection, assembled: undefined }
         installModelSelection(agentCtx, selected)
         if (this.skills !== undefined && this.atomExecutor !== undefined) {
           registerSkillTools(agentCtx, this.adapter, this.skills, this.atomExecutor)
         }
         agentCtx.on('session/event', (session, event) => this.onSessionEvent(String(session.id), event))
-      },
+    }
+  }
+
+  private async createAgent(selection: ModelSelection, sessionId = SessionId(`game-compose-${randomUUID()}`)): Promise<AgentHandle> {
+    const handle = await this.ctx.agents.create({
+      sessionId,
+      meta: { cwd: process.cwd() },
+      agentOptions: { provider: selection.provider, model: selection.model },
+      setup: this.setupAgent(selection),
     })
     await handle.agent.whenIdle()
     return handle
   }
 
-  private async ensureAgent(selection: ModelSelection): Promise<AgentHandle> {
-    if (this.handle !== undefined && (this.selection?.provider !== selection.provider || this.selection.model !== selection.model)) {
+  private async resumeOrCreateAgent(selection: ModelSelection, sessionId: string): Promise<AgentHandle> {
+    const id = SessionId(sessionId)
+    try {
+      const handle = await this.ctx.agents.resume({
+        resumeSessionId: id,
+        agentOptions: { provider: selection.provider, model: selection.model },
+        setup: this.setupAgent(selection),
+      })
+      await handle.agent.whenIdle()
+      return handle
+    } catch {
+      return await this.createAgent(selection, id)
+    }
+  }
+
+  private async ensureAgent(selection: ModelSelection, saveId?: string): Promise<AgentHandle> {
+    const sessionId = persistentGameSessionId(this.adapter, saveId)
+    if (this.handle !== undefined && (
+      this.selection?.provider !== selection.provider
+      || this.selection.model !== selection.model
+      || this.persistentSessionId !== sessionId
+    )) {
       await this.handle.dispose()
       this.handle = undefined
     }
     if (this.handle === undefined) {
-      this.handle = await this.createAgent(selection)
+      this.handle = await this.resumeOrCreateAgent(selection, sessionId)
       this.selection = selection
+      this.persistentSessionId = sessionId
     }
     return this.handle
   }
@@ -202,7 +235,9 @@ export class GameAgentSession {
     const input = await this.multimodal.prepareProcess(this.adapter?.processId, AbortSignal.timeout(10_000))
     const prepared = performance.now()
     const ephemeral = mode === 'compose'
-    const handle = ephemeral ? await this.createAgent(input.selection) : await this.ensureAgent(input.selection)
+    const handle = ephemeral
+      ? await this.createAgent(input.selection)
+      : await this.ensureAgent(input.selection, request.context?.saveId)
     const agentReady = performance.now()
     try {
       const result = await this.run(handle, request, input.image, mode, interactionId, source, longTermMemory)
@@ -265,6 +300,7 @@ export class GameAgentSession {
     await this.handle?.dispose()
     this.handle = undefined
     this.selection = undefined
+    this.persistentSessionId = undefined
     for (const active of this.activeStreams.values()) active.accumulator.close()
     this.activeStreams.clear()
   }

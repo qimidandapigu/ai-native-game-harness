@@ -61,7 +61,7 @@ def _check(settings: Settings) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="把《饥荒联机版》连接到 DeepSeek Harness")
+    parser = argparse.ArgumentParser(description="把《饥荒联机版》连接到 AI Native Game Harness")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--check", action="store_true", help="检查本地配置和设备")
     group.add_argument("--text", metavar="消息", help="通过 Harness 发送一条文字测试消息")

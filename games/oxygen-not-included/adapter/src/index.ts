@@ -29,6 +29,7 @@ type BridgeToolResult = ToolResult & { bridgeRoundTripMs: number; gameExecutionM
 const GAME_ID = 'oxygen-not-included'
 const ADAPTER_ID = 'qimidandapigu.oxygen-not-included-fairy'
 const ADAPTER_VERSION = '0.1.6'
+const BRIDGE_HEARTBEAT_MAX_AGE_MS = 10_000
 const objectSchema = (properties: Record<string, JsonValue>, required: string[] = []): Record<string, JsonValue> => ({
   type: 'object',
   additionalProperties: false,
@@ -47,8 +48,8 @@ const ONI_CAPABILITIES: AdapterCapability[] = [
   { name: 'oni_dig_path', kind: 'action', description: 'Create a staged dig path toward the current cursor cell.', inputSchema: objectSchema(actorProperties) },
   { name: 'oni_build', kind: 'action', description: 'Build an allowlisted building at the current cursor cell.', inputSchema: objectSchema({ ...actorProperties, buildingKey: { type: 'string' } }, ['buildingKey']) },
   { name: 'oni_companion_follow', kind: 'action', description: 'Change which living duplicant XiaoTangYuan follows.', inputSchema: objectSchema({ actorId: { type: 'number' } }, ['actorId']) },
-  { name: 'oni_companion_absorb_water', kind: 'action', description: 'Absorb water from the current cursor cell.', inputSchema: objectSchema({}) },
-  { name: 'oni_companion_spray_water', kind: 'action', description: 'Spray stored water into the current cursor cell.', inputSchema: objectSchema({}) },
+  { name: 'oni_companion_absorb_water', kind: 'action', description: 'Absorb water from the exact current cursor cell; the cursor must be over supported liquid.', inputSchema: objectSchema({}) },
+  { name: 'oni_companion_spray_water', kind: 'action', description: 'Spray stored water into the exact current cursor cell; the cursor cell must not be solid.', inputSchema: objectSchema({}) },
 ]
 const ONI_ACTIONS = new Set(ONI_CAPABILITIES.filter(item => item.kind === 'action').map(item => item.name))
 
@@ -193,14 +194,18 @@ export class OniAdapter implements GameAdapter {
       if (!entry.isDirectory()) continue
       const directory = join(this.root, entry.name)
       const sessionPath = join(directory, 'session.json')
+      const outboxPath = join(directory, 'outbox.json')
       const session = this.read(sessionPath)
       const pid = session?.processId
       if (typeof pid !== 'number' || !Number.isInteger(pid) || pid <= 0) continue
       if (!this.processAlive(pid)) continue
+      if (!existsSync(outboxPath)) continue
+      const bridgeHeartbeatAt = statSync(outboxPath).mtimeMs
+      if (Date.now() - bridgeHeartbeatAt > BRIDGE_HEARTBEAT_MAX_AGE_MS) continue
       const saveId = typeof session?.saveId === 'string' && /^[a-zA-Z0-9._:-]{1,128}$/.test(session.saveId)
         ? session.saveId
         : 'default'
-      candidates.push({ directory, processId: pid, saveId, modifiedAt: statSync(sessionPath).mtimeMs })
+      candidates.push({ directory, processId: pid, saveId, modifiedAt: bridgeHeartbeatAt })
     }
     const selected = candidates.sort((left, right) => right.modifiedAt - left.modifiedAt)[0]
     if (selected === undefined) {
@@ -361,8 +366,8 @@ export function registerOniTools(ctx: Context, adapter: OniAdapter): void {
   register('oni_companion_follow', 'Change which living duplicant XiaoTangYuan permanently follows. Call only when the player explicitly asks XiaoTangYuan to follow a different duplicant.', {
     actorId: { type: 'number', required: true, description: 'Exact duplicant id from the current ONI observation.' },
   })
-  register('oni_companion_absorb_water', 'Use XiaoTangYuan\'s learned water skill to absorb water from the current ONI cursor cell. Call when the player explicitly asks to absorb, collect, or remove water here.', {})
-  register('oni_companion_spray_water', 'Use XiaoTangYuan\'s learned water skill to spray stored water into the current ONI cursor cell. Call when the player explicitly asks to spray, release, or place water here.', {})
+  register('oni_companion_absorb_water', 'Use XiaoTangYuan\'s learned water skill to absorb water from the exact current ONI cursor cell. Call when the player explicitly asks to absorb, collect, or remove water here. The cursor must be directly over supported liquid, and only report success when the tool returns success=true.', {})
+  register('oni_companion_spray_water', 'Use XiaoTangYuan\'s learned water skill to spray stored water into the exact current ONI cursor cell. Call when the player explicitly asks to spray, release, or place water here. The cursor cell must be non-solid, and only report success when the tool returns success=true.', {})
 }
 
 export function registerOniInstallTools(ctx: Context, installer: OniInstallerConfig): void {

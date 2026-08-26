@@ -24,15 +24,13 @@ button { color: inherit; }
 .brand strong, .brand small { display: block; }
 .brand strong { font-size: 15px; letter-spacing: .04em; }
 .brand small { margin-top: 2px; color: var(--muted); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
-.brand-mark { width: 37px; height: 37px; border: 1px solid rgba(101, 230, 196, .35); border-radius: 12px; position: relative; background: var(--mint-dim); }
-.brand-mark span { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 12px var(--mint); }
-.brand-mark span:nth-child(1) { left: 8px; top: 14px; }
-.brand-mark span:nth-child(2) { left: 16px; top: 8px; }
-.brand-mark span:nth-child(3) { right: 7px; bottom: 8px; }
+.brand-mark { width: 52px; height: 52px; flex: 0 0 auto; object-fit: contain; image-rendering: pixelated; }
 .primary-nav { margin-top: 56px; display: grid; gap: 7px; }
 .nav-item { border: 0; background: transparent; border-radius: 10px; color: var(--muted); padding: 12px 13px; text-align: left; display: flex; gap: 12px; align-items: center; cursor: pointer; transition: .2s ease; }
 .nav-item:hover { color: var(--text); background: rgba(255,255,255,.035); }
 .nav-item.active { color: var(--mint); background: var(--mint-dim); }
+.return-harness { margin-top: 14px; border: 1px solid rgba(101,230,196,.24); border-radius: 10px; padding: 11px 13px; display: flex; align-items: center; gap: 10px; background: rgba(101,230,196,.08); color: var(--mint); cursor: pointer; text-align: left; }
+.return-harness:hover, .return-harness:focus-visible { background: rgba(101,230,196,.14); outline: 1px solid rgba(101,230,196,.3); }
 .nav-icon { width: 18px; text-align: center; font-size: 18px; }
 .sidebar-foot { margin-top: auto; border-top: 1px solid var(--line); padding: 18px 9px 0; }
 .runtime-pulse { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 7px; }
@@ -202,6 +200,8 @@ input:focus, select:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 
   .brand > div:last-child, .nav-item span:last-child, .sidebar-foot { display: none; }
   .brand { padding: 0; justify-content: center; }
   .nav-item { justify-content: center; padding: 12px; }
+  .return-harness { justify-content: center; padding: 11px; }
+  .return-harness span:last-child { display: none; }
   .primary-nav { margin-top: 45px; }
   .chat-layout { height: auto; min-height: 100%; grid-template-columns: 1fr; }
   .conversation { min-height: 620px; }
@@ -215,6 +215,8 @@ input:focus, select:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 
   .sidebar.open { transform: translateX(0); }
   .brand > div:last-child, .nav-item span:last-child, .sidebar-foot { display: block; }
   .nav-item { justify-content: flex-start; }
+  .return-harness { justify-content: flex-start; }
+  .return-harness span:last-child { display: inline; }
   main { height: 100dvh; }
   .topbar { min-height: 83px; padding: 16px 18px; }
   .mobile-menu { display: block; border: 0; background: transparent; font-size: 18px; margin-right: 10px; }

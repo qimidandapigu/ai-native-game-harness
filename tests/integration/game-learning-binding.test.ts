@@ -7,7 +7,7 @@ import ToolRuntime from '@deepseek-ai/dsh-tools'
 import * as gameCorePlugin from '@ai-native-game-harness/game-core'
 import * as gameLearningPlugin from '@ai-native-game-harness/game-learning-binding'
 import { MockGameAdapter } from '@ai-native-game-harness/mock-game/adapter'
-import { SkillService, SkillStore } from '@qimidandapigu/dsh-xiaotangyuan-game'
+import { SkillService, SkillStore, type SkillProgram, type SkillSourceStatement } from '@qimidandapigu/dsh-xiaotangyuan-game'
 import { describe, expect, it } from 'vitest'
 
 describe('default DSH self-learning binding', () => {
@@ -17,7 +17,7 @@ describe('default DSH self-learning binding', () => {
     const releaseSystemPrompt = ctx.provide('systemPrompt', { tools: () => undefined, section: () => undefined } as never)
     const releaseDefaultModel = ctx.provide('agentDefaultModel', { currentSelection: () => ({ provider: 'test', model: 'test' }) } as never)
     const releaseSessions = ctx.provide('sessions', {} as never)
-    const skills = new SkillService(new SkillStore({ enabled: true, directory, activeLimit: 10 }))
+    const skills = new SkillService(new SkillStore({ enabled: true, directory, activeLimit: 5 }))
     const learning = {
       memory: undefined,
       skills,
@@ -28,7 +28,7 @@ describe('default DSH self-learning binding', () => {
         ...(activeGameId === undefined ? {} : { activeGameId }),
         memories: [],
         playStatistics: [],
-        skills: activeGameId === undefined ? [] : skills.store.list(activeGameId).map(({ program, ...skill }) => ({ ...skill, stepCount: program.steps.length })),
+        skills: activeGameId === undefined ? [] : skills.store.list(activeGameId).map(({ program, ...skill }) => ({ ...skill, stepCount: programStepCount(program) })),
         skillAttempts: skills.store.listLearningAttempts(activeGameId).map(attempt => ({
           gameId: attempt.gameId,
           skillId: attempt.skillId,
@@ -36,7 +36,7 @@ describe('default DSH self-learning binding', () => {
           success: attempt.success,
           ...(attempt.error === undefined ? {} : { error: attempt.error }),
           createdAt: attempt.createdAt,
-          stepCount: attempt.program.steps.length,
+          stepCount: programStepCount(attempt.program),
         })),
       }),
     }
@@ -59,7 +59,7 @@ describe('default DSH self-learning binding', () => {
         name: '捡金币',
         description: '捡起地图上的金币',
         triggers: '捡金币',
-        programJson: JSON.stringify({ language: 'xiaotangyuan-skill-v1', steps: [{ op: 'call', atom: 'game.collect' }] }),
+        sourceCode: 'await atom("game.collect", {});',
       }, 'failed-trial')
       expect(failed).toMatchObject({ value: { success: false, learned: false } })
       expect(skills.store.list('mock-game')).toHaveLength(0)
@@ -70,13 +70,7 @@ describe('default DSH self-learning binding', () => {
         name: '走过去捡金币',
         description: '移动到金币位置并捡起金币',
         triggers: '捡金币,拿金币',
-        programJson: JSON.stringify({
-          language: 'xiaotangyuan-skill-v1',
-          steps: [
-            { op: 'call', atom: 'game.move', args: { x: 2, y: 1 } },
-            { op: 'call', atom: 'game.collect' },
-          ],
-        }),
+        sourceCode: 'await atom("game.move", { x: 2, y: 1 });\nawait atom("game.collect", {});',
       }, 'successful-trial')
       expect(learned).toMatchObject({ value: { success: true, learned: true, version: 1 } })
       expect(skills.store.list('mock-game')).toMatchObject([{ id: 'mock.collect-coin', version: 1 }])
@@ -96,6 +90,18 @@ describe('default DSH self-learning binding', () => {
     }
   })
 })
+
+function programStepCount(program: SkillProgram): number {
+  if (program.language === 'xiaotangyuan-skill-v1') return program.steps.length
+  const countBlock = (statements: SkillSourceStatement[]): number => statements.reduce((total, statement) => {
+    if (statement.kind === 'call') return total + 1
+    if (statement.kind === 'if') return total + countBlock(statement.then) + countBlock(statement.else ?? [])
+    if (statement.kind === 'repeat') return total + countBlock(statement.body)
+    if (statement.kind === 'try') return total + countBlock(statement.body) + countBlock(statement.fallback)
+    return total
+  }, 0)
+  return countBlock(program.body)
+}
 
 async function execute(ctx: Context, name: string, args: unknown, callId: string) {
   return await ctx.tools.execute({

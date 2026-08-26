@@ -1,5 +1,6 @@
 import type { SkillProgram, SkillRecord, SkillRunResult, GameAtomExecutor } from './contracts.js'
 import { SkillRuntime, validateSkillProgram } from './skill-runtime.js'
+import { compileSkillSource } from './skill-source.js'
 import { SkillStore } from './skill-store.js'
 
 export class SkillService {
@@ -71,6 +72,56 @@ export class SkillService {
     })
     if (!result.success) return { result }
     return { result, learned: this.saveGenerated(input, allowedAtoms) }
+  }
+
+  async tryLearnSource(input: {
+    gameId: string
+    skillId: string
+    name: string
+    description: string
+    triggers: string[]
+    sourceCode: string
+  }, allowedAtoms: ReadonlySet<string>, executor: GameAtomExecutor, signal: AbortSignal): Promise<{
+    result: SkillRunResult
+    learned?: SkillRecord
+  }> {
+    let program: SkillProgram
+    try {
+      program = compileSkillSource(input.sourceCode, allowedAtoms)
+    } catch (error) {
+      const proposedVersion = (this.store.find(input.gameId, input.skillId)?.version ?? 0) + 1
+      const message = error instanceof Error ? error.message : String(error)
+      const result: SkillRunResult = {
+        success: false,
+        skillId: input.skillId,
+        skillVersion: proposedVersion,
+        trace: [],
+        error: message,
+      }
+      this.store.recordLearningAttempt({
+        gameId: input.gameId,
+        skillId: input.skillId,
+        proposedVersion,
+        program: {
+          language: 'xiaotangyuan-skill-v2',
+          source: input.sourceCode.slice(0, 12_000),
+          body: [],
+        },
+        success: false,
+        trace: [],
+        error: message,
+        createdAt: new Date().toISOString(),
+      })
+      return { result }
+    }
+    return this.tryLearn({
+      gameId: input.gameId,
+      skillId: input.skillId,
+      name: input.name,
+      description: input.description,
+      triggers: input.triggers,
+      program,
+    }, allowedAtoms, executor, signal)
   }
 
   async run(

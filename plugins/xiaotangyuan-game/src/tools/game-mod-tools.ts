@@ -83,7 +83,7 @@ export function registerGameTools(
 
   ctx.tools.register(defineTool({
     name: 'dont_starve_mod_install',
-    description: '安装、更新或修复《饥荒联机版》的小汤圆 Lua Mod 与 DeepSeek Harness Adapter 启动器。会校验官方安装包、备份旧版本并在失败时回滚。工具只能返回需要玩家手动粘贴到 Steam 的启动项，不能自动修改 Steam 设置，禁止声称启动项已自动设置。只有用户明确要求安装、更新、恢复或修复饥荒 Mod 后才能调用；不要用于星露谷。',
+    description: '安装、更新或修复《饥荒联机版》的小汤圆 Lua Mod 与 AI Native Game Harness Adapter 启动器。会校验官方安装包、备份旧版本并在失败时回滚。工具只能返回需要玩家手动粘贴到 Steam 的启动项，不能自动修改 Steam 设置，禁止声称启动项已自动设置。只有用户明确要求安装、更新、恢复或修复饥荒 Mod 后才能调用；不要用于星露谷。',
     parameters: {
       confirmed: {
         type: 'boolean',

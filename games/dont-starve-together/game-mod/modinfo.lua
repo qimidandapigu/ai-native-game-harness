@@ -1,5 +1,5 @@
 name = "Don't Starve AI Mod"
-description = "按 V 通过 DeepSeek Harness 与小汤圆对话。"
+description = "按 V 通过 AI Native Game Harness 与小汤圆对话。"
 author = "Don't Starve AI Mod contributors"
 version = "0.2.23"
 
@@ -148,7 +148,7 @@ configuration_options = {
     {
         name = "reminder_ai_enabled",
         label = "AI 润色游戏提醒",
-        hover = "开启后，游戏提醒会交给 DeepSeek Harness 生成一句情境化回复；关闭时使用固定提醒文本。",
+        hover = "开启后，游戏提醒会交给 AI Native Game Harness 生成一句情境化回复；关闭时使用固定提醒文本。",
         options = {
             choice("关闭（默认）", false),
             choice("开启", true),

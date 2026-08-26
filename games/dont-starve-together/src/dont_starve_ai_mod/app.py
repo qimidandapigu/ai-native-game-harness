@@ -447,7 +447,7 @@ class ChesterApp:
             "last_request_at_unix": self._last_request_at_unix,
             "last_request_action": self._last_request_action,
             "last_reply_at_unix": last_reply_at_unix,
-            "chat_model": "DeepSeek Harness",
+            "chat_model": "AI Native Game Harness",
             "gateway_connected": self._gateway.connected,
             "busy": self._busy.locked() or self._thinking,
             "recording": self._recording,

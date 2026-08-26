@@ -3,6 +3,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 let chatSequence = 0
 
 contextBridge.exposeInMainWorld('harnessDesktop', {
+  navigation: {
+    showHarness: () => ipcRenderer.invoke('navigation:show-harness'),
+    showGame: () => ipcRenderer.invoke('navigation:show-game'),
+  },
   onStatus(callback) {
     const listener = (_event, status) => callback(status)
     ipcRenderer.on('harness-status', listener)

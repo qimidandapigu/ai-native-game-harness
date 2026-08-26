@@ -24,6 +24,7 @@ const EMPTY_SESSION_STATS = Object.freeze({
 })
 const MAX_TRACES = 500
 const CHAT_TIMEOUT_MS = 10 * 60_000
+const STREAM_INITIAL_OPEN_TIMEOUT_MS = 30_000
 const DIAGNOSTIC_KINDS = new Set(['game-agent.latency', 'voice.latency', 'voice.failed'])
 const DIAGNOSTIC_DETAIL_KEYS = {
   'game-agent.latency': new Set(['source', 'provider', 'model', 'modelSelectionMs', 'captureMs', 'attachmentMs', 'agentReadyMs', 'firstTextMs', 'agentWaitMs', 'totalMs']),
@@ -290,23 +291,28 @@ export class DshProductRuntime {
   async start() {
     if (!this.#stopped) return this.info()
     this.#stopped = false
-    await Promise.all([
-      this.#startStream('/api/events.mux', (frame) => this.#handleMuxFrame(frame), 'mux'),
-      this.#startStream('/api/events.host', (frame) => this.#handleHostFrame(frame), 'host'),
-    ])
-    const listed = await this.#rpc('session.list', {})
-    const reusable = listed.items?.find((item) => item.blank === true && item.running === false && item.cwd === this.#cwd)
-    if (reusable) {
-      this.#sessionId = reusable.sessionId
-      this.#agentPreset = reusable.agentPreset
-    } else {
-      const created = await this.#rpc('session.create', { cwd: this.#cwd })
-      this.#sessionId = created.sessionId
-      this.#agentPreset = created.agentPreset
+    try {
+      await Promise.all([
+        this.#startStream('/api/events.mux', (frame) => this.#handleMuxFrame(frame), 'mux'),
+        this.#startStream('/api/events.host', (frame) => this.#handleHostFrame(frame), 'host'),
+      ])
+      const listed = await this.#rpc('session.list', {})
+      const reusable = listed.items?.find((item) => item.blank === true && item.running === false && item.cwd === this.#cwd)
+      if (reusable) {
+        this.#sessionId = reusable.sessionId
+        this.#agentPreset = reusable.agentPreset
+      } else {
+        const created = await this.#rpc('session.create', { cwd: this.#cwd })
+        this.#sessionId = created.sessionId
+        this.#agentPreset = created.agentPreset
+      }
+      await this.#refreshSessionState()
+      this.#publish()
+      return this.info()
+    } catch (error) {
+      await this.close()
+      throw error
     }
-    await this.#refreshSessionState()
-    this.#publish()
-    return this.info()
   }
 
   info() {
@@ -330,7 +336,7 @@ export class DshProductRuntime {
       traces,
       runtime: {
         kind: 'dsh',
-        label: 'DSH Session',
+        label: 'AI Native Game Harness Session',
         status: this.#muxConnected && this.#hostConnected ? 'online' : 'reconnecting',
         sessionId: this.#sessionId,
         agentPreset: this.#agentPreset,
@@ -382,8 +388,8 @@ export class DshProductRuntime {
   }
 
   async chat({ message }, onEvent = () => undefined) {
-    if (!this.#sessionId) throw new Error('DSH Session 尚未创建。')
-    if (this.#pendingChat) throw new Error('DSH Session 正在处理上一条消息。')
+    if (!this.#sessionId) throw new Error('AI Native Game Harness Session 尚未创建。')
+    if (this.#pendingChat) throw new Error('AI Native Game Harness Session 正在处理上一条消息。')
 
     const events = []
     const emit = (event) => {
@@ -396,7 +402,7 @@ export class DshProductRuntime {
       resolveTurn = resolve
       rejectTurn = reject
     })
-    const timeout = setTimeout(() => rejectTurn(new Error('等待 DSH Session 完成超时。')), CHAT_TIMEOUT_MS)
+    const timeout = setTimeout(() => rejectTurn(new Error('等待 AI Native Game Harness Session 完成超时。')), CHAT_TIMEOUT_MS)
     this.#pendingChat = { emit, resolve: resolveTurn, reject: rejectTurn, publicText: '' }
     try {
       const result = await this.#rpc('session.prompt', {
@@ -422,7 +428,7 @@ export class DshProductRuntime {
   }
 
   async reset() {
-    throw new Error('DSH 产品链路不允许页面绕过 Agent 直接调用游戏动作。')
+    throw new Error('AI Native Game Harness 产品链路不允许页面绕过 Agent 直接调用游戏动作。')
   }
 
   async close() {
@@ -430,7 +436,7 @@ export class DshProductRuntime {
     if (this.#pendingChat && this.#sessionId) {
       await this.#rpc('session.cancel', { sessionId: this.#sessionId }).catch(() => undefined)
     }
-    this.#pendingChat?.reject(new Error('DSH Runtime 已停止。'))
+    this.#pendingChat?.reject(new Error('AI Runtime 已停止。'))
     for (const socket of this.#sockets) socket.close()
     await Promise.allSettled(this.#streamTasks)
     this.#streamTasks = []
@@ -445,12 +451,12 @@ export class DshProductRuntime {
       body: JSON.stringify({ type: 'client-request', rpcId, method, payload }),
       signal: AbortSignal.timeout(30_000),
     })
-    if (!response.ok) throw new Error(`DSH ${method} 请求失败：HTTP ${response.status}`)
+    if (!response.ok) throw new Error(`AI Runtime ${method} 请求失败：HTTP ${response.status}`)
     const envelope = await response.json()
-    if (envelope?.rpcId !== rpcId) throw new Error(`DSH ${method} 返回了错误的 rpcId。`)
+    if (envelope?.rpcId !== rpcId) throw new Error(`AI Runtime ${method} 返回了错误的 rpcId。`)
     if (!envelope?.result?.ok) {
       const error = envelope?.result?.error
-      throw new Error(`DSH ${method} 失败${error?.code ? ` [${error.code}]` : ''}：${error?.message ?? '未知错误'}`)
+      throw new Error(`AI Runtime ${method} 失败${error?.code ? ` [${error.code}]` : ''}：${error?.message ?? '未知错误'}`)
     }
     return envelope.result.value
   }
@@ -463,16 +469,20 @@ export class DshProductRuntime {
       settleOpen = resolve
       rejectOpen = reject
     })
+    const openTimeout = setTimeout(() => {
+      rejectOpen(new Error(`AI Runtime ${channel} 事件流连接超时。`))
+    }, STREAM_INITIAL_OPEN_TIMEOUT_MS)
     const task = this.#runStream(path, onFrame, channel, () => {
       if (!opened) {
         opened = true
+        clearTimeout(openTimeout)
         settleOpen()
       }
     }, (error) => {
-      if (!opened) rejectOpen(error)
+      this.#appendTrace('dsh.stream.open-failed', { channel, error: asErrorMessage(error) })
     })
     this.#streamTasks.push(task)
-    return initialOpen
+    return initialOpen.finally(() => clearTimeout(openTimeout))
   }
 
   async #runStream(path, onFrame, channel, onFirstOpen, onFirstError) {
@@ -600,7 +610,7 @@ export class DshProductRuntime {
     }
     if (frame.type === 'host/agent-error') {
       this.#appendTrace('dsh.agent.error', { message: frame.message ?? '未知错误' })
-      this.#pendingChat?.reject(new Error(frame.message ?? 'DSH Agent 运行失败。'))
+      this.#pendingChat?.reject(new Error(frame.message ?? 'AI Agent 运行失败。'))
     }
   }
 

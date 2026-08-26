@@ -9,7 +9,6 @@ import type { JsonObject, JsonValue } from '@ai-native-game-harness/adapter-prot
 import type {
   GameAtomExecutor,
   ProductLearningSnapshot,
-  SkillProgram,
   XiaoTangYuanLearningService,
 } from '@qimidandapigu/dsh-xiaotangyuan-game'
 
@@ -326,13 +325,13 @@ class ProductLearningBinding {
   private registerSkillLearnTool(): () => void {
     return this.ctx.tools.register(defineTool({
       name: 'game_learning_skill_learn',
-      description: 'Propose and immediately trial a xiaotangyuan-skill-v1 sequence composed only from the connected Adapter action capabilities. The skill is saved only when every real action step succeeds; failed attempts remain diagnostic history and never become runnable skills. Use at most three attempts for one player request.',
+      description: 'Write and immediately trial a xiaotangyuan-skill-v2 program composed only from the connected Adapter actions. Allowed syntax: let result = await atom("action", { args }); await atom(...); if/else; repeat(1..10); try/catch fallback; assert; fail; break inside repeat. Conditions support exists, !, ==, !=, comparisons, && and ||. Arbitrary JavaScript, files, network, modules, recursion and unbounded loops are forbidden. The skill is saved only when its complete real trial succeeds. Failed source and traces remain diagnostic history; revise from the exact error and use at most three attempts per player request.',
       parameters: {
         skillId: { type: 'string', required: true, description: 'Stable lowercase skill ID, e.g. oni.build-and-assign-bed.' },
         name: { type: 'string', required: true, description: 'Short skill name.' },
         description: { type: 'string', required: true, description: 'Goal completed by this skill.' },
         triggers: { type: 'string', required: true, description: 'Comma-separated player trigger phrases.' },
-        programJson: { type: 'string', required: true, description: 'JSON with language xiaotangyuan-skill-v1 and 1-20 call steps. A later argument may reference $variable.field saved by an earlier step.' },
+        sourceCode: { type: 'string', required: true, description: 'Restricted TypeScript-like xiaotangyuan-skill-v2 source. Use only action names returned by game_learning_skill_catalog.' },
       },
       output: {
         schema: {
@@ -353,20 +352,14 @@ class ProductLearningBinding {
         const skills = this.ctx.xiaotangyuanLearning.skills
         const current = this.adapterContext()
         if (skills === undefined || current === undefined) throw new Error('当前没有可用的技能库或已连接游戏。')
-        let program: SkillProgram
-        try {
-          program = JSON.parse(args.programJson) as SkillProgram
-        } catch {
-          throw new Error('技能程序不是有效 JSON。')
-        }
         const allowed = new Set(current.adapter.capabilities.filter(item => item.kind === 'action').map(item => item.name))
-        const attempt = await skills.tryLearn({
+        const attempt = await skills.tryLearnSource({
           gameId: current.adapter.gameId,
           skillId: args.skillId,
           name: args.name,
           description: args.description,
           triggers: args.triggers.split(/[,，]/).map(value => value.trim()).filter(Boolean),
-          program,
+          sourceCode: args.sourceCode,
         }, allowed, skillExecutor(this.ctx, String(exec.agent?.id ?? 'dsh-learning'), current.adapter.gameId), exec.signal)
         this.publish()
         const version = attempt.learned?.version ?? attempt.result.skillVersion

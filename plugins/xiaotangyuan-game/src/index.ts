@@ -78,7 +78,7 @@ export function apply(ctx: Context, config: Config = {}): void {
 export type { Config } from './config.js'
 export { XiaoTangYuanLearningService } from './runtime/learning-service.js'
 export type { ProductLearningSnapshot } from './runtime/learning-service.js'
-export type { GameAtomExecutor, SkillProgram, SkillRecord, SkillRunResult } from './runtime/skills/contracts.js'
+export type { GameAtomExecutor, SkillProgram, SkillRecord, SkillRunResult, SkillSourceStatement } from './runtime/skills/contracts.js'
 export { SkillService } from './runtime/skills/skill-service.js'
 export { SkillStore } from './runtime/skills/skill-store.js'
 export type { FeedbackReceipt, FeedbackReport, FeedbackSubmission } from './runtime/feedback/contracts.js'

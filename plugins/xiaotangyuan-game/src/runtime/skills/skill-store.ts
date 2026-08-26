@@ -5,7 +5,7 @@ import type { SkillLearningAttempt, SkillRecord } from './contracts.js'
 import { validateSkillProgram } from './skill-runtime.js'
 
 interface SkillDocument {
-  schemaVersion: 1
+  schemaVersion: 2
   skills: SkillRecord[]
   history: SkillRecord[]
   learningAttempts: SkillLearningAttempt[]
@@ -13,27 +13,38 @@ interface SkillDocument {
 
 export class SkillStore {
   private readonly path: string
+  private readonly legacyPath: string
   private document: SkillDocument
 
   constructor(private readonly config: ResolvedConfig['skills']) {
     mkdirSync(config.directory, { recursive: true })
-    this.path = join(config.directory, 'skills-v1.json')
+    this.path = join(config.directory, 'skills-v2.json')
+    this.legacyPath = join(config.directory, 'skills-v1.json')
     this.document = this.load()
     this.removeLegacyBootstrapSkill()
+    this.save()
   }
 
   private load(): SkillDocument {
-    try {
-      const parsed = JSON.parse(readFileSync(this.path, 'utf8')) as SkillDocument
-      if (parsed.schemaVersion === 1 && Array.isArray(parsed.skills)) {
-        return {
-          ...parsed,
-          history: Array.isArray(parsed.history) ? parsed.history : [],
-          learningAttempts: Array.isArray(parsed.learningAttempts) ? parsed.learningAttempts : [],
+    for (const path of [this.path, this.legacyPath]) {
+      try {
+        const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
+          schemaVersion?: number
+          skills?: SkillRecord[]
+          history?: SkillRecord[]
+          learningAttempts?: SkillLearningAttempt[]
         }
-      }
-    } catch {}
-    return { schemaVersion: 1, skills: [], history: [], learningAttempts: [] }
+        if ((parsed.schemaVersion === 1 || parsed.schemaVersion === 2) && Array.isArray(parsed.skills)) {
+          return {
+            schemaVersion: 2,
+            skills: parsed.skills,
+            history: Array.isArray(parsed.history) ? parsed.history : [],
+            learningAttempts: Array.isArray(parsed.learningAttempts) ? parsed.learningAttempts : [],
+          }
+        }
+      } catch {}
+    }
+    return { schemaVersion: 2, skills: [], history: [], learningAttempts: [] }
   }
 
   private save(): void {

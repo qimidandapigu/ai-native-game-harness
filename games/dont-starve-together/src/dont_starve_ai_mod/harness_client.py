@@ -23,7 +23,7 @@ class HarnessRpcError(RuntimeError):
 
 
 class HarnessClient:
-    """Small reconnecting JSON-RPC client for the local DeepSeek Harness Gateway."""
+    """Small reconnecting JSON-RPC client for the local AI Native Game Harness Gateway."""
 
     def __init__(
         self,
@@ -124,11 +124,11 @@ class HarnessClient:
                     }
                 )
                 self._connected.set()
-                LOGGER.info("已连接 DeepSeek Harness：%s", self.url)
+                LOGGER.info("已连接 AI Native Game Harness：%s", self.url)
                 self._receive_loop(socket)
             except Exception as exc:
                 if not self._stopping.is_set():
-                    LOGGER.warning("DeepSeek Harness 暂不可用：%s", exc)
+                    LOGGER.warning("AI Native Game Harness 暂不可用：%s", exc)
             finally:
                 self._disconnect()
             if not self._stopping.wait(2.0):
@@ -198,7 +198,7 @@ class HarnessClient:
         with self._socket_lock:
             socket = self._socket
             if socket is None or not socket.connected:
-                raise HarnessUnavailable("尚未连接 DeepSeek Harness")
+                raise HarnessUnavailable("尚未连接 AI Native Game Harness")
             socket.send(encoded)
 
     def notify(self, method: str, params: dict[str, Any]) -> bool:
@@ -212,7 +212,7 @@ class HarnessClient:
 
     def call(self, method: str, params: dict[str, Any], timeout: float) -> Any:
         if not self.wait_until_connected():
-            raise HarnessUnavailable("DeepSeek Harness 未启动或游戏插件未启用")
+            raise HarnessUnavailable("AI Native Game Harness 未启动或游戏插件未启用")
         request_id = str(uuid.uuid4())
         response_queue: queue.Queue[dict[str, Any]] = queue.Queue(maxsize=1)
         with self._pending_lock:
@@ -245,7 +245,7 @@ class HarnessClient:
                 pass
         failure = {
             "jsonrpc": "2.0",
-            "error": {"code": -32001, "message": "与 DeepSeek Harness 的连接已断开"},
+            "error": {"code": -32001, "message": "与 AI Native Game Harness 的连接已断开"},
         }
         with self._pending_lock:
             pending = list(self._pending.values())

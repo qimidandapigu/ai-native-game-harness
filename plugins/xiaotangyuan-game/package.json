@@ -1,7 +1,7 @@
 {
   "name": "@qimidandapigu/dsh-xiaotangyuan-game",
   "version": "0.7.7",
-  "description": "XiaoTangYuan game AI runtime for DeepSeek Harness.",
+  "description": "XiaoTangYuan game AI runtime for AI Native Game Harness.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

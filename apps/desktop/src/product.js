@@ -99,8 +99,8 @@ function render() {
   $('#metric-llm').textContent = `${Number.isFinite(llmMs) ? Math.round(llmMs) : 0}ms`
   $('#metric-tool').textContent = `${Number.isFinite(toolMs) ? Math.round(toolMs) : 0}ms`
   $('#metric-ttft').textContent = Number.isFinite(ttftMs) && Number.isFinite(ttftSteps) && ttftSteps > 0
-    ? `DSH 官方统计 · 平均首字 ${Math.round(ttftMs / ttftSteps)}ms`
-    : 'DSH 官方统计 · 尚无首字'
+    ? `AI Runtime 统计 · 平均首字 ${Math.round(ttftMs / ttftSteps)}ms`
+    : 'AI Runtime 统计 · 尚无首字'
   const latestAction = snapshot.traces.findLast?.(trace => trace.kind === 'action.executed')
     ?? [...snapshot.traces].reverse().find(trace => trace.kind === 'action.executed')
   setMeasuredMetric('#metric-core-action', latestAction?.detail?.coreValidationMs)
@@ -369,8 +369,8 @@ function renderTraces() {
 
 function traceLabel(kind) {
   const labels = {
-    'dsh.turn.started': 'DSH 回合开始',
-    'dsh.turn.completed': 'DSH 回合完成',
+    'dsh.turn.started': 'AI 回合开始',
+    'dsh.turn.completed': 'AI 回合完成',
     'dsh.step.started': '模型步骤开始',
     'dsh.step.completed': '模型步骤完成',
     'dsh.tool.called': '工具调用',
@@ -627,7 +627,7 @@ async function submitMessage(text) {
   const assistant = addMessage('assistant')
   const thinking = document.createElement('div')
   thinking.className = 'thinking'
-  thinking.textContent = 'DSH Session 正在运行（隐藏思维不展示）…'
+  thinking.textContent = 'AI Native Game Harness Session 正在运行（隐藏思维不展示）…'
   assistant.bubble.insertBefore(thinking, assistant.content)
   let streamedEvents = 0
   const handleEvent = (event) => {
@@ -653,7 +653,7 @@ async function submitMessage(text) {
     if (!result) throw new Error('当前页面没有连接 Platform Runtime。请从 Electron Desktop 启动。')
     if (!streamedEvents) result.events.forEach(handleEvent)
     thinking.remove()
-    if (!assistant.content.textContent) assistant.content.textContent = 'DSH Session 已完成；本轮没有公开文本输出。'
+    if (!assistant.content.textContent) assistant.content.textContent = 'AI Native Game Harness Session 已完成；本轮没有公开文本输出。'
     snapshot = result.snapshot
     render()
   } catch (error) {
@@ -667,6 +667,9 @@ async function submitMessage(text) {
 }
 
 document.querySelectorAll('.nav-item').forEach((button) => button.addEventListener('click', () => setPage(button.dataset.page)))
+$('#return-harness').addEventListener('click', () => {
+  window.location.href = 'ai-native-game-harness://harness'
+})
 document.querySelectorAll('[data-prompt]').forEach((button) => button.addEventListener('click', () => submitMessage(button.dataset.prompt)))
 document.querySelectorAll('.learning-chat').forEach((button) => button.addEventListener('click', () => {
   setPage('chat')

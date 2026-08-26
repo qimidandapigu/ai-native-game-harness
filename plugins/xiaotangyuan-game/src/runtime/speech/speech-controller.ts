@@ -37,6 +37,7 @@ interface SpeechOutput {
   chain: Promise<void>
   provider: SpeechSynthesisProvider
   started: boolean
+  audioAppended: boolean
 }
 
 export class SpeechController {
@@ -127,6 +128,7 @@ export class SpeechController {
         chain: Promise.resolve(),
         provider,
         started: false,
+        audioAppended: false,
       }
       this.speechOutputs.set(processId, output)
     }
@@ -148,9 +150,11 @@ export class SpeechController {
       return output.started
     } catch (error) {
       this.media.cancelPlayback(output.playbackId)
-      this.ctx.logger.warn('xiaotangyuan-game: 增量 TTS 失败，将尝试完整回复兼容路径')
+      this.ctx.logger.warn(output.audioAppended
+        ? 'xiaotangyuan-game: 增量 TTS 中途失败；为避免重复播放，不再整段重播'
+        : 'xiaotangyuan-game: 增量 TTS 在播放前失败，将尝试完整回复兼容路径')
       this.ctx.logger.warn(error)
-      return false
+      return output.audioAppended
     } finally {
       this.speechOutputs.delete(processId)
     }
@@ -185,6 +189,7 @@ export class SpeechController {
           output.started = true
         }
         for await (const chunk of output.provider.synthesizeStream!({ text: phrase }, output.controller.signal)) {
+          if (chunk.byteLength > 0) output.audioAppended = true
           this.media.appendPcmPlayback(output.playbackId, chunk)
         }
       })

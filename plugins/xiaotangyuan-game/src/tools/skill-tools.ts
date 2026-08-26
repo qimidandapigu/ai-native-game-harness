@@ -3,7 +3,6 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { AdapterHello } from '../protocol/game.js'
 import type { GameAtomExecutor } from '../runtime/skills/contracts.js'
 import type { SkillService } from '../runtime/skills/skill-service.js'
-import type { SkillProgram } from '../runtime/skills/contracts.js'
 
 export function registerSkillTools(
   ctx: Context,
@@ -57,13 +56,13 @@ export function registerSkillTools(
   if (allowedAtoms.size === 0) return
   ctx.tools.register(defineTool({
     name: 'xiaotangyuan_skill_learn',
-    description: `让小汤圆自己学习或修订技能：你根据玩家目标生成候选 xiaotangyuan-skill-v1 程序，本工具立即在真实游戏中逐步试跑并返回 trace；只有整段执行成功才会保存为已学会技能，失败程序绝不会进入技能库。步骤格式为 {"op":"call","atom":"原子名","args":{...},"saveAs":"变量名"}；后续步骤用 "$变量.字段" 引用前一步返回值。失败时根据错误修改程序后可再次尝试，但同一请求最多三次。环境暂时没有目标、距离过远、容器已满等不是程序错误，不要因此乱改代码。原子能力目录：\n${atomCatalog}`,
+    description: `让小汤圆自己学习或修订技能：你生成候选 xiaotangyuan-skill-v2 源码，本工具先安全编译，再立即调用真实游戏原子逐步试跑；只有整段成功才保存。失败源码和 trace 会进入 learningAttempts，应该依据确切错误修改后重试，同一请求最多三次。\n允许语法：let 变量 = await atom("原子名", { 参数 });、await atom(...)、if (条件) { ... } else { ... }、repeat(1到10) { ... }、try { ... } catch { 回退调用或 fail(...) }、assert(条件, "错误")、fail("错误")、repeat 内 break。条件支持 exists(变量.字段)、!、==、!=、>、>=、<、<=、&&、||。禁止任意 JavaScript、文件、网络、模块、递归和无限循环。\n示例：\nlet tree = await atom("dst.find_nearest_entity", { prefab: "evergreen", radius: 20 });\nlet chopped = await atom("dst.chop_target", { targetId: tree.targetId });\nif (chopped.chopped == true) { await atom("dst.collect_items", { prefab: "log", x: chopped.x, z: chopped.z, radius: 6 }); } else { fail("没有砍倒树"); }\n环境暂时没有目标、距离过远、容器已满等不是语法错误，应优先调整环境或合理使用回退。原子能力目录：\n${atomCatalog}`,
     parameters: {
       skillId: { type: 'string', required: true, description: '稳定技能 ID，例如 dst.hunt-and-collect-butterfly。' },
       name: { type: 'string', required: true, description: '简短技能名称。' },
       description: { type: 'string', required: true, description: '技能要完成的目标。' },
       triggers: { type: 'string', required: true, description: '逗号分隔的玩家触发说法。' },
-      programJson: { type: 'string', required: true, description: 'xiaotangyuan-skill-v1 JSON 程序，包含 language 和 1-20 个 call 步骤。' },
+      sourceCode: { type: 'string', required: true, description: 'xiaotangyuan-skill-v2 技能源码，使用受限的 TypeScript 风格语法。' },
     },
     output: {
       schema: {
@@ -81,16 +80,10 @@ export function registerSkillTools(
       render: (_args, value) => [{ type: 'text', text: value.message }],
     },
     execute: async (args, exec) => {
-      let program: SkillProgram
-      try {
-        program = JSON.parse(args.programJson) as SkillProgram
-      } catch {
-        throw new Error('技能程序不是有效 JSON')
-      }
-      const attempt = await skills.tryLearn({
+      const attempt = await skills.tryLearnSource({
         gameId, skillId: args.skillId, name: args.name, description: args.description,
         triggers: args.triggers.split(/[,，]/).map(item => item.trim()).filter(Boolean),
-        program,
+        sourceCode: args.sourceCode,
       }, allowedAtoms, executor, exec.signal)
       const version = attempt.learned?.version ?? attempt.result.skillVersion
       return {

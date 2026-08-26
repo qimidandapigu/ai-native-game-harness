@@ -181,7 +181,7 @@ export function resolveConfig(config: Config = {}): ResolvedConfig {
   if (configuredSkillDirectory !== undefined && !isAbsolute(configuredSkillDirectory)) {
     throw new Error('skills.directory must be absolute')
   }
-  const skillActiveLimit = config.skills?.activeLimit ?? 10
+  const skillActiveLimit = config.skills?.activeLimit ?? 5
   if (!Number.isInteger(skillActiveLimit) || skillActiveLimit < 1 || skillActiveLimit > 50) {
     throw new Error('skills.activeLimit must be an integer between 1 and 50')
   }

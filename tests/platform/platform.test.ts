@@ -87,6 +87,122 @@ describe('independent platform boundary', () => {
     await core.close()
   })
 
+  it('refreshes automatic revisions and retries one safe revision conflict', async () => {
+    let revision = 1
+    let executeCount = 0
+    const expectedRevisions: Array<number | undefined> = []
+    const adapter: GameAdapter = {
+      async hello() {
+        return {
+          protocolVersion: '1.0',
+          adapterId: 'revision-race.adapter',
+          gameId: 'revision-race',
+          displayName: 'Revision Race',
+          adapterVersion: '1.0.0',
+          capabilities: [{ name: 'game.act', kind: 'action', description: 'Act' }],
+        }
+      },
+      async observe() {
+        return {
+          gameId: 'revision-race',
+          saveId: 'save-1',
+          revision,
+          observedAt: new Date().toISOString(),
+          state: {},
+        }
+      },
+      async execute(request) {
+        executeCount += 1
+        expectedRevisions.push(request.expectedRevision)
+        if (executeCount === 1) {
+          revision += 1
+          return {
+            requestId: request.requestId,
+            ok: false,
+            revision,
+            error: { code: 'REVISION_CONFLICT', message: 'State changed during execution' },
+          }
+        }
+        return { requestId: request.requestId, ok: true, revision, result: { acted: true } }
+      },
+    }
+    const core = new HarnessCore()
+    await core.connectAdapter(adapter)
+    revision = 2
+
+    try {
+      const result = await core.dispatchAgentAction({
+        sessionId: 'revision-race-session',
+        gameId: 'revision-race',
+      }, {
+        type: 'action',
+        callId: 'revision-race-call',
+        capability: 'game.act',
+        arguments: {},
+      })
+
+      expect(result.result).toMatchObject({ ok: true, revision: 3 })
+      expect(executeCount).toBe(2)
+      expect(expectedRevisions).toEqual([2, 3])
+    } finally {
+      await core.close()
+    }
+  })
+
+  it('does not retry a revision explicitly supplied by the caller', async () => {
+    let executeCount = 0
+    const adapter: GameAdapter = {
+      async hello() {
+        return {
+          protocolVersion: '1.0',
+          adapterId: 'explicit-revision.adapter',
+          gameId: 'explicit-revision',
+          displayName: 'Explicit Revision',
+          adapterVersion: '1.0.0',
+          capabilities: [{ name: 'game.act', kind: 'action', description: 'Act' }],
+        }
+      },
+      async observe() {
+        return {
+          gameId: 'explicit-revision',
+          saveId: 'save-1',
+          revision: 4,
+          observedAt: new Date().toISOString(),
+          state: {},
+        }
+      },
+      async execute(request) {
+        executeCount += 1
+        return {
+          requestId: request.requestId,
+          ok: false,
+          revision: 4,
+          error: { code: 'REVISION_CONFLICT', message: 'Expected revision 1, current revision is 4' },
+        }
+      },
+    }
+    const core = new HarnessCore()
+    await core.connectAdapter(adapter)
+
+    try {
+      const result = await core.dispatchAgentAction({
+        sessionId: 'explicit-revision-session',
+        gameId: 'explicit-revision',
+      }, {
+        type: 'action',
+        callId: 'explicit-revision-call',
+        capability: 'game.act',
+        arguments: {},
+        expectedRevision: 1,
+      })
+
+      expect(result.result).toMatchObject({ ok: false, error: { code: 'REVISION_CONFLICT' } })
+      expect(executeCount).toBe(1)
+    } finally {
+      await core.close()
+    }
+  })
+
   it('binds standard DSH Tools to the authoritative Core action boundary', async () => {
     const core = new HarnessCore()
     await core.connectAdapter(new MockGameAdapter())

@@ -25,6 +25,8 @@ describe('Oxygen Not Included voice wiring', () => {
     expect(runtime).toContain('"聆听中…"')
     expect(runtime).toContain('"思考中…"')
     expect(runtime).toContain('"回答中…"')
+    expect(runtime).toMatch(/assistant\.text\.delta[\s\S]*?_floatingStatus = string\.Empty/)
+    expect(runtime).toContain('method == "assistant.present" || method == "assistant.text.done"')
     expect(runtime).toMatch(/showStatus\s*\?\s*_floatingStatus/)
     expect(runtime).toContain('_floatingStatus = string.Empty')
   })

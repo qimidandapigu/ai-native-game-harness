@@ -1,7 +1,7 @@
 import { Service, type Context } from '@deepseek-ai/cordis'
 import type { MemoryService } from './memory/memory-service.js'
 import type { SkillService } from './skills/skill-service.js'
-import type { SkillLearningAttempt, SkillRecord } from './skills/contracts.js'
+import type { SkillLearningAttempt, SkillProgram, SkillRecord, SkillSourceStatement } from './skills/contracts.js'
 
 export type ProductSkillSummary = Omit<SkillRecord, 'program' | 'lastError'> & { stepCount: number }
 export interface ProductSkillAttemptSummary {
@@ -62,7 +62,7 @@ export class XiaoTangYuanLearningService extends Service {
       playStatistics: this.memory?.store.listPlayStatistics() ?? [],
       skills: activeGameId === undefined || this.skills === undefined
         ? []
-        : this.skills.store.list(activeGameId).map(({ program, lastError: _lastError, ...skill }) => ({ ...skill, stepCount: program.steps.length })),
+        : this.skills.store.list(activeGameId).map(({ program, lastError: _lastError, ...skill }) => ({ ...skill, stepCount: programStepCount(program) })),
       skillAttempts: (this.skills?.store.listLearningAttempts(activeGameId, 30) ?? []).map(summarizeAttempt),
     }
   }
@@ -77,7 +77,19 @@ function summarizeAttempt(attempt: SkillLearningAttempt): ProductSkillAttemptSum
     success: attempt.success,
     ...(attempt.error === undefined ? {} : { error: attempt.error.slice(0, 500) }),
     createdAt: attempt.createdAt,
-    stepCount: attempt.program.steps.length,
+    stepCount: programStepCount(attempt.program),
     ...(failedStep === undefined ? {} : { failedStep }),
   }
+}
+
+function programStepCount(program: SkillProgram): number {
+  if (program.language === 'xiaotangyuan-skill-v1') return program.steps.length
+  const countBlock = (statements: SkillSourceStatement[]): number => statements.reduce((total, statement) => {
+    if (statement.kind === 'call') return total + 1
+    if (statement.kind === 'if') return total + countBlock(statement.then) + countBlock(statement.else ?? [])
+    if (statement.kind === 'repeat') return total + countBlock(statement.body)
+    if (statement.kind === 'try') return total + countBlock(statement.body) + countBlock(statement.fallback)
+    return total
+  }, 0)
+  return countBlock(program.body)
 }

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -74,6 +74,25 @@ describe('ONI Adapter file bridge', () => {
     expect(request.params.args?.targetCell).toBe(123)
     await writeFile(join(sessionDir, 'outbox.json'), JSON.stringify({ events: [state, { id: 'result-1', method: 'tool.result', params: { callId: request.params.callId, success: true, reply: '已创建挖掘任务' } }] }))
     await expect(execution).resolves.toEqual({ success: true, reply: '已创建挖掘任务' })
+  })
+
+  it('ignores a stale bridge directory even when Windows has reused its process id', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'oni-stale-adapter-'))
+    const sessionDir = join(root, String(process.pid))
+    await mkdir(sessionDir)
+    await writeFile(join(sessionDir, 'session.json'), JSON.stringify({ processId: process.pid, saveId: 'old-colony' }))
+    const outbox = join(sessionDir, 'outbox.json')
+    await writeFile(outbox, JSON.stringify({ events: [] }))
+    const old = new Date(Date.now() - 60_000)
+    await utimes(outbox, old, old)
+
+    const adapter = new OniAdapter(root, undefined)
+    adapter.start()
+    cleanups.push(async () => { await adapter.close(); await rm(root, { recursive: true, force: true }) })
+    await new Promise(resolve => setTimeout(resolve, 150))
+
+    expect(adapter.connectionState()).toBe('disconnected')
+    await expect(adapter.observe()).rejects.toThrow('尚未连接')
   })
 })
 
@@ -172,6 +191,43 @@ describe('ONI Game Adapter protocol without a running game', () => {
       result: { reply: '已创建挖掘任务' },
       timing: { bridgeRoundTripMs: expect.any(Number), gameExecutionMs: 7 },
     })
+  })
+
+  it('forwards absorb and spray to the C# Bridge with the exact current cursor cell', async () => {
+    const { adapter, sessionDir, state } = await fixture()
+
+    const executeWaterTool = async (requestId: string, capability: string, reply: string) => {
+      const execution = adapter.execute({
+        requestId,
+        gameId: 'oxygen-not-included',
+        capability,
+        arguments: {},
+        expectedRevision: 1,
+      })
+      const request = await until(async () => {
+        try {
+          const inbox = JSON.parse(await readFile(join(sessionDir, 'inbox.json'), 'utf8')) as {
+            events: Array<{ method: string, params: { callId?: string, name?: string, args?: { targetCell?: number } } }>
+          }
+          return inbox.events.find(event => event.method === 'tool.execute' && event.params.callId === requestId)
+        } catch { return undefined }
+      })
+      expect(request.params).toMatchObject({ callId: requestId, name: capability, args: { targetCell: 123 } })
+      await writeFile(join(sessionDir, 'outbox.json'), JSON.stringify({ events: [state, {
+        id: `result-${requestId}`,
+        method: 'tool.result',
+        params: { callId: requestId, success: true, reply, gameExecutionMs: 4 },
+      }] }))
+      await expect(execution).resolves.toMatchObject({
+        requestId,
+        ok: true,
+        result: { reply },
+        timing: { bridgeRoundTripMs: expect.any(Number), gameExecutionMs: 4 },
+      })
+    }
+
+    await executeWaterTool('water-absorb-1', 'oni_companion_absorb_water', '吸进了 200kg 水')
+    await executeWaterTool('water-spray-1', 'oni_companion_spray_water', '喷出了 200kg 水')
   })
 
   it('runs the same fake Bridge through the real WebSocket handshake and action wire', async () => {
