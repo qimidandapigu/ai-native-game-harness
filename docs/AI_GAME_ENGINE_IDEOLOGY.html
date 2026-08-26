@@ -703,11 +703,11 @@
   <main id="top">
     <section class="hero reveal" aria-labelledby="hero-title">
       <div>
-        <div class="eyebrow">Product doctrine · v6 · 2026-08-26</div>
+        <div class="eyebrow">Product doctrine · v8 · 2026-08-27</div>
         <h1 id="hero-title"><span class="gradient-text">AI-Native</span><br>Game Harness</h1>
         <p class="hero-copy">
           一套面向 <strong>AI 原生与 AI 连接型游戏</strong> 的可视化承载与编排系统：复用 DeepSeek Harness 的模型、Agent、工具、会话和插件能力，再补上游戏连接、安装、记忆、视觉、语音与安全边界。
-          当前源码已统一到一个仓库：DSH Session 是默认 Agent 主链，Game Harness Core 与 Adapter Protocol 承载游戏边界；诊断页已经能关联 Session、Tool、Action、语音分段耗时与重连，并导出脱敏 Trace。Game Pack 注册表、第三方 Adapter Starter 与协议体检也已落地；真实游戏最终验收、第三方可信启动与正式签名 Release 仍在推进。
+          当前源码已统一到一个仓库：DSH Session 是默认 Agent 主链，Game Harness Core 与 Adapter Protocol 承载游戏边界；诊断页已经能关联 Session、Tool、Action、语音分段耗时与重连，并导出脱敏 Trace。Game Pack 注册表、第三方 Adapter Starter 与协议体检也已落地；源码开发版与公开安装包严格区分，真实游戏最终验收、第三方可信启动与正式签名 Release 仍在推进。
         </p>
         <div class="actions">
           <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看新项目 ↗</a>
@@ -1025,6 +1025,14 @@
       <div class="state-law card">
         <strong>当前已实现</strong>
         <span><span class="mono">desktop:start</span> 与 <span class="mono">desktop:dsh</span> 启动内置 DSH 产品链；<span class="mono">game-learning-binding</span> 复用小汤圆唯一的 MemoryService 与 SkillService，不建立第二套 Agent 或数据库。Desktop 新增“自学习”页，分别显示当前存档记忆、已验证技能与失败尝试；真实存档的重启召回和技能重放仍需现场验收。</span>
+      </div>
+      <div class="state-law card">
+        <strong>公开发布边界</strong>
+        <span>截至 <span class="mono">2026-08-27</span>，主仓库还没有 GitHub Release；旧仓库继续托管 Harness Plugin <span class="mono">0.5.1</span> 和 ONI Adapter <span class="mono">0.1.3</span> 等历史稳定包。源码中的 <span class="mono">0.7.7 / 0.1.6 / Bridge 0.6.7</span> 仍是未发布开发版本，不能把本地压缩包当作公网下载入口。</span>
+      </div>
+      <div class="state-law card">
+        <strong>验证边界</strong>
+        <span><span class="mono">pnpm check</span> 已覆盖工作区构建、24 项集成测试和 18 项平台测试；DSH Product / Adapter 冒烟是额外的环境级验收，依赖完整 hoisted Web Runtime 或可用 headless Profile 与模型凭据。只有输出成功 JSON 或权威金币与 revision 才算通过；DSH ready 前缺少 <span class="mono">@deepseek-ai/*</span> 包属于 Runtime 装配问题，不能写成真实产品闭环已验收。</span>
       </div>
     </section>
 

@@ -205,7 +205,7 @@ pnpm check
 - 桌面产品会把动态 `adapterProtocolUrl` 注入 ONI Adapter；缺氧动作由 Adapter Protocol 进入 Harness Core 后再注册为 DSH Tools，不再绕过 Core 直接执行；
 - 桌面游戏版使用独立运行配置：星露谷和饥荒默认按住 `V` 语音；缺氧因游戏内 `V` 已占用，由 Mod 用 `Q` 发送 `voice.start` / `voice.stop`；通用插件源码默认键仍为 `F8`；
 - 流式 ASR 的中间转写和最终转写只在 Harness 内部送入 Agent，不再把玩家原话重复显示到游戏气泡；
-- 可在 Windows 本地构建 `.exe` 安装包，但尚未创建签名和正式 GitHub Release，因此 GitHub 暂无公开下载按钮。
+- 可在 Windows 本地构建 `.exe` 安装包，但主仓库尚未创建签名和正式 GitHub Release，因此 GitHub 暂无新版公开下载按钮；历史仓库目前仍承载 Harness Plugin `0.5.1` 和 ONI Adapter `0.1.3` 等旧版安装包。
 
 | 能力 | 当前状态 |
 | --- | --- |
@@ -225,6 +225,7 @@ pnpm check
 | 脱敏诊断、筛选与语音分段耗时 | 已实现；导出最近最多 500 条 Trace，不导出聊天正文、转写和隐藏思维 |
 | Game Pack 安装注册表 | 已实现目录校验、事务安装、替换、发现和版本安全卸载；暂不自动执行第三方入口 |
 | 第三方 Adapter Starter 与协议体检 | 已实现；可复制模板，并以 conformance report 接入 CI |
+| 公开安装包 | 仅旧仓库历史 Release；主仓库尚无 Release |
 | 首个真实游戏 Game Pack 的最终游戏内验收 | 尚未完成 |
 | GitHub Release 与自动升级 | 尚未完成 |
 
@@ -262,6 +263,8 @@ DSH Session API、官方 `sessionStats` 投影与 Desktop 薄 Bridge 冒烟：
 ```powershell
 pnpm smoke:dsh-product
 ```
+
+这两条命令属于环境级验收，不包含在 `pnpm check` 中：`smoke:dsh-adapter` 需要已经装好依赖并配置可用模型凭据的 headless Profile，`smoke:dsh-product` 需要完整、hoisted 的 DSH Web Runtime。只有命令输出权威金币/revision或成功 JSON 才算通过；出现 `ERR_MODULE_NOT_FOUND` 代表 Profile/Runtime 装配未完成，不能当作产品闭环已经验收。处理方式见[常见问题与排错](docs/xiaotangyuan/TROUBLESHOOTING.md)。
 
 产物写入 `distribution/desktop/`，安装后的应用和桌面快捷方式显示为 **AI Native Game Harness 游戏版**，并使用游戏手柄与 AI 核心组合图标。`pnpm desktop:start` / `pnpm desktop:dsh` 使用内置 DSH 产品链和 `integrations/xiaotangyuan/desktop.patch.yml`，把通用小汤圆插件与独立 ONI Adapter 一起装入发行 Runtime，并启用视觉、语音与媒体；`pnpm desktop:demo` 用于独立 Mock 测试，装配冒烟使用 `smoke.patch.yml` 和本地模拟模型。仓库开发命令需要 Node.js 和 pnpm，未来正式发布的 `.exe` 才面向无需开发环境的普通玩家。
 

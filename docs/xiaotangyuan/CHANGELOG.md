@@ -7,6 +7,7 @@
 - 桌面产品将 ONI Adapter 接入动态 Adapter Protocol Host；缺氧动作现在统一经过 `dsh-binding → Harness Core → Adapter Protocol`，同时保留旧独立 Profile 的直接工具兼容模式。
 - 增加无游戏生产接线测试：真实 Cordis ToolRuntime、Harness Core、WebSocket Host 和 ONI 假文件 Bridge 共同验证动态工具、requestId 与分段 Trace。
 - 桌面游戏状态区改为可注册展示层：未知 Adapter 默认显示受限额、敏感字段过滤的标准 observation；缺氧显示殖民地、复制人与光标摘要；Mock Game 保留专属地图。
+- 截至 `2026-08-27`，主仓库仍没有 GitHub Release；公开安装入口继续使用旧仓库的 Harness Plugin `0.5.1` 和 ONI Adapter `0.1.3`，不把本地构建产物写成已发布版本。
 - 游戏版 Gateway 默认端口统一为 `33145`，并增加跨桌面配置、星露谷、饥荒和缺氧 Adapter 的一致性测试。
 - `integration:xiaotangyuan` 现在安装小汤圆和 ONI Adapter，启动桌面同版本 DSH，以本地模拟多模态模型完成 Adapter、状态和对话冒烟闭环后自动清理。
 - 桌面发行 Runtime 内置独立 ONI Adapter；通用小汤圆插件与游戏专属 Adapter 的代码和 Bundle 边界保持分离。

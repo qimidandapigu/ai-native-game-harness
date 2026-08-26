@@ -108,6 +108,18 @@ XiaoTangYuan Companion
 
 Gateway 只绑定本机回环地址。若 `33145` 被占用，检查是否同时启动了另一份 AI Native Game Harness 游戏版。
 
+## DSH 冒烟启动前就提示 `ERR_MODULE_NOT_FOUND`
+
+`pnpm check` 验证工作区构建、协议、Core、Binding 和确定性测试，但不会替代 DSH Profile/Runtime 的安装验收。若 `pnpm smoke:dsh-product` 或 `pnpm smoke:dsh-adapter` 在启动 DSH 时提示缺少 `@deepseek-ai/dsh-client-ui-*`、`@deepseek-ai/dsh-agent-presets` 等包，说明当前隔离 Web Runtime 或本机 headless Profile 没有完成 hoisted 依赖装配，并不是 Adapter 已经进入游戏后返回的错误。
+
+判断标准：
+
+- `smoke:dsh-adapter` 必须最终报告权威金币 `1` 与 revision `2`；
+- `smoke:dsh-product` 必须输出包含 `"ok": true`、Session ID 和官方 `sessionStats` 的 JSON；
+- 仅 `pnpm check` 通过，不能写成上述两条环境冒烟已经通过。
+
+桌面发行 Runtime 使用 `pnpm desktop:prepare` 创建完整 hoisted 依赖树。若清理环境后单独运行冒烟仍在 DSH ready 之前缺包，应先修复对应 smoke 脚本的 Profile 初始化/Runtime 装配，再继续真实游戏验收；不要通过手工复制零散包掩盖发行问题。
+
 ## 饥荒启动时报 `jingling.zip` 缺失
 
 典型错误是：

@@ -98,3 +98,5 @@ pnpm smoke:dsh-product
 pnpm mock:start
 pnpm desktop:dsh
 ```
+
+`pnpm check` 覆盖工作区和确定性平台测试；`smoke:dsh-product`、`smoke:dsh-adapter` 属于额外的环境级验收，分别依赖完整 DSH Web Runtime，以及装好依赖、配置可用模型凭据的 headless Profile。冒烟必须看到命令定义的成功结果才算通过；DSH ready 前出现 `ERR_MODULE_NOT_FOUND` 应按 Profile/Runtime 装配问题处理，不能用 `pnpm check` 的结果代替。
