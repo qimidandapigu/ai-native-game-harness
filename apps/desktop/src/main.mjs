@@ -2,8 +2,12 @@ import { createServer } from 'node:net'
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, dialog, shell, utilityProcess } from 'electron'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from 'electron'
+import { GamePackRegistry, readGamePackManifest } from '@ai-native-game-harness/game-pack'
+import { PlatformRuntime } from './platform-runtime.mjs'
+import { DshProductRuntime } from './dsh-product-runtime.mjs'
+import { buildDiagnosticBundle, diagnosticFilename } from './diagnostics.mjs'
 
 const require = createRequire(import.meta.url)
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -12,6 +16,29 @@ let mainWindow
 let dshProcess
 let dshExitCode = null
 let quitting = false
+let shutdownComplete = false
+let platformRuntime
+let platformUnsubscribe
+let dshProductRuntime
+let dshProductUnsubscribe
+let lastDshCoreSnapshot
+let lastDshLearningSnapshot
+const pendingDshDiagnostics = []
+let demoAdapterProcess
+let gamePackRegistry
+
+function packs() {
+  gamePackRegistry ??= new GamePackRegistry(join(app.getPath('userData'), 'game-packs'))
+  return gamePackRegistry
+}
+
+function productGamePack(pack) {
+  return {
+    manifest: pack.manifest,
+    installedAt: pack.installedAt,
+    health: pack.health,
+  }
+}
 
 function sendStatus(message, detail = '') {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -54,6 +81,15 @@ function runtimePaths() {
     patchPath,
     pluginPath: join(pluginRoot, pluginArchive),
     pluginVersion: pluginArchive.replace(/^.*-game-/, '').replace(/\.tgz$/, ''),
+    corePluginPath: packaged
+      ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-core', 'dist', 'index.js')
+      : join(repoRoot, 'plugins', 'game-core', 'dist', 'index.js'),
+    transportPluginPath: packaged
+      ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-transport', 'dist', 'index.js')
+      : join(repoRoot, 'plugins', 'game-transport', 'dist', 'index.js'),
+    learningPluginPath: packaged
+      ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-learning-binding', 'dist', 'index.js')
+      : join(repoRoot, 'plugins', 'game-learning-binding', 'dist', 'index.js'),
     oniPath: oniArchive ? join(pluginRoot, oniArchive) : undefined,
     oniVersion,
   }
@@ -155,17 +191,63 @@ async function waitForWeb(url, child, timeoutMs = 60_000) {
   throw new Error('等待 DSH 界面启动超时')
 }
 
+function writeProductPatch(paths, adapterPort) {
+  for (const pluginPath of [paths.corePluginPath, paths.transportPluginPath, paths.learningPluginPath]) {
+    if (!existsSync(pluginPath)) throw new Error(`产品 Runtime 插件尚未构建：${pluginPath}`)
+  }
+  const stateRoot = join(app.getPath('userData'), 'runtime-state')
+  const productPatchPath = join(stateRoot, 'desktop-product.patch.yml')
+  mkdirSync(stateRoot, { recursive: true })
+  const coreUrl = pathToFileURL(paths.corePluginPath).href
+  const transportUrl = pathToFileURL(paths.transportPluginPath).href
+  const learningUrl = pathToFileURL(paths.learningPluginPath).href
+  writeFileSync(productPatchPath, `- id: xiaotangyuan-oni-adapter\n  config:\n    adapterProtocolUrl: 'ws://127.0.0.1:${adapterPort}/adapter'\n- insert:\n    - id: ai-native-game-core-product\n      name: '${coreUrl}'\n      config:\n        productSnapshotOutput: true\n    - id: ai-native-game-transport-product\n      name: '${transportUrl}'\n      config:\n        enabled: true\n        host: 127.0.0.1\n        port: ${adapterPort}\n        path: /adapter\n        requestTimeoutMs: 10000\n    - id: ai-native-game-learning-product\n      name: '${learningUrl}'\n`)
+  return productPatchPath
+}
+
+function collectProductRecords(data) {
+  const snapshotPrefix = 'AI_GAME_HARNESS_SNAPSHOT '
+  const learningPrefix = 'AI_GAME_HARNESS_LEARNING '
+  const diagnosticPrefix = 'AI_GAME_HARNESS_DIAGNOSTIC '
+  collectProductRecords.buffer = `${collectProductRecords.buffer ?? ''}${data.toString()}`
+  const lines = collectProductRecords.buffer.split(/\r?\n/)
+  collectProductRecords.buffer = lines.pop() ?? ''
+  for (const line of lines) {
+    try {
+      if (line.startsWith(snapshotPrefix)) {
+        lastDshCoreSnapshot = JSON.parse(line.slice(snapshotPrefix.length))
+        dshProductRuntime?.attachCoreSnapshot(lastDshCoreSnapshot)
+      } else if (line.startsWith(learningPrefix)) {
+        lastDshLearningSnapshot = JSON.parse(line.slice(learningPrefix.length))
+        dshProductRuntime?.attachLearningSnapshot(lastDshLearningSnapshot)
+      } else if (line.startsWith(diagnosticPrefix)) {
+        const record = JSON.parse(line.slice(diagnosticPrefix.length))
+        if (!dshProductRuntime?.attachDiagnosticRecord(record)) {
+          pendingDshDiagnostics.push(record)
+          if (pendingDshDiagnostics.length > 500) pendingDshDiagnostics.shift()
+        }
+      }
+    } catch (error) {
+      appendRuntimeLog(`[desktop] 无法解析产品记录：${error instanceof Error ? error.message : String(error)}\n`)
+    }
+  }
+}
+
 async function startRuntime() {
   const paths = runtimePaths()
   await ensurePlugin(paths)
   const port = await getFreePort()
+  const adapterPort = await getFreePort()
   const url = `http://127.0.0.1:${port}`
+  const adapterUrl = `ws://127.0.0.1:${adapterPort}/adapter`
+  const productPatchPath = writeProductPatch(paths, adapterPort)
   sendStatus('正在启动 AI Runtime', url)
 
   dshExitCode = null
   dshProcess = forkDsh([
     'web',
     '--patch', paths.patchPath,
+    '--patch', productPatchPath,
     '--no-open',
     '--host', '127.0.0.1',
     '--port', String(port),
@@ -177,7 +259,10 @@ async function startRuntime() {
     recentLog = `${recentLog}${text}`.slice(-12_000)
     appendRuntimeLog(text)
   }
-  dshProcess.stdout?.on('data', collect)
+  dshProcess.stdout?.on('data', (data) => {
+    collect(data)
+    collectProductRecords(data)
+  })
   dshProcess.stderr?.on('data', collect)
   dshProcess.once('exit', (code) => {
     dshExitCode = code
@@ -188,10 +273,150 @@ async function startRuntime() {
   })
 
   await waitForWeb(url, dshProcess)
-  await mainWindow.loadURL(url)
+  dshProductRuntime = new DshProductRuntime({
+    baseUrl: url,
+    cwd: app.isPackaged ? app.getPath('userData') : repoRoot,
+    adapterUrl,
+  })
+  if (lastDshCoreSnapshot) dshProductRuntime.attachCoreSnapshot(lastDshCoreSnapshot)
+  if (lastDshLearningSnapshot) dshProductRuntime.attachLearningSnapshot(lastDshLearningSnapshot)
+  await dshProductRuntime.start()
+  for (const record of pendingDshDiagnostics.splice(0)) dshProductRuntime.attachDiagnosticRecord(record)
+  dshProductUnsubscribe = dshProductRuntime.subscribe((snapshot) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('platform-snapshot', snapshot)
+  })
+  await mainWindow.loadFile(join(desktopRoot, 'src', 'product.html'))
+}
+
+function validateChatInput(input) {
+  if (!input || typeof input !== 'object') throw new Error('对话请求格式无效。')
+  const message = typeof input.message === 'string' ? input.message.trim() : ''
+  if (!message) throw new Error('请输入消息。')
+  if (message.length > 8_000) throw new Error('消息过长，最多 8000 个字符。')
+  return {
+    message,
+    sessionId: typeof input.sessionId === 'string' && input.sessionId ? input.sessionId.slice(0, 200) : 'desktop',
+    gameId: typeof input.gameId === 'string' && input.gameId ? input.gameId.slice(0, 200) : undefined,
+  }
+}
+
+function requireProductRuntime() {
+  const runtime = dshProductRuntime ?? platformRuntime
+  if (!runtime) throw new Error('Product Runtime 尚未启动。')
+  return runtime
+}
+
+function registerPlatformIpc() {
+  ipcMain.handle('platform:info', () => requireProductRuntime().info())
+  ipcMain.handle('platform:snapshot', () => requireProductRuntime().snapshot())
+  ipcMain.handle('platform:chat', (ipcEvent, input) => {
+    const requestId = typeof input?.requestId === 'string' ? input.requestId.slice(0, 200) : ''
+    return requireProductRuntime().chat(validateChatInput(input), (event) => {
+      if (!ipcEvent.sender.isDestroyed()) ipcEvent.sender.send('platform-chat-event', { requestId, event })
+    })
+  })
+  ipcMain.handle('platform:reset', (_event, input) => {
+    const gameId = typeof input?.gameId === 'string' && input.gameId ? input.gameId.slice(0, 200) : undefined
+    return requireProductRuntime().reset(gameId)
+  })
+  ipcMain.handle('platform:export-diagnostics', async () => {
+    const gamePacks = (await packs().list()).map(productGamePack)
+    const bundle = buildDiagnosticBundle(requireProductRuntime().snapshot(), {
+      appVersion: app.getVersion(),
+      platform: process.platform,
+      arch: process.arch,
+      gamePacks,
+    })
+    const selected = await dialog.showSaveDialog(mainWindow, {
+      title: '导出脱敏诊断记录',
+      defaultPath: diagnosticFilename(),
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    })
+    if (selected.canceled || !selected.filePath) return { canceled: true }
+    writeFileSync(selected.filePath, `${JSON.stringify(bundle, null, 2)}\n`, 'utf8')
+    return { canceled: false, filePath: selected.filePath }
+  })
+  ipcMain.handle('platform:list-game-packs', async () => (await packs().list()).map(productGamePack))
+  ipcMain.handle('platform:install-game-pack', async () => {
+    const selected = await dialog.showOpenDialog(mainWindow, {
+      title: '选择构建完成的 Game Pack 文件夹',
+      properties: ['openDirectory'],
+    })
+    const source = selected.filePaths[0]
+    if (selected.canceled || !source) return { canceled: true, gamePacks: (await packs().list()).map(productGamePack) }
+    const manifest = await readGamePackManifest(source)
+    const existing = await packs().get(manifest.id)
+    let replace = false
+    if (existing) {
+      const confirmation = await dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        title: '替换已安装的 Game Pack',
+        message: `${manifest.displayName} 已安装`,
+        detail: `当前版本 ${existing.manifest.version}，所选版本 ${manifest.version}。替换操作只影响 Harness 的 Game Pack 副本。`,
+        buttons: ['取消', '替换'],
+        defaultId: 0,
+        cancelId: 0,
+      })
+      if (confirmation.response !== 1) return { canceled: true, gamePacks: (await packs().list()).map(productGamePack) }
+      replace = true
+    }
+    await packs().install(source, { replace })
+    return { canceled: false, gamePacks: (await packs().list()).map(productGamePack) }
+  })
+  ipcMain.handle('platform:uninstall-game-pack', async (_event, input) => {
+    const id = typeof input?.id === 'string' ? input.id.slice(0, 100) : ''
+    const version = typeof input?.version === 'string' ? input.version.slice(0, 100) : undefined
+    const installed = await packs().get(id)
+    if (!installed) return { removed: false, gamePacks: (await packs().list()).map(productGamePack) }
+    const confirmation = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      title: '卸载 Game Pack',
+      message: `卸载 ${installed.manifest.displayName}？`,
+      detail: '这会删除 Harness 管理的 Game Pack 副本，不会删除游戏本体或外部源文件夹。',
+      buttons: ['取消', '卸载'],
+      defaultId: 0,
+      cancelId: 0,
+    })
+    if (confirmation.response !== 1) return { removed: false, gamePacks: (await packs().list()).map(productGamePack) }
+    const removed = await packs().uninstall(id, version)
+    return { removed, gamePacks: (await packs().list()).map(productGamePack) }
+  })
+}
+
+function startDemoAdapter(adapterUrl) {
+  const clientPath = join(repoRoot, 'examples', 'mock-game', 'dist', 'client.js')
+  if (!existsSync(clientPath)) throw new Error(`Mock Adapter 尚未构建：${clientPath}`)
+  demoAdapterProcess = utilityProcess.fork(clientPath, [], {
+    cwd: repoRoot,
+    env: { ...process.env, MOCK_ADAPTER_URL: adapterUrl },
+    serviceName: 'AI Native Game Harness Mock Adapter',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  const collect = (data) => appendRuntimeLog(`[mock-adapter] ${data.toString()}`)
+  demoAdapterProcess.stdout?.on('data', collect)
+  demoAdapterProcess.stderr?.on('data', collect)
+}
+
+async function startPlatformRuntime() {
+  const demo = process.env.AI_GAME_HARNESS_DEMO === '1'
+  const port = Number.parseInt(process.env.AI_GAME_HARNESS_ADAPTER_PORT ?? '43145', 10)
+  let createAgent
+  if (demo) {
+    const { MockAgentDriver } = await import('@ai-native-game-harness/mock-game/agent')
+    createAgent = () => new MockAgentDriver()
+  }
+  platformRuntime = new PlatformRuntime({ port, createAgent })
+  const info = await platformRuntime.start()
+  platformUnsubscribe = platformRuntime.subscribe((snapshot) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('platform-snapshot', snapshot)
+  })
+  if (demo) startDemoAdapter(info.adapterUrl)
+  await mainWindow.loadFile(join(desktopRoot, 'src', 'product.html'))
 }
 
 function createWindow() {
+  const standaloneRuntime = process.env.AI_GAME_HARNESS_DEMO === '1' || process.env.AI_GAME_HARNESS_STANDALONE === '1'
+  const dshRuntime = !standaloneRuntime
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -213,20 +438,36 @@ function createWindow() {
     void shell.openExternal(url)
     return { action: 'deny' }
   })
-  void mainWindow.loadFile(join(desktopRoot, 'src', 'status.html')).then(() => startRuntime()).catch(async (error) => {
+  const start = dshRuntime
+    ? mainWindow.loadFile(join(desktopRoot, 'src', 'status.html')).then(() => startRuntime())
+    : startPlatformRuntime()
+  void start.catch(async (error) => {
     sendStatus('启动失败', error instanceof Error ? error.message : String(error))
     await dialog.showMessageBox(mainWindow, {
       type: 'error',
       title: 'AI Native Game Harness 游戏版启动失败',
-      message: '内置 DSH Runtime 未能启动。',
+      message: dshRuntime ? '内置 DSH Runtime 未能启动。' : 'Standalone 测试 Runtime 未能启动。',
       detail: error instanceof Error ? error.message : String(error),
     })
   })
 }
 
+registerPlatformIpc()
 app.whenReady().then(createWindow)
 app.on('window-all-closed', () => app.quit())
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
+  if (shutdownComplete) return
+  event.preventDefault()
+  if (quitting) return
   quitting = true
-  if (dshProcess?.pid) dshProcess.kill()
+  void (async () => {
+    if (demoAdapterProcess?.pid) demoAdapterProcess.kill()
+    platformUnsubscribe?.()
+    await platformRuntime?.close()
+    dshProductUnsubscribe?.()
+    await dshProductRuntime?.close()
+    if (dshProcess?.pid) dshProcess.kill()
+    shutdownComplete = true
+    app.quit()
+  })()
 })

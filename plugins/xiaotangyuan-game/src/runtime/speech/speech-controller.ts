@@ -6,11 +6,18 @@ import { CapabilityRegistry } from '../capabilities.js'
 import type { MediaHostEvent } from '../media/windows-media-host.js'
 import { WindowsMediaHost } from '../media/windows-media-host.js'
 import type { SpeechRecognitionProvider, SpeechSynthesisProvider, StreamingRecognitionSession } from '../providers/contracts.js'
+import { publishProductDiagnostic } from '../diagnostics.js'
 
 export interface VoiceInteractionHandler {
   recordingStarted(processId: number): void
   recordingStopped(processId: number): void
-  respond(processId: number, transcript: string, signal: AbortSignal): Promise<{ reply: string, speechPlayed: boolean }>
+  respond(processId: number, transcript: string, signal: AbortSignal): Promise<{
+    reply: string
+    speechPlayed: boolean
+    sessionId: string
+    interactionId: string
+    gameId: string
+  }>
   failed(processId: number, message: string): void
 }
 
@@ -244,6 +251,7 @@ export class SpeechController {
     const controller = live?.controller ?? new AbortController()
     this.interactions.set(event.processId, controller)
     const timeout = setTimeout(() => controller.abort(new Error('语音交互超时')), 120_000)
+    let diagnosticIdentity: { sessionId: string, interactionId: string, gameId: string } | undefined
     try {
       const provider = await this.selectRecognitionProvider()
       if (provider === undefined) throw new Error('没有可用的语音识别能力，请先在 DSH 中绑定相应凭据')
@@ -268,14 +276,42 @@ export class SpeechController {
       }
       const asrFinished = performance.now()
       const response = await this.handler.respond(event.processId, transcript, controller.signal)
+      diagnosticIdentity = response
       const agentFinished = performance.now()
       if (!response.speechPlayed) await this.speak(response.reply, controller.signal)
       const ttsFinished = performance.now()
       this.ctx.logger.info(
         `xiaotangyuan voice latency processId=${event.processId} asrMs=${Math.round(asrFinished - asrStarted)} agentMs=${Math.round(agentFinished - asrFinished)} ttsMs=${Math.round(ttsFinished - agentFinished)} totalMs=${Math.round(ttsFinished - interactionStarted)}`,
       )
+      publishProductDiagnostic({
+        kind: 'voice.latency',
+        sessionId: response.sessionId,
+        gameId: response.gameId,
+        interactionId: response.interactionId,
+        detail: {
+          source: 'voice',
+          processId: event.processId,
+          asrMs: Math.round(asrFinished - asrStarted),
+          agentMs: Math.round(agentFinished - asrFinished),
+          ttsMs: Math.round(ttsFinished - agentFinished),
+          totalMs: Math.round(ttsFinished - interactionStarted),
+          speechStreamed: response.speechPlayed,
+        },
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      publishProductDiagnostic({
+        kind: 'voice.failed',
+        ...(diagnosticIdentity ?? {}),
+        detail: {
+          source: 'voice',
+          processId: event.processId,
+          stage: diagnosticIdentity === undefined ? 'asr-or-agent' : 'tts',
+          errorName: error instanceof Error ? error.name : 'Error',
+          timeout: /timeout|超时/i.test(message),
+          elapsedMs: Math.round(performance.now() - interactionStarted),
+        },
+      })
       this.handler.failed(event.processId, message)
     } finally {
       clearTimeout(timeout)

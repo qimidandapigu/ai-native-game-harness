@@ -1,7 +1,7 @@
 # Oxygen Not Included Adapter
 
 这是可独立安装、选择性加载的 DeepSeek Harness 插件，不是通用 Harness
-核心的内置模块。当前源码版本为 `0.1.5`，只有选择《缺氧》的玩家需要下载它。
+核心的内置模块。当前源码版本为 `0.1.6`，只有选择《缺氧》的玩家需要下载它。
 
 它负责：
 
@@ -21,6 +21,8 @@
 
 Adapter 负责把游戏进程注册给 Gateway。Harness `0.7.0` 随后把玩家文字和游戏截图一次性交给支持图片输入的 Agent，不再执行“视觉描述 → 对话模型”的第二次模型调用。
 
+Windows Game Edition 会动态提供 `adapterProtocolUrl`。此时 ONI 动作工具不再由本插件直接注册，而是经过 `Adapter Protocol → Harness Core → dsh-binding` 统一注册和记录 Trace。没有设置该地址的独立旧 Profile 仍保留直接工具，用于向后兼容。
+
 安装已发布 Adapter：
 
 ```powershell
@@ -30,5 +32,5 @@ dsh plugin --profile web add "https://github.com/qimidandapigu/dsh-xiaotangyuan-
 打包独立 Adapter：
 
 ```powershell
-pnpm --filter @qimidandapigu/oni-adapter pack --pack-destination .release/oni
+pnpm --config.node-linker=hoisted --filter @qimidandapigu/oni-adapter pack --pack-destination .release/oni
 ```

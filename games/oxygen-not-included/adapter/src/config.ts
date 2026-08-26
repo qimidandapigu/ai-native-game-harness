@@ -4,6 +4,8 @@ export interface Config {
   host?: string
   port?: number
   bridgeRoot?: string
+  /** Harness Adapter Protocol 1.0 host. When set, game actions are registered by Harness Core instead of this plugin. */
+  adapterProtocolUrl?: string
   installer?: Partial<OniInstallerConfig>
 }
 
@@ -18,6 +20,7 @@ export interface ResolvedConfig {
   host: string
   port: number
   bridgeRoot: string
+  adapterProtocolUrl?: string
   installer: OniInstallerConfig
 }
 
@@ -31,6 +34,17 @@ export function resolveConfig(config: Config = {}): ResolvedConfig {
   if (!isLoopback(host)) throw new Error('ONI Adapter only permits loopback Gateway hosts')
   if (!Number.isInteger(port) || port < 1024 || port > 65535) {
     throw new Error('ONI Adapter port must be an integer between 1024 and 65535')
+  }
+
+  const rawAdapterProtocolUrl = config.adapterProtocolUrl?.trim()
+  let adapterProtocolUrl: string | undefined
+  if (rawAdapterProtocolUrl) {
+    const url = new URL(rawAdapterProtocolUrl)
+    if ((url.protocol !== 'ws:' && url.protocol !== 'wss:') || !isLoopback(url.hostname)) {
+      throw new Error('ONI adapterProtocolUrl must use WebSocket on a loopback host')
+    }
+    if (url.username || url.password) throw new Error('ONI adapterProtocolUrl must not contain credentials')
+    adapterProtocolUrl = url.toString()
   }
 
   const manifestUrl = config.installer?.manifestUrl?.trim()
@@ -59,6 +73,7 @@ export function resolveConfig(config: Config = {}): ResolvedConfig {
     port,
     bridgeRoot: config.bridgeRoot?.trim()
       || join(process.env.LOCALAPPDATA ?? process.cwd(), 'XiaoTangYuan', 'oni-bridge'),
+    ...(adapterProtocolUrl === undefined ? {} : { adapterProtocolUrl }),
     installer: {
       manifestUrl,
       ...(archivePath === undefined

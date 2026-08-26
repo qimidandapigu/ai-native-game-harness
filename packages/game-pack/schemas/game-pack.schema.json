@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-native-game-harness.dev/schemas/game-pack.schema.json",
+  "title": "AI Native Game Harness Game Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "version", "displayName", "adapter", "content"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$" },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$" },
+    "displayName": { "type": "string", "minLength": 1 },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "entry", "protocolVersion"],
+      "properties": {
+        "id": { "type": "string" },
+        "entry": { "type": "string", "minLength": 1 },
+        "protocolVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "story": { "type": "string" },
+        "characters": { "type": "string" },
+        "gameplay": { "type": "string" },
+        "localization": { "type": "string" }
+      }
+    },
+    "assets": { "type": "array", "items": { "type": "string" } },
+    "permissions": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+    "optionalBindings": { "type": "array", "items": { "type": "string" } }
+  }
+}

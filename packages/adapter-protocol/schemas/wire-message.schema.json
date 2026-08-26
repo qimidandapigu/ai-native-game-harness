@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-native-game-harness.dev/schemas/wire-message.schema.json",
+  "title": "AI Native Game Harness Adapter JSON-RPC message",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "minLength": 1 },
+        "params": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["jsonrpc", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "method": { "type": "string", "minLength": 1 },
+        "params": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["jsonrpc", "id", "result"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "type": "string", "minLength": 1 },
+        "result": {}
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["jsonrpc", "id", "error"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "type": ["string", "null"] },
+        "error": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": {
+            "code": { "type": "integer" },
+            "message": { "type": "string" },
+            "data": {}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

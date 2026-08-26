@@ -142,16 +142,29 @@ namespace DoubaoAI.ONI.Harness
             string name = (string)parameters?["name"];
             JObject arguments = parameters?["args"] as JObject ?? new JObject();
             if (string.IsNullOrWhiteSpace(callId)) return;
+            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 PlayerCommandExecutionResult result = ToolExecution == null
                     ? new PlayerCommandExecutionResult { Success = false, Reply = "缺氧 Bridge 没有注册工具执行器。" }
                     : ToolExecution.Invoke(name, arguments);
-                Enqueue("tool.result", new JObject { ["callId"] = callId, ["success"] = result != null && result.Success, ["reply"] = result == null ? "工具没有返回结果。" : result.Reply });
+                stopwatch.Stop();
+                Enqueue("tool.result", new JObject {
+                    ["callId"] = callId,
+                    ["success"] = result != null && result.Success,
+                    ["reply"] = result == null ? "工具没有返回结果。" : result.Reply,
+                    ["gameExecutionMs"] = Math.Max(0L, (long)Math.Round(stopwatch.Elapsed.TotalMilliseconds))
+                });
             }
             catch (Exception ex)
             {
-                Enqueue("tool.result", new JObject { ["callId"] = callId, ["success"] = false, ["reply"] = "执行失败：" + ex.Message });
+                stopwatch.Stop();
+                Enqueue("tool.result", new JObject {
+                    ["callId"] = callId,
+                    ["success"] = false,
+                    ["reply"] = "执行失败：" + ex.Message,
+                    ["gameExecutionMs"] = Math.Max(0L, (long)Math.Round(stopwatch.Elapsed.TotalMilliseconds))
+                });
             }
         }
 

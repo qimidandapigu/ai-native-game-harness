@@ -1,0 +1,23 @@
+{
+  "name": "@ai-native-game-harness/dsh-binding",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Default product binding from DSH Agent sessions and Tools to Harness Core.",
+  "type": "module",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ai-native-game-harness/adapter-protocol": "workspace:*",
+    "@ai-native-game-harness/harness-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.1.1-rc.2 <0.2.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-tools": "0.1.1-rc.2"
+  }
+}

@@ -21,9 +21,9 @@ The installed application should update only to a signed AI Native Game Harness 
 
 ## Current compatibility evidence
 
-- Pinned release baseline: `0.1.0-rc.6`.
-- Registry candidate checked on 2026-08-23: `0.1.1-rc.2`.
+- Pinned release baseline: `0.1.1-rc.2`.
+- Previous release baseline: `0.1.0-rc.6`.
 - XiaoTangYuan Harness Plugin `0.7.7` compiles and starts its WebSocket Gateway under both versions with optional media, memory and feedback features disabled for the smoke run.
-- The plugin still declares the `0.1.0-rc.6` peer family. Before changing the product pin, update those peer declarations together and repeat the full workspace plus real-game matrix.
+- The in-repository plugin peer and development dependencies now use the `0.1.1-rc.2` family. The full workspace and DSH Agent + Mock Game matrix pass; real-game smoke tests remain required before a desktop release.
 
 This evidence means the candidate is upgradeable; it does not make npm latest an automatic production update.

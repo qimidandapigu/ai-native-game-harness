@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
+import { publishProductDiagnostic } from '../diagnostics.js'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@deepseek-ai/dsh-agent'
 import { createUserMessage, type ContentBlock } from '@deepseek-ai/dsh-llm'
@@ -78,6 +79,10 @@ export function formatGamePrompt(
   ].filter((item): item is string => item !== undefined).join('\n\n')
 }
 
+/**
+ * Game-facing conversation coordinator over a real DSH AgentHandle.
+ * It does not own Session persistence, replay, model routing, or Tool logs.
+ */
 export class GameAgentSession {
   private handle?: AgentHandle
   private selection?: ModelSelection
@@ -144,7 +149,7 @@ export class GameAgentSession {
     interactionId: string,
     source: InteractionSource | 'compose',
     longTermMemory?: string,
-  ): Promise<{ reply: string, sessionId: string, firstTextMs?: number, modelMs: number }> {
+  ): Promise<{ reply: string, sessionId: string, firstTextMs?: number, agentWaitMs: number }> {
     const firstSeq = handle.agent.session.seq
     const sessionId = String(handle.agent.session.id)
     if (this.activeStreams.has(sessionId)) throw new Error('当前游戏会话仍在处理上一条请求')
@@ -178,7 +183,7 @@ export class GameAgentSession {
         ...(accumulator.firstTextElapsedMs() === undefined
           ? {}
           : { firstTextMs: accumulator.firstTextElapsedMs() }),
-        modelMs: performance.now() - modelStarted,
+        agentWaitMs: performance.now() - modelStarted,
       }
     } finally {
       accumulator.close()
@@ -203,8 +208,26 @@ export class GameAgentSession {
       const result = await this.run(handle, request, input.image, mode, interactionId, source, longTermMemory)
       const firstText = result.firstTextMs === undefined ? 'none' : Math.round(result.firstTextMs)
       this.ctx.logger.info(
-        `xiaotangyuan latency interaction=${interactionId} game=${this.adapter?.gameId ?? 'unknown'} source=${source} model=${input.selection.provider}/${input.selection.model} selectionMs=${Math.round(input.timing.modelSelectionMs)} captureMs=${Math.round(input.timing.captureMs)} attachmentMs=${Math.round(input.timing.attachmentMs)} agentReadyMs=${Math.round(agentReady - prepared)} firstTextMs=${firstText} modelMs=${Math.round(result.modelMs)} totalMs=${Math.round(performance.now() - started)}`,
+        `xiaotangyuan latency interaction=${interactionId} game=${this.adapter?.gameId ?? 'unknown'} source=${source} model=${input.selection.provider}/${input.selection.model} selectionMs=${Math.round(input.timing.modelSelectionMs)} captureMs=${Math.round(input.timing.captureMs)} attachmentMs=${Math.round(input.timing.attachmentMs)} agentReadyMs=${Math.round(agentReady - prepared)} firstTextMs=${firstText} agentWaitMs=${Math.round(result.agentWaitMs)} totalMs=${Math.round(performance.now() - started)}`,
       )
+      publishProductDiagnostic({
+        kind: 'game-agent.latency',
+        sessionId: result.sessionId,
+        gameId: this.adapter?.gameId ?? 'unknown',
+        interactionId,
+        detail: {
+          source,
+          provider: input.selection.provider,
+          model: input.selection.model,
+          modelSelectionMs: Math.round(input.timing.modelSelectionMs),
+          captureMs: Math.round(input.timing.captureMs),
+          attachmentMs: Math.round(input.timing.attachmentMs),
+          agentReadyMs: Math.round(agentReady - prepared),
+          ...(result.firstTextMs === undefined ? {} : { firstTextMs: Math.round(result.firstTextMs) }),
+          agentWaitMs: Math.round(result.agentWaitMs),
+          totalMs: Math.round(performance.now() - started),
+        },
+      })
       if (mode === 'normal') {
         this.memory?.scheduleLearn(this.memorySessionKey, this.adapter, request, result.reply, interactionId, input.selection)
       }

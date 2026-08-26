@@ -1,0 +1,9 @@
+{
+  "characters": [
+    {
+      "id": "companion",
+      "displayName": "Companion",
+      "role": "AI game companion"
+    }
+  ]
+}

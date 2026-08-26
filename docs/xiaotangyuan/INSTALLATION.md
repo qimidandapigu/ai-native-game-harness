@@ -15,7 +15,7 @@
 | TrinketTinker | 安装器固定为 `1.9.0` |
 | 语音媒体 Host | Windows x64 |
 | 饥荒联机版 Mod | 源码 `0.2.23`；公开清单仍以实际 Release 为准 |
-| 缺氧 Adapter | `0.1.5` |
+| 缺氧 Adapter | `0.1.6` |
 | 缺氧 C# Bridge | 源码 `0.6.7`；公开版本仍以实际 Release 为准 |
 
 文字对话和游戏适配器不应依赖具体模型厂商。当前 `0.7.7` 源码中的语音 Provider 实现是火山引擎；游戏会话由 DSH 中支持图片输入的模型直接接收玩家文字、截图和统一结构化 Context 并回答，不再串联第二个对话模型。
@@ -124,7 +124,7 @@ dont_starve_mod_install
 dsh plugin --profile web add "https://github.com/qimidandapigu/dsh-xiaotangyuan-game/releases/download/oni-v0.6.1/qimidandapigu-oni-adapter-0.1.3.tgz"
 ```
 
-上面的命令是当前已经公开的旧版安装包。仓库里的 ONI Adapter 源码已经是 `0.1.5`，但在新的 GitHub Release 真正发布前，不把本地构建产物当作公开版本。
+上面的命令是当前已经公开的旧版安装包。仓库里的 ONI Adapter 源码已经是 `0.1.6`，但在新的 GitHub Release 真正发布前，不把本地构建产物当作公开版本。
 
 重启 Harness、刷新页面并新建对话，然后发送：
 

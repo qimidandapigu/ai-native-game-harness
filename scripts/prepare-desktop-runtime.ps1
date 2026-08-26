@@ -65,8 +65,46 @@ try {
   Pop-Location
 }
 
+$runtimeModules = Join-Path $runtimeRoot 'node_modules'
+$runtimeScopeRoot = Join-Path $runtimeModules '@ai-native-game-harness'
+New-Item -ItemType Directory -Force -Path $runtimeScopeRoot | Out-Null
+$runtimePackages = @(
+  @{ Name = 'adapter-protocol'; Source = (Join-Path $repoRoot 'packages/adapter-protocol') },
+  @{ Name = 'adapter-websocket'; Source = (Join-Path $repoRoot 'packages/adapter-websocket') },
+  @{ Name = 'harness-core'; Source = (Join-Path $repoRoot 'packages/harness-core') },
+  @{ Name = 'dsh-binding'; Source = (Join-Path $repoRoot 'packages/dsh-binding') },
+  @{ Name = 'bridge-contract'; Source = (Join-Path $repoRoot 'contracts/bridge-v1') },
+  @{ Name = 'game-core'; Source = (Join-Path $repoRoot 'plugins/game-core') },
+  @{ Name = 'game-transport'; Source = (Join-Path $repoRoot 'plugins/game-transport') },
+  @{ Name = 'game-learning-binding'; Source = (Join-Path $repoRoot 'plugins/game-learning-binding') }
+)
+foreach ($runtimePackageEntry in $runtimePackages) {
+  $runtimePackageTarget = Join-Path $runtimeScopeRoot $runtimePackageEntry.Name
+  New-Item -ItemType Directory -Force -Path $runtimePackageTarget | Out-Null
+  Copy-Item -LiteralPath (Join-Path $runtimePackageEntry.Source 'package.json') -Destination $runtimePackageTarget -Force
+  Copy-Item -LiteralPath (Join-Path $runtimePackageEntry.Source 'dist') -Destination $runtimePackageTarget -Recurse -Force
+}
+
 New-Item -ItemType Directory -Force -Path $appRoot | Out-Null
 Copy-Item -LiteralPath $sourceRoot -Destination $appRoot -Recurse -Force
+
+$appModules = Join-Path $appRoot 'node_modules'
+$scopeRoot = Join-Path $appModules '@ai-native-game-harness'
+New-Item -ItemType Directory -Force -Path $scopeRoot | Out-Null
+
+foreach ($packageName in @('adapter-protocol', 'adapter-websocket', 'harness-core', 'game-pack')) {
+  $packageRoot = Join-Path $repoRoot "packages/$packageName"
+  $packageTarget = Join-Path $scopeRoot $packageName
+  New-Item -ItemType Directory -Force -Path $packageTarget | Out-Null
+  Copy-Item -LiteralPath (Join-Path $packageRoot 'package.json') -Destination $packageTarget -Force
+  Copy-Item -LiteralPath (Join-Path $packageRoot 'dist') -Destination $packageTarget -Recurse -Force
+}
+
+$webSocketSource = Join-Path $repoRoot 'packages/adapter-websocket/node_modules/ws'
+if (-not (Test-Path -LiteralPath $webSocketSource -PathType Container)) {
+  throw "Desktop WebSocket dependency was not found: $webSocketSource"
+}
+Copy-Item -LiteralPath $webSocketSource -Destination (Join-Path $appModules 'ws') -Recurse -Force
 
 $stagePackage = [ordered]@{
   name = '@ai-native-game-harness/desktop'
@@ -77,6 +115,12 @@ $stagePackage = [ordered]@{
   license = 'MIT'
   type = 'module'
   main = 'src/main.mjs'
+  dependencies = [ordered]@{
+    '@ai-native-game-harness/adapter-websocket' = '0.1.0'
+    '@ai-native-game-harness/game-pack' = '0.1.0'
+    '@ai-native-game-harness/harness-core' = '0.1.0'
+    'ws' = '8.21.3'
+  }
 }
 [IO.File]::WriteAllText((Join-Path $appRoot 'package.json'), ($stagePackage | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
 

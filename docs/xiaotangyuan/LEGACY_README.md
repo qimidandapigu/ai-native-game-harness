@@ -27,7 +27,7 @@ Agent、视觉、ASR、TTS、工具、安装器、媒体 Host
 | 最新公开 Harness Release | `0.5.1` | 已发布稳定版，只包含此前的星露谷链路 |
 | 星露谷适配器 | `0.6.1` | 统一 Context、三分支成长、存档隔离与小汤圆外观包 |
 | 饥荒联机版 Mod | `0.2.23` | 统一 Context、可执行技能、游玩心跳与 Jingling 动画 |
-| 缺氧 Adapter | `0.1.5` | 可选 Harness 插件；游戏专属动作、知识与安装器不进入通用包 |
+| 缺氧 Adapter | `0.1.6` | 可选 Harness 插件；游戏专属动作、知识与安装器不进入通用包 |
 | 缺氧 C# Bridge | `0.6.6` | 统一 Context、水团术、动作执行与固定复制人跟随精灵 UI |
 | Content Patcher | `2.9.1` | 官方第三方资源加载组件 |
 | TrinketTinker | `1.9.0` | 官方第三方宠物跟随与渲染组件 |

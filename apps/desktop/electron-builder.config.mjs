@@ -17,6 +17,7 @@ export default {
   },
   files: [
     'src/**/*',
+    'node_modules/**/*',
     'package.json',
   ],
   extraResources: [

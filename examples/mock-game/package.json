@@ -1,0 +1,21 @@
+{
+  "name": "@ai-native-game-harness/mock-game",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic reference Adapter and local product preview.",
+  "type": "module",
+  "exports": {
+    ".": "./dist/runtime.js",
+    "./adapter": "./dist/adapter.js",
+    "./agent": "./dist/agent.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@ai-native-game-harness/adapter-protocol": "workspace:*",
+    "@ai-native-game-harness/adapter-websocket": "workspace:*",
+    "@ai-native-game-harness/harness-core": "workspace:*"
+  }
+}

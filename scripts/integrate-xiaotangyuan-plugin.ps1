@@ -78,7 +78,10 @@ if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
 
 Push-Location $oniRoot
 try {
-  pnpm pack --pack-destination $artifactRoot | Out-Host
+  # ONI ships the private Adapter Protocol reference packages inside its tgz.
+  # pnpm requires hoisted packing for bundledDependencies even though the
+  # workspace itself deliberately uses the isolated linker.
+  pnpm --config.node-linker=hoisted pack --pack-destination $artifactRoot | Out-Host
 } finally {
   Pop-Location
 }

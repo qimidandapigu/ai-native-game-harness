@@ -5,7 +5,7 @@
   "profilePatch": "runtime/dsh-profile/xiaotangyuan.patch.yml",
   "smokePatch": "integrations/xiaotangyuan/smoke.patch.yml",
   "compatibility": {
-    "dsh": "0.1.0-rc.6",
+    "dsh": "0.1.1-rc.2",
     "desktopDsh": "0.1.1-rc.2",
     "testedDsh": [
       "0.1.0-rc.6",
@@ -19,7 +19,7 @@
   },
   "oniAdapter": {
     "packageName": "@qimidandapigu/oni-adapter",
-    "expectedVersion": "0.1.5",
+    "expectedVersion": "0.1.6",
     "source": "games/oxygen-not-included/adapter"
   },
   "stable": {

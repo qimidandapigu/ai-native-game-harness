@@ -156,7 +156,7 @@ Get-NetTCPConnection -State Established -LocalPort 33145 -ErrorAction SilentlyCo
 
 正常状态应同时满足：
 
-- Harness 插件 `0.7.7` 和 ONI Adapter `0.1.5` 已安装；
+- Harness 插件 `0.7.7` 和 ONI Adapter `0.1.6` 已安装；
 - `XtyMediaHost.exe` 正在运行；
 - 缺氧窗口位于前台；
 - `33145` 除监听外还有一个来自 ONI Adapter 的已建立连接；
