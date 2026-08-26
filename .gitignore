@@ -6,6 +6,7 @@ coverage/
 .artifacts/
 .tmp/
 distribution/desktop/
+.release/
 plugins/xiaotangyuan-game/media/
 *.tgz
 *.log

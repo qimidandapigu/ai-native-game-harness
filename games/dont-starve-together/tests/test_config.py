@@ -23,7 +23,7 @@ class SteamLibraryParsingTests(unittest.TestCase):
 
     def test_rejects_non_loopback_harness_gateway(self) -> None:
         settings = Settings(
-            gateway_url="ws://example.com:32145",
+            gateway_url="ws://example.com:33145",
             connection_timeout_seconds=3,
             request_timeout_seconds=120,
             game_dir=None,

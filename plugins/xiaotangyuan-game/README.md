@@ -35,7 +35,7 @@ dsh plugin --profile web add ".\qimidandapigu-dsh-xiaotangyuan-game-0.7.7.tgz"
 安装后重启 Harness。默认监听：
 
 ```text
-ws://127.0.0.1:32145
+ws://127.0.0.1:33145
 ```
 
 Gateway 只允许 `127.0.0.1`、`localhost` 或 `::1`，不会暴露到局域网。
@@ -47,7 +47,7 @@ Gateway 只允许 `127.0.0.1`、`localhost` 或 `::1`，不会暴露到局域网
 | 字段 | 默认值 | 作用 |
 |---|---|---|
 | `host` | `127.0.0.1` | Gateway 地址，仅允许回环地址 |
-| `port` | `32145` | Gateway 端口 |
+| `port` | `33145` | 游戏版 Gateway 端口 |
 | `vision.enabled` | `true` | 启用游戏截图理解 |
 | `vision.maxWidth` | `1280` | 游戏客户区截图的最大宽度 |
 | `speech.enabled` | `true` | 启用 ASR 与 TTS |
@@ -155,9 +155,10 @@ media/windows-x64/XtyMediaHost.exe
 
 ## 缺氧安装器
 
-缺氧安装器不属于本通用 Harness 包，而属于可选的
-`@qimidandapigu/oni-adapter`。只有玩家安装该 Adapter 后，Harness
-才会加载 ONI 知识、游戏动作和下面两个安装工具。
+缺氧安装器不属于本通用 Harness 包，而属于独立的
+`@qimidandapigu/oni-adapter`。只有 Profile 装配该 Adapter 后，Harness
+才会加载 ONI 知识、游戏动作和下面两个安装工具。当前 Windows Game Edition
+为了开箱支持缺氧会预装该 Bundle；单独安装通用插件时仍不会自动获得 ONI 能力。
 
 玩家在 Harness 中发送“检测并安装《缺氧》的 AI 精灵 Mod”后，Agent 会先调用
 `oxygen_not_included_mod_detect`，再在明确安装请求下调用

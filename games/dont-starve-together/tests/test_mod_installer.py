@@ -79,7 +79,7 @@ class ModInstallerTests(unittest.TestCase):
             source_exe = source / "ChesterAI.exe"
             source_exe.write_bytes(b"launcher")
             (source / ".env.example").write_text(
-                "HARNESS_GATEWAY_URL=ws://127.0.0.1:32145\n",
+                "HARNESS_GATEWAY_URL=ws://127.0.0.1:33145\n",
                 encoding="utf-8",
             )
             game_dir = root / "Don't Starve Together"
@@ -96,7 +96,7 @@ class ModInstallerTests(unittest.TestCase):
             self.assertEqual((destination / "ChesterAI.exe").read_bytes(), b"launcher")
             self.assertEqual(
                 (destination / ".env.example").read_text(encoding="utf-8"),
-                "HARNESS_GATEWAY_URL=ws://127.0.0.1:32145\n",
+                "HARNESS_GATEWAY_URL=ws://127.0.0.1:33145\n",
             )
             self.assertEqual(launch_option, f'"{destination / "ChesterAI.exe"}" %command%')
             self.assertEqual(

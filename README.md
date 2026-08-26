@@ -192,7 +192,8 @@ pnpm check
 - `dsh-xiaotangyuan-game` 的本地 `0.7.7` Harness Plugin 已能打包、安装到隔离 DSH Profile、合并配置并真实启动 WebSocket Gateway；
 - 源码基线与桌面发行 Runtime 已统一固定为 DSH `0.1.1-rc.2`，端口使用 `33145`，不占用日常实例的 `32145`；
 - Electron 已恢复内置 DSH 为默认产品路径；`desktop:demo` 继续保留为不依赖模型的 Standalone 测试夹具；
-- 桌面游戏版使用独立运行配置：默认按住 `V` 语音，松开后进入 Agent；通用插件源码默认键仍为 `F8`；
+- 当前桌面游戏版会同时装配通用小汤圆插件和独立 ONI Adapter；两者仍是两个 DSH Bundle，独立插件安装场景不会被强制绑定；
+- 桌面游戏版使用独立运行配置：星露谷和饥荒默认按住 `V` 语音；缺氧因游戏内 `V` 已占用，由 Mod 用 `Q` 发送 `voice.start` / `voice.stop`；通用插件源码默认键仍为 `F8`；
 - 流式 ASR 的中间转写和最终转写只在 Harness 内部送入 Agent，不再把玩家原话重复显示到游戏气泡；
 - 可在 Windows 本地构建 `.exe` 安装包，但尚未创建签名和正式 GitHub Release，因此 GitHub 暂无公开下载按钮。
 
@@ -206,7 +207,9 @@ pnpm check
 | Agent action → Core execute → action-result 循环 | 已实现，含拒绝和动作上限测试 |
 | DSH Agent → Tool → Core → WebSocket Adapter → 权威状态 | 已实现；真实 DSH Agent + Mock Game 冒烟通过（金币 1，revision 2） |
 | Electron 内置 DSH 主路径 | 已恢复为默认；产品页不再跳转到 DSH Web |
-| 桌面配置启用视觉、语音和媒体，默认 Push-to-Talk 为 `V` | 已实现 |
+| 内置 DSH + 小汤圆 + ONI Adapter + 本地模拟模型的状态/对话冒烟闭环 | 已验证 |
+| 游戏版统一使用 `33145`；星露谷/饥荒按 `V`，缺氧按 `Q` | 已实现 |
+| 缺氧 C# Bridge `0.6.7` | 源码已构建，尚未发布 Release |
 | Windows NSIS `.exe` | 本地已构建，未签名、未发布 |
 | 产品专属对话页、分析页与 Adapter 中心 | 已接入 DSH Session + Core Snapshot；游戏动作四段耗时与 `requestId` 关联已进入分析页 |
 | 首个真实游戏 Game Pack 的最终游戏内验收 | 尚未完成 |
@@ -218,7 +221,7 @@ pnpm check
 pnpm integration:xiaotangyuan
 ```
 
-这条命令会在当前仓库内构建 `apps/windows-media-host` 和 `plugins/xiaotangyuan-game`，打包插件、安装到仓库内忽略的隔离 Profile，并验证最终装配配置；不会读取相邻旧仓库，也不会修改用户的日常 DSH Profile。
+这条命令会在当前仓库内构建 `apps/windows-media-host` 和 `plugins/xiaotangyuan-game`，打包插件并安装到仓库内忽略的隔离 Profile。随后它会启动与桌面应用同版本的内置 DSH，等待 Web 页面和 Gateway 就绪，用测试 Adapter 发送一次游戏状态与对话请求，验证响应后自动关闭全部测试进程。测试使用本地模拟模型，不读取 API Key，不修改用户的日常 DSH Profile，也不会占用正在运行的正式 Gateway 端口。
 
 原 `dsh-xiaotangyuan-game` 的插件、三个游戏的 Mod/Bridge、发行清单、协议与测试源码已经迁入本仓库。旧仓库可以作为历史快照保留；现有旧 Release 链接暂时继续承载已经发布的游戏包，后续新版本和新 Release 统一从本仓库发布。
 
@@ -247,13 +250,13 @@ DSH Session API、官方 `sessionStats` 投影与 Desktop 薄 Bridge 冒烟：
 pnpm smoke:dsh-product
 ```
 
-产物写入 `distribution/desktop/`，安装后的应用和桌面快捷方式显示为 **AI Native Game Harness 游戏版**，并使用游戏手柄与 AI 核心组合图标。`pnpm desktop:start` / `pnpm desktop:dsh` 使用内置 DSH 产品链和 `integrations/xiaotangyuan/desktop.patch.yml`，启用视觉、语音与媒体；`pnpm desktop:demo` 用于独立 Mock 测试。仓库开发命令需要 Node.js 和 pnpm，未来正式发布的 `.exe` 才面向无需开发环境的普通玩家。
+产物写入 `distribution/desktop/`，安装后的应用和桌面快捷方式显示为 **AI Native Game Harness 游戏版**，并使用游戏手柄与 AI 核心组合图标。`pnpm desktop:start` / `pnpm desktop:dsh` 使用内置 DSH 产品链和 `integrations/xiaotangyuan/desktop.patch.yml`，把通用小汤圆插件与独立 ONI Adapter 一起装入发行 Runtime，并启用视觉、语音与媒体；`pnpm desktop:demo` 用于独立 Mock 测试，装配冒烟使用 `smoke.patch.yml` 和本地模拟模型。仓库开发命令需要 Node.js 和 pnpm，未来正式发布的 `.exe` 才面向无需开发环境的普通玩家。
 
 接下来按产品闭环继续：
 
-1. 把小汤圆或另一款真实游戏接到同一套 Adapter 协议，重复第一阶段的权威结果验收；
-2. 用真实游戏跑一次 Desktop 端到端验收，核对页面里的 Session 流、Tool/Action 结果、revision、耗时和断线重连；
-3. 完成首个真实游戏 Game Pack 后，再补代码签名、升级清单、崩溃诊断和 GitHub Release。
+1. 在至少一个真实游戏存档中完成状态、文字、语音和动作闭环验收；
+2. 核对产品页的 Session、Tool/Action、revision、分段耗时和断线重连；
+3. 生成校验和并发布 GitHub Release。
 
 DSH 不自动追新，但可以受控升级。运行 `pnpm dsh:update:check` 查看候选版本，升级规则见 [UPGRADING_DSH.md](docs/UPGRADING_DSH.md)。
 

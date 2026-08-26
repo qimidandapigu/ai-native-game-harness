@@ -63,7 +63,7 @@ describe('Dont Starve Together installer', () => {
     await mkdir(mod, { recursive: true })
     await writeFile(join(mod, 'modinfo.lua'), 'version = "0.1.0"\n')
     await writeFile(join(mod, 'ChesterAI.exe'), 'old launcher')
-    await writeFile(join(mod, '.env'), 'AI_API_KEY=legacy\nHARNESS_GATEWAY_URL=ws://127.0.0.1:32145\n')
+    await writeFile(join(mod, '.env'), 'AI_API_KEY=legacy\nHARNESS_GATEWAY_URL=ws://127.0.0.1:33145\n')
 
     const result = await applyDontStarveInstaller(
       game,
@@ -81,7 +81,7 @@ describe('Dont Starve Together installer', () => {
     expect(result.action).toBe('updated')
     expect(result.backupPath).toBeDefined()
     expect(await readFile(join(result.modPath, '.env'), 'utf8')).toBe(
-      'HARNESS_GATEWAY_URL=ws://127.0.0.1:32145\n',
+      'HARNESS_GATEWAY_URL=ws://127.0.0.1:33145\n',
     )
     expect(await readFile(join(result.backupPath!, 'modinfo.lua'), 'utf8')).toContain('0.1.0')
   })

@@ -137,7 +137,7 @@ python -m compileall -q src tests
 
 - 报错 `Could not find an asset matching anim/jingling.zip`：安装不完整，重新运行当前安装包；不要只复制 `modmain.lua`。
 - Mod 能加载但还是原版切斯特：确认进入了世界，并检查 `<DST>/mods/dont-starve-ai-mod/anim/jingling.zip` 是否存在。
-- `V` 没反应：确认 Harness 正在运行、游戏窗口位于前台，并检查 `127.0.0.1:32145` 是否监听。
+- `V` 没反应：确认 Harness 正在运行、游戏窗口位于前台，并检查 `127.0.0.1:33145` 是否监听。
 - Steam 启动后没有 Adapter：重新核对启动项，必须保留末尾的 `%command%`。
 - 排错时请提供 `client_log.txt`、`runtime/chester-adapter.log` 和 `dont_starve_ai_mod_lua.txt` 的相关片段，并先遮盖 Token 或其他凭据。
 

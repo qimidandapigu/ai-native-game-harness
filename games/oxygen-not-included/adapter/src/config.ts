@@ -27,7 +27,7 @@ function isLoopback(hostname: string): boolean {
 
 export function resolveConfig(config: Config = {}): ResolvedConfig {
   const host = config.host ?? '127.0.0.1'
-  const port = config.port ?? 32145
+  const port = config.port ?? 33145
   if (!isLoopback(host)) throw new Error('ONI Adapter only permits loopback Gateway hosts')
   if (!Number.isInteger(port) || port < 1024 || port > 65535) {
     throw new Error('ONI Adapter port must be an integer between 1024 and 65535')

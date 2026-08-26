@@ -148,7 +148,7 @@ def load_settings(project_root: Path | None = None) -> Settings:
     runtime_dir = root / "runtime"
     runtime_dir.mkdir(parents=True, exist_ok=True)
     return Settings(
-        gateway_url=_env("HARNESS_GATEWAY_URL", "ws://127.0.0.1:32145"),
+        gateway_url=_env("HARNESS_GATEWAY_URL", "ws://127.0.0.1:33145"),
         connection_timeout_seconds=max(1.0, float(_env("HARNESS_CONNECTION_TIMEOUT_SECONDS", "3"))),
         request_timeout_seconds=max(5.0, float(_env("HARNESS_REQUEST_TIMEOUT_SECONDS", "120"))),
         game_dir=game_dir,

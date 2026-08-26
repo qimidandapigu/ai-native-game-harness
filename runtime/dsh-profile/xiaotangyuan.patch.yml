@@ -3,6 +3,6 @@
       name: '@qimidandapigu/dsh-xiaotangyuan-game'
       config:
         host: 127.0.0.1
-        port: 32145
+        port: 33145
         feedback:
           enabled: false

@@ -42,12 +42,21 @@ function runtimePaths() {
     .sort()
     .at(-1)
   if (!pluginArchive) throw new Error(`未找到小汤圆插件包：${pluginRoot}`)
+  const oniArchive = app.isPackaged ? undefined : readdirSync(pluginRoot)
+    .filter((name) => /^qimidandapigu-oni-adapter-.+\.tgz$/.test(name))
+    .sort()
+    .at(-1)
+  if (!app.isPackaged && !oniArchive) throw new Error(`未找到缺氧 Adapter 包：${pluginRoot}`)
 
   const runtimeRequire = packaged
     ? createRequire(join(resourceRoot, 'runtime', 'package.json'))
     : require
   const dshPackage = runtimeRequire.resolve('@deepseek-ai/dsh/package.json')
+  const oniPackage = packaged
+    ? runtimeRequire.resolve('@qimidandapigu/oni-adapter/package.json')
+    : join(repoRoot, 'games', 'oxygen-not-included', 'adapter', 'package.json')
   const dshBin = join(dirname(dshPackage), 'lib', 'bin.js')
+  const oniVersion = JSON.parse(readFileSync(oniPackage, 'utf8')).version
 
   return {
     dshBin,
@@ -60,6 +69,8 @@ function runtimePaths() {
     transportPluginPath: packaged
       ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-transport', 'dist', 'index.js')
       : join(repoRoot, 'plugins', 'game-transport', 'dist', 'index.js'),
+    oniPath: oniArchive ? join(pluginRoot, oniArchive) : undefined,
+    oniVersion,
   }
 }
 
@@ -104,6 +115,7 @@ function runDshOnce(args, paths) {
 async function ensurePlugin(paths) {
   const stateRoot = join(app.getPath('userData'), 'runtime-state')
   const markerPath = join(stateRoot, 'xiaotangyuan.version')
+  const expectedVersion = `${paths.pluginVersion};oni=${paths.oniVersion}`
   const installedVersion = existsSync(markerPath) ? readFileSync(markerPath, 'utf8').trim() : ''
 
   if (app.isPackaged) {
@@ -113,23 +125,24 @@ async function ensurePlugin(paths) {
       ? JSON.parse(readFileSync(profilePath, 'utf8'))
       : { name: 'dsh-profile-web', private: true, dependencies: {}, dsh: { profile: { bundles: [] } } }
     const bundles = profile.dsh?.profile?.bundles ?? []
-    for (const name of ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@qimidandapigu/dsh-xiaotangyuan-game']) {
+    for (const name of ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@qimidandapigu/dsh-xiaotangyuan-game', '@qimidandapigu/oni-adapter']) {
       if (!bundles.includes(name)) bundles.push(name)
     }
     profile.dsh = { ...profile.dsh, profile: { ...profile.dsh?.profile, bundles } }
     mkdirSync(profileRoot, { recursive: true })
     writeFileSync(profilePath, `${JSON.stringify(profile, null, 2)}\n`)
     mkdirSync(stateRoot, { recursive: true })
-    writeFileSync(markerPath, `${paths.pluginVersion}\n`)
+    writeFileSync(markerPath, `${expectedVersion}\n`)
     return
   }
 
-  if (installedVersion === paths.pluginVersion) return
+  if (installedVersion === expectedVersion) return
 
-  sendStatus('正在安装游戏插件', `小汤圆 ${paths.pluginVersion}`)
+  sendStatus('正在安装游戏插件', `小汤圆 ${paths.pluginVersion} / 缺氧 Adapter ${paths.oniVersion}`)
   await runDshOnce(['plugin', '--profile', 'web', 'add', paths.pluginPath], paths)
+  await runDshOnce(['plugin', '--profile', 'web', 'add', paths.oniPath], paths)
   mkdirSync(stateRoot, { recursive: true })
-  writeFileSync(markerPath, `${paths.pluginVersion}\n`)
+  writeFileSync(markerPath, `${expectedVersion}\n`)
 }
 
 function getFreePort() {

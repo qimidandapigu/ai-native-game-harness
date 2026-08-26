@@ -41,6 +41,8 @@ namespace DoubaoAI.ONI
         private FairyWaterSkillSystem _waterSkill;
         private float _nextWaterContactScanAt;
         private int _panelTab;
+        private bool _voiceKeyHeld;
+        private string _floatingStatus = string.Empty;
 
         private void Awake()
         {
@@ -81,6 +83,21 @@ namespace DoubaoAI.ONI
                 }
             }
             if (_panelOpen && Input.GetKeyDown(KeyCode.Escape)) _panelOpen = false;
+            if (!_panelOpen && !_voiceKeyHeld && Input.GetKeyDown(KeyCode.Q))
+            {
+                _voiceKeyHeld = true;
+                _busy = true;
+                _status = "聆听中…";
+                _floatingStatus = _status;
+                _bridge.StartVoice();
+            }
+            if (_voiceKeyHeld && Input.GetKeyUp(KeyCode.Q))
+            {
+                _voiceKeyHeld = false;
+                _status = "思考中…";
+                _floatingStatus = _status;
+                _bridge.StopVoice();
+            }
             if (Time.unscaledTime >= _nextWaterContactScanAt)
             {
                 _nextWaterContactScanAt = Time.unscaledTime + 0.5f;
@@ -270,22 +287,32 @@ namespace DoubaoAI.ONI
         private void OnHarnessNotification(string method, string text)
         {
             if (method == "gateway.ready") { _status = "AIHarness 已连接"; return; }
-            if (method == "assistant.status") { _status = text == "recording" ? "正在听你说话…" : "AIHarness 正在思考…"; return; }
+            if (method == "assistant.status")
+            {
+                if (text == "recording") _status = "聆听中…";
+                else if (text == "thinking") _status = "思考中…";
+                else return;
+                _floatingStatus = _status;
+                return;
+            }
             if (method == "assistant.delta" || method == "assistant.text.delta")
             {
                 if (!string.IsNullOrWhiteSpace(text)) _reply = text;
-                _status = "小汤圆正在回答…";
+                _status = "回答中…";
+                _floatingStatus = _status;
                 _bubbleUntil = Time.unscaledTime + 12f; return;
             }
             if (method == "assistant.present")
             {
                 _busy = false; _status = "回答完成";
+                _floatingStatus = string.Empty;
                 _reply = string.IsNullOrWhiteSpace(text) ? "这次没有生成有效回复。" : text;
                 _bubbleUntil = Time.unscaledTime + 12f; return;
             }
             if (method == "assistant.error")
             {
                 _busy = false; _status = "AIHarness 请求失败";
+                _floatingStatus = string.Empty;
                 _reply = string.IsNullOrWhiteSpace(text) ? "请确认 AIHarness 已启动。" : text;
                 _bubbleUntil = Time.unscaledTime + 10f;
             }
@@ -310,11 +337,29 @@ namespace DoubaoAI.ONI
                 }
             }
             if (hasAnchor && GUI.Button(anchor, GUIContent.none, GUIStyle.none)) _panelOpen = !_panelOpen;
-            if (hasAnchor && !_panelOpen && Time.unscaledTime < _bubbleUntil && !string.IsNullOrWhiteSpace(_reply))
+            if (hasAnchor && !_panelOpen)
             {
-                Rect bubble = new Rect(Mathf.Max(20, anchor.x - 340), anchor.y + 5, 320, 90);
-                GUI.Box(bubble, GUIContent.none);
-                GUI.Label(new Rect(bubble.x + 12, bubble.y + 10, bubble.width - 24, bubble.height - 20), _reply, _bodyStyle);
+                bool showStatus = !string.IsNullOrWhiteSpace(_floatingStatus);
+                string bubbleText = showStatus
+                    ? _floatingStatus
+                    : Time.unscaledTime < _bubbleUntil ? _reply : string.Empty;
+                if (!string.IsNullOrWhiteSpace(bubbleText))
+                {
+                    float bubbleWidth = showStatus ? 150f : 320f;
+                    float bubbleHeight = showStatus ? 48f : 90f;
+                    float bubbleX = anchor.x - bubbleWidth - 12f;
+                    if (bubbleX < 20f)
+                        bubbleX = Mathf.Min(Screen.width - bubbleWidth - 20f, anchor.x + anchor.width + 12f);
+                    float bubbleY = showStatus
+                        ? anchor.y + (anchor.height - bubbleHeight) * 0.5f
+                        : anchor.y + 5f;
+                    Rect bubble = new Rect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+                    GUI.Box(bubble, GUIContent.none);
+                    GUI.Label(
+                        new Rect(bubble.x + 12, bubble.y + 8, bubble.width - 24, bubble.height - 16),
+                        bubbleText,
+                        showStatus ? _statusStyle : _bodyStyle);
+                }
             }
             if (_panelOpen) _panelRect = GUI.Window(854721, _panelRect, DrawPanel, "缺氧 AI 精灵");
         }
@@ -386,12 +431,13 @@ namespace DoubaoAI.ONI
             _bodyStyle = new GUIStyle(GUI.skin.label) { font = selected, fontSize = 17, wordWrap = true, normal = { textColor = Color.white } };
             _inputStyle = new GUIStyle(GUI.skin.textArea) { font = selected, fontSize = 17, wordWrap = true, padding = new RectOffset(10, 10, 8, 8) };
             _buttonStyle = new GUIStyle(GUI.skin.button) { font = selected, fontSize = 16, fontStyle = FontStyle.Bold };
-            _statusStyle = new GUIStyle(GUI.skin.label) { font = selected, fontSize = 14, normal = { textColor = new Color(0.65f, 0.9f, 1f) } };
+            _statusStyle = new GUIStyle(GUI.skin.label) { font = selected, fontSize = 16, alignment = TextAnchor.MiddleCenter, wordWrap = true, normal = { textColor = new Color(0.65f, 0.9f, 1f) } };
         }
 
         private void OnDestroy()
         {
             PlayerCommandExecutor.Reset();
+            if (_voiceKeyHeld && _bridge != null) _bridge.StopVoice();
             if (_bridge != null) _bridge.Dispose();
             if (_sprite != null) Destroy(_sprite);
             if (_fallbackSprite != null) Destroy(_fallbackSprite);
