@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "adapter-starter",
+  "version": "0.1.0",
+  "displayName": "Adapter Starter Game",
+  "adapter": {
+    "id": "adapter-starter.adapter",
+    "entry": "dist/client.js",
+    "protocolVersion": "1.0"
+  },
+  "content": {
+    "story": "content/story.md",
+    "characters": "content/characters.json",
+    "gameplay": "content/gameplay.md",
+    "localization": "content/localization.zh-CN.json"
+  },
+  "permissions": ["game.observe", "game.action"],
+  "assets": []
+}

@@ -30,6 +30,9 @@ importers:
       '@ai-native-game-harness/adapter-websocket':
         specifier: workspace:*
         version: link:../../packages/adapter-websocket
+      '@ai-native-game-harness/game-pack':
+        specifier: workspace:*
+        version: link:../../packages/game-pack
       '@ai-native-game-harness/harness-core':
         specifier: workspace:*
         version: link:../../packages/harness-core
@@ -69,6 +72,15 @@ importers:
         version: 4.125.0(@cloudflare/workers-types@5.20260823.1)
 
   contracts/bridge-v1: {}
+
+  examples/adapter-starter:
+    dependencies:
+      '@ai-native-game-harness/adapter-protocol':
+        specifier: workspace:*
+        version: link:../../packages/adapter-protocol
+      '@ai-native-game-harness/adapter-websocket':
+        specifier: workspace:*
+        version: link:../../packages/adapter-websocket
 
   examples/mock-game:
     dependencies:
@@ -112,6 +124,9 @@ importers:
       '@ai-native-game-harness/adapter-protocol':
         specifier: workspace:*
         version: link:../../../packages/adapter-protocol
+      '@ai-native-game-harness/adapter-websocket':
+        specifier: workspace:*
+        version: link:../../../packages/adapter-websocket
       extract-zip:
         specifier: ^2.0.1
         version: 2.0.1
@@ -119,9 +134,6 @@ importers:
         specifier: ^8.18.3
         version: 8.21.3
     devDependencies:
-      '@ai-native-game-harness/adapter-websocket':
-        specifier: workspace:*
-        version: link:../../../packages/adapter-websocket
       '@deepseek-ai/cordis':
         specifier: 4.0.1
         version: 4.0.1(@deepseek-ai/cordis-plugin-include@1.0.6)(@deepseek-ai/cordis-plugin-loader@1.0.2)
@@ -140,6 +152,12 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@opentelemetry/api@1.9.1)(@types/node@24.10.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+
+  packages/adapter-conformance:
+    dependencies:
+      '@ai-native-game-harness/adapter-protocol':
+        specifier: workspace:*
+        version: link:../adapter-protocol
 
   packages/adapter-protocol: {}
 
@@ -189,6 +207,34 @@ importers:
       '@deepseek-ai/cordis':
         specifier: 4.0.1
         version: 4.0.1(@deepseek-ai/cordis-plugin-include@1.0.6)(@deepseek-ai/cordis-plugin-loader@1.0.2)
+
+  plugins/game-learning-binding:
+    dependencies:
+      '@ai-native-game-harness/adapter-protocol':
+        specifier: workspace:*
+        version: link:../../packages/adapter-protocol
+      '@ai-native-game-harness/harness-core':
+        specifier: workspace:*
+        version: link:../../packages/harness-core
+    devDependencies:
+      '@ai-native-game-harness/game-core':
+        specifier: workspace:*
+        version: link:../game-core
+      '@deepseek-ai/cordis':
+        specifier: 4.0.1
+        version: 4.0.1(@deepseek-ai/cordis-plugin-include@1.0.6)(@deepseek-ai/cordis-plugin-loader@1.0.2)
+      '@deepseek-ai/dsh-agent-default-model':
+        specifier: 0.1.1-rc.2
+        version: 0.1.1-rc.2(4500f337816e04395108199abecb0804)
+      '@deepseek-ai/dsh-session':
+        specifier: 0.1.1-rc.2
+        version: 0.1.1-rc.2(03ff01009d9e9ee7bc8bff09679f4ad6)
+      '@deepseek-ai/dsh-tools':
+        specifier: 0.1.1-rc.2
+        version: 0.1.1-rc.2(f1ac1ba7fb5b7eb26b710a9a1824d53c)
+      '@qimidandapigu/dsh-xiaotangyuan-game':
+        specifier: workspace:*
+        version: link:../xiaotangyuan-game
 
   plugins/game-transport:
     dependencies:
@@ -281,6 +327,9 @@ importers:
       '@ai-native-game-harness/game-core':
         specifier: workspace:*
         version: link:../../plugins/game-core
+      '@ai-native-game-harness/game-learning-binding':
+        specifier: workspace:*
+        version: link:../../plugins/game-learning-binding
       '@ai-native-game-harness/game-transport':
         specifier: workspace:*
         version: link:../../plugins/game-transport
@@ -296,6 +345,12 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: 0.1.1-rc.2
         version: 0.1.1-rc.2(f1ac1ba7fb5b7eb26b710a9a1824d53c)
+      '@qimidandapigu/dsh-xiaotangyuan-game':
+        specifier: workspace:*
+        version: link:../../plugins/xiaotangyuan-game
+      '@qimidandapigu/oni-adapter':
+        specifier: workspace:*
+        version: link:../../games/oxygen-not-included/adapter
     devDependencies:
       vitest:
         specifier: 4.0.18
@@ -303,6 +358,9 @@ importers:
 
   tests/platform:
     dependencies:
+      '@ai-native-game-harness/adapter-conformance':
+        specifier: workspace:*
+        version: link:../../packages/adapter-conformance
       '@ai-native-game-harness/adapter-protocol':
         specifier: workspace:*
         version: link:../../packages/adapter-protocol

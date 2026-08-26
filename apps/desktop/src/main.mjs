@@ -4,8 +4,10 @@ import { dirname, join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { app, BrowserWindow, dialog, ipcMain, shell, utilityProcess } from 'electron'
+import { GamePackRegistry, readGamePackManifest } from '@ai-native-game-harness/game-pack'
 import { PlatformRuntime } from './platform-runtime.mjs'
 import { DshProductRuntime } from './dsh-product-runtime.mjs'
+import { buildDiagnosticBundle, diagnosticFilename } from './diagnostics.mjs'
 
 const require = createRequire(import.meta.url)
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -20,7 +22,23 @@ let platformUnsubscribe
 let dshProductRuntime
 let dshProductUnsubscribe
 let lastDshCoreSnapshot
+let lastDshLearningSnapshot
+const pendingDshDiagnostics = []
 let demoAdapterProcess
+let gamePackRegistry
+
+function packs() {
+  gamePackRegistry ??= new GamePackRegistry(join(app.getPath('userData'), 'game-packs'))
+  return gamePackRegistry
+}
+
+function productGamePack(pack) {
+  return {
+    manifest: pack.manifest,
+    installedAt: pack.installedAt,
+    health: pack.health,
+  }
+}
 
 function sendStatus(message, detail = '') {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -69,6 +87,9 @@ function runtimePaths() {
     transportPluginPath: packaged
       ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-transport', 'dist', 'index.js')
       : join(repoRoot, 'plugins', 'game-transport', 'dist', 'index.js'),
+    learningPluginPath: packaged
+      ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-learning-binding', 'dist', 'index.js')
+      : join(repoRoot, 'plugins', 'game-learning-binding', 'dist', 'index.js'),
     oniPath: oniArchive ? join(pluginRoot, oniArchive) : undefined,
     oniVersion,
   }
@@ -171,7 +192,7 @@ async function waitForWeb(url, child, timeoutMs = 60_000) {
 }
 
 function writeProductPatch(paths, adapterPort) {
-  for (const pluginPath of [paths.corePluginPath, paths.transportPluginPath]) {
+  for (const pluginPath of [paths.corePluginPath, paths.transportPluginPath, paths.learningPluginPath]) {
     if (!existsSync(pluginPath)) throw new Error(`产品 Runtime 插件尚未构建：${pluginPath}`)
   }
   const stateRoot = join(app.getPath('userData'), 'runtime-state')
@@ -179,22 +200,35 @@ function writeProductPatch(paths, adapterPort) {
   mkdirSync(stateRoot, { recursive: true })
   const coreUrl = pathToFileURL(paths.corePluginPath).href
   const transportUrl = pathToFileURL(paths.transportPluginPath).href
-  writeFileSync(productPatchPath, `- insert:\n    - id: ai-native-game-core-product\n      name: '${coreUrl}'\n      config:\n        productSnapshotOutput: true\n    - id: ai-native-game-transport-product\n      name: '${transportUrl}'\n      config:\n        enabled: true\n        host: 127.0.0.1\n        port: ${adapterPort}\n        path: /adapter\n        requestTimeoutMs: 10000\n`)
+  const learningUrl = pathToFileURL(paths.learningPluginPath).href
+  writeFileSync(productPatchPath, `- id: xiaotangyuan-oni-adapter\n  config:\n    adapterProtocolUrl: 'ws://127.0.0.1:${adapterPort}/adapter'\n- insert:\n    - id: ai-native-game-core-product\n      name: '${coreUrl}'\n      config:\n        productSnapshotOutput: true\n    - id: ai-native-game-transport-product\n      name: '${transportUrl}'\n      config:\n        enabled: true\n        host: 127.0.0.1\n        port: ${adapterPort}\n        path: /adapter\n        requestTimeoutMs: 10000\n    - id: ai-native-game-learning-product\n      name: '${learningUrl}'\n`)
   return productPatchPath
 }
 
-function collectCoreSnapshots(data) {
-  const prefix = 'AI_GAME_HARNESS_SNAPSHOT '
-  collectCoreSnapshots.buffer = `${collectCoreSnapshots.buffer ?? ''}${data.toString()}`
-  const lines = collectCoreSnapshots.buffer.split(/\r?\n/)
-  collectCoreSnapshots.buffer = lines.pop() ?? ''
+function collectProductRecords(data) {
+  const snapshotPrefix = 'AI_GAME_HARNESS_SNAPSHOT '
+  const learningPrefix = 'AI_GAME_HARNESS_LEARNING '
+  const diagnosticPrefix = 'AI_GAME_HARNESS_DIAGNOSTIC '
+  collectProductRecords.buffer = `${collectProductRecords.buffer ?? ''}${data.toString()}`
+  const lines = collectProductRecords.buffer.split(/\r?\n/)
+  collectProductRecords.buffer = lines.pop() ?? ''
   for (const line of lines) {
-    if (!line.startsWith(prefix)) continue
     try {
-      lastDshCoreSnapshot = JSON.parse(line.slice(prefix.length))
-      dshProductRuntime?.attachCoreSnapshot(lastDshCoreSnapshot)
+      if (line.startsWith(snapshotPrefix)) {
+        lastDshCoreSnapshot = JSON.parse(line.slice(snapshotPrefix.length))
+        dshProductRuntime?.attachCoreSnapshot(lastDshCoreSnapshot)
+      } else if (line.startsWith(learningPrefix)) {
+        lastDshLearningSnapshot = JSON.parse(line.slice(learningPrefix.length))
+        dshProductRuntime?.attachLearningSnapshot(lastDshLearningSnapshot)
+      } else if (line.startsWith(diagnosticPrefix)) {
+        const record = JSON.parse(line.slice(diagnosticPrefix.length))
+        if (!dshProductRuntime?.attachDiagnosticRecord(record)) {
+          pendingDshDiagnostics.push(record)
+          if (pendingDshDiagnostics.length > 500) pendingDshDiagnostics.shift()
+        }
+      }
     } catch (error) {
-      appendRuntimeLog(`[desktop] 无法解析 Core Snapshot：${error instanceof Error ? error.message : String(error)}\n`)
+      appendRuntimeLog(`[desktop] 无法解析产品记录：${error instanceof Error ? error.message : String(error)}\n`)
     }
   }
 }
@@ -227,7 +261,7 @@ async function startRuntime() {
   }
   dshProcess.stdout?.on('data', (data) => {
     collect(data)
-    collectCoreSnapshots(data)
+    collectProductRecords(data)
   })
   dshProcess.stderr?.on('data', collect)
   dshProcess.once('exit', (code) => {
@@ -245,7 +279,9 @@ async function startRuntime() {
     adapterUrl,
   })
   if (lastDshCoreSnapshot) dshProductRuntime.attachCoreSnapshot(lastDshCoreSnapshot)
+  if (lastDshLearningSnapshot) dshProductRuntime.attachLearningSnapshot(lastDshLearningSnapshot)
   await dshProductRuntime.start()
+  for (const record of pendingDshDiagnostics.splice(0)) dshProductRuntime.attachDiagnosticRecord(record)
   dshProductUnsubscribe = dshProductRuntime.subscribe((snapshot) => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('platform-snapshot', snapshot)
   })
@@ -282,6 +318,68 @@ function registerPlatformIpc() {
   ipcMain.handle('platform:reset', (_event, input) => {
     const gameId = typeof input?.gameId === 'string' && input.gameId ? input.gameId.slice(0, 200) : undefined
     return requireProductRuntime().reset(gameId)
+  })
+  ipcMain.handle('platform:export-diagnostics', async () => {
+    const gamePacks = (await packs().list()).map(productGamePack)
+    const bundle = buildDiagnosticBundle(requireProductRuntime().snapshot(), {
+      appVersion: app.getVersion(),
+      platform: process.platform,
+      arch: process.arch,
+      gamePacks,
+    })
+    const selected = await dialog.showSaveDialog(mainWindow, {
+      title: '导出脱敏诊断记录',
+      defaultPath: diagnosticFilename(),
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    })
+    if (selected.canceled || !selected.filePath) return { canceled: true }
+    writeFileSync(selected.filePath, `${JSON.stringify(bundle, null, 2)}\n`, 'utf8')
+    return { canceled: false, filePath: selected.filePath }
+  })
+  ipcMain.handle('platform:list-game-packs', async () => (await packs().list()).map(productGamePack))
+  ipcMain.handle('platform:install-game-pack', async () => {
+    const selected = await dialog.showOpenDialog(mainWindow, {
+      title: '选择构建完成的 Game Pack 文件夹',
+      properties: ['openDirectory'],
+    })
+    const source = selected.filePaths[0]
+    if (selected.canceled || !source) return { canceled: true, gamePacks: (await packs().list()).map(productGamePack) }
+    const manifest = await readGamePackManifest(source)
+    const existing = await packs().get(manifest.id)
+    let replace = false
+    if (existing) {
+      const confirmation = await dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        title: '替换已安装的 Game Pack',
+        message: `${manifest.displayName} 已安装`,
+        detail: `当前版本 ${existing.manifest.version}，所选版本 ${manifest.version}。替换操作只影响 Harness 的 Game Pack 副本。`,
+        buttons: ['取消', '替换'],
+        defaultId: 0,
+        cancelId: 0,
+      })
+      if (confirmation.response !== 1) return { canceled: true, gamePacks: (await packs().list()).map(productGamePack) }
+      replace = true
+    }
+    await packs().install(source, { replace })
+    return { canceled: false, gamePacks: (await packs().list()).map(productGamePack) }
+  })
+  ipcMain.handle('platform:uninstall-game-pack', async (_event, input) => {
+    const id = typeof input?.id === 'string' ? input.id.slice(0, 100) : ''
+    const version = typeof input?.version === 'string' ? input.version.slice(0, 100) : undefined
+    const installed = await packs().get(id)
+    if (!installed) return { removed: false, gamePacks: (await packs().list()).map(productGamePack) }
+    const confirmation = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      title: '卸载 Game Pack',
+      message: `卸载 ${installed.manifest.displayName}？`,
+      detail: '这会删除 Harness 管理的 Game Pack 副本，不会删除游戏本体或外部源文件夹。',
+      buttons: ['取消', '卸载'],
+      defaultId: 0,
+      cancelId: 0,
+    })
+    if (confirmation.response !== 1) return { removed: false, gamePacks: (await packs().list()).map(productGamePack) }
+    const removed = await packs().uninstall(id, version)
+    return { removed, gamePacks: (await packs().list()).map(productGamePack) }
   })
 }
 

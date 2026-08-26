@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { createServer } from 'node:http'
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import WebSocket from 'ws'
+import { assertAdapterConformance } from '@ai-native-game-harness/adapter-conformance'
 import {
   ADAPTER_RPC_ERROR,
   ADAPTER_RPC_METHOD,
@@ -11,7 +15,7 @@ import {
 } from '@ai-native-game-harness/adapter-protocol'
 import { ReconnectingAdapterClient, WebSocketAdapterHost } from '@ai-native-game-harness/adapter-websocket'
 import { bindDshGameTools, type DshToolRegistry } from '@ai-native-game-harness/dsh-binding'
-import { assertGamePackManifest } from '@ai-native-game-harness/game-pack'
+import { assertGamePackManifest, GamePackRegistry } from '@ai-native-game-harness/game-pack'
 import {
   HarnessCore,
   type AgentActionFeedback,
@@ -25,7 +29,7 @@ import { MockGameAdapter } from '@ai-native-game-harness/mock-game/adapter'
 // @ts-expect-error JavaScript entry points do not publish declarations.
 import { PlatformRuntime } from '../../apps/desktop/src/platform-runtime.mjs'
 // @ts-expect-error JavaScript entry points do not publish declarations.
-import { normalizeSessionStats, visibleDshChunk } from '../../apps/desktop/src/dsh-product-runtime.mjs'
+import { correlateDshGameTraces, normalizeProductDiagnostic, normalizeSessionStats, productTurnContent, projectDshTraces, visibleDshChunk } from '../../apps/desktop/src/dsh-product-runtime.mjs'
 
 type BoundTool = Parameters<DshToolRegistry['register']>[0]
 
@@ -124,6 +128,7 @@ describe('independent platform boundary', () => {
       expect(core.listTraces().filter(trace =>
         trace.kind === 'agent.event' && ['action', 'action-result'].includes(String(trace.detail.eventType)),
       )).toHaveLength(4)
+      expect(core.listTraces().find(trace => trace.kind === 'action.executed')?.sessionId).toBe('dsh-test-session')
     } finally {
       binding.dispose()
       expect(tools.definitions.size).toBe(0)
@@ -191,6 +196,14 @@ describe('independent platform boundary', () => {
     expect(visible).toEqual({ type: 'text-delta', text: '公开回答' })
   })
 
+  it('marks Desktop game turns and requires memory recall without replacing the DSH Session', () => {
+    const content = productTurnContent('记住我想先完成基地供氧')
+    expect(content).toMatch(/^AI_GAME_HARNESS_PRODUCT_TURN_V1\n/)
+    expect(content).toContain('call game_learning_memory_recall exactly once')
+    expect(content).toContain('call game_learning_skill_catalog before game_learning_skill_learn')
+    expect(content).toContain('PLAYER_MESSAGE:\n记住我想先完成基地供氧')
+  })
+
   it('accepts only finite non-negative values from the official DSH sessionStats projection', () => {
     expect(normalizeSessionStats({
       turns: 2,
@@ -211,6 +224,133 @@ describe('independent platform boundary', () => {
       decodeMs: 180,
       decodeTokens: 64,
     })
+  })
+
+  it('preserves DSH turn and step and correlates them to Core game requests by callId', () => {
+    const sessionTraces = projectDshTraces([
+      { seq: 10, time: 1_000, type: 'turn/start', data: { turn: 3 } },
+      { seq: 11, time: 1_001, type: 'step/start', data: { turn: 3, step: 2 } },
+      { seq: 12, time: 1_002, type: 'tool/call', data: { turn: 3, step: 2, callId: 'call-42', name: 'game_mock_game_move', arguments: '{"x":2,"y":1}' } },
+      { seq: 13, time: 1_003, type: 'tool/result', data: { turn: 3, step: 2, message: { source: { callId: 'call-42' }, content: [{ type: 'tool-result', toolCallId: 'call-42', content: [{ type: 'text', text: 'ok' }] }] } } },
+    ], 'dsh-session-1', 'mock-game')
+
+    expect(sessionTraces.find((trace: { kind: string }) => trace.kind === 'dsh.tool.called')?.detail).toMatchObject({
+      turn: 3,
+      step: 2,
+      callId: 'call-42',
+      tool: 'game_mock_game_move',
+      arguments: { x: 2, y: 1 },
+    })
+    expect(sessionTraces.find((trace: { kind: string }) => trace.kind === 'dsh.tool.result')?.detail).toMatchObject({
+      turn: 3,
+      step: 2,
+      callId: 'call-42',
+      ok: true,
+      result: 'ok',
+    })
+
+    const correlated = correlateDshGameTraces([{
+      traceId: 'core-1',
+      sessionId: 'dsh-session-1',
+      gameId: 'mock-game',
+      kind: 'action.executed',
+      createdAt: new Date(1_004).toISOString(),
+      detail: { requestId: 'call-42', capability: 'game.move', ok: true },
+    }], sessionTraces)
+    expect(correlated[0]?.detail).toMatchObject({
+      turn: 3,
+      step: 2,
+      callId: 'call-42',
+      requestId: 'call-42',
+    })
+  })
+
+  it('correlates a Code Mode sub-call to its parent DSH turn and step', () => {
+    const sessionTraces = projectDshTraces([
+      { seq: 20, time: 2_000, type: 'tool/call', data: { turn: 4, step: 1, callId: 'root-call', name: 'run_code', arguments: '{}' } },
+      { seq: 21, time: 2_001, type: 'tool/code-dispatch-start', data: { rootCallId: 'root-call', parentCallId: 'root-call', subCallId: 'root-call:code:0', name: 'game_mock_game_collect', arguments: {} } },
+      { seq: 22, time: 2_002, type: 'tool/code-dispatch', data: { rootCallId: 'root-call', parentCallId: 'root-call', subCallId: 'root-call:code:0', name: 'game_mock_game_collect', arguments: {}, isError: false, content: [{ type: 'text', text: 'ok' }] } },
+    ], 'dsh-session-2', 'mock-game')
+
+    const nestedCall = sessionTraces.find((trace: { kind: string; detail: { callId?: string } }) => trace.kind === 'dsh.tool.called' && trace.detail.callId === 'root-call:code:0')
+    expect(nestedCall?.detail).toMatchObject({
+      turn: 4,
+      step: 1,
+      parentCallId: 'root-call',
+      transport: 'code-mode',
+    })
+    const correlated = correlateDshGameTraces([{
+      traceId: 'core-2',
+      sessionId: 'dsh-session-2',
+      gameId: 'mock-game',
+      kind: 'game.observed',
+      createdAt: new Date(2_003).toISOString(),
+      detail: { requestId: 'root-call:code:0', reason: 'post-action' },
+    }], sessionTraces)
+    expect(correlated[0]?.detail).toMatchObject({ turn: 4, step: 1, callId: 'root-call:code:0' })
+  })
+
+  it('accepts only measurement facts from product diagnostic records', () => {
+    expect(normalizeProductDiagnostic({
+      schemaVersion: 1,
+      id: 'diagnostic-1',
+      kind: 'voice.latency',
+      sessionId: 'session-1',
+      gameId: 'oni',
+      interactionId: 'interaction-1',
+      createdAt: '2026-08-26T00:00:00.000Z',
+      detail: { asrMs: 80, ttsMs: 120, source: 'voice', transcript: 'must not cross product boundary', nested: { private: true } },
+    })).toEqual({
+      id: 'diagnostic-1',
+      kind: 'voice.latency',
+      sessionId: 'session-1',
+      gameId: 'oni',
+      interactionId: 'interaction-1',
+      createdAt: '2026-08-26T00:00:00.000Z',
+      detail: { asrMs: 80, ttsMs: 120, source: 'voice' },
+    })
+    expect(normalizeProductDiagnostic({ schemaVersion: 1, kind: 'unknown', detail: {} })).toBeUndefined()
+  })
+
+  it('installs, lists, loads and safely uninstalls a built Game Pack', async () => {
+    const temporary = await mkdtemp(join(tmpdir(), 'ai-game-pack-'))
+    const source = join(temporary, 'source')
+    const registry = new GamePackRegistry(join(temporary, 'installed'))
+    try {
+      await mkdir(join(source, 'dist'), { recursive: true })
+      await mkdir(join(source, 'content'), { recursive: true })
+      await writeFile(join(source, 'dist', 'client.js'), 'export {}\n')
+      await writeFile(join(source, 'content', 'story.md'), '# Story\n')
+      await writeFile(join(source, 'game-pack.json'), `${JSON.stringify({
+        schemaVersion: 1,
+        id: 'test-pack',
+        version: '1.0.0',
+        displayName: 'Test Pack',
+        adapter: { id: 'test-pack.adapter', entry: 'dist/client.js', protocolVersion: '1.0' },
+        content: { story: 'content/story.md' },
+        permissions: ['game.observe'],
+      }, null, 2)}\n`)
+
+      const installed = await registry.install(source)
+      expect(installed.manifest.id).toBe('test-pack')
+      expect(await registry.list()).toHaveLength(1)
+      expect(await registry.loadContent('test-pack')).toEqual({ story: '# Story\n' })
+      await expect(registry.uninstall('test-pack', '2.0.0')).rejects.toThrow(/version changed/)
+      expect(await registry.uninstall('test-pack', '1.0.0')).toBe(true)
+      expect(await registry.list()).toEqual([])
+    } finally {
+      await rm(temporary, { recursive: true, force: true })
+    }
+  })
+
+  it('runs the reusable Adapter conformance suite against authoritative state and actions', async () => {
+    const adapter = new MockGameAdapter()
+    const report = await assertAdapterConformance(adapter, {
+      expectedGameId: 'mock-game',
+      actionCases: [{ capability: 'game.move', arguments: { x: 1, y: 1 }, expectOk: true }],
+    })
+    expect(report.ok).toBe(true)
+    expect(report.checks.map(check => check.name)).toEqual(['hello', 'observe', 'action:0:game.move'])
   })
 
   it('never persists Agent analysis text in Core Trace', async () => {

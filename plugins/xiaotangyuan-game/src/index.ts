@@ -16,8 +16,10 @@ import { MemoryService } from './runtime/memory/memory-service.js'
 import { registerMemoryTools } from './tools/memory-tools.js'
 import { SkillStore } from './runtime/skills/skill-store.js'
 import { SkillService } from './runtime/skills/skill-service.js'
+import { XiaoTangYuanLearningService } from './runtime/learning-service.js'
 
 export const name = 'dsh-xiaotangyuan-game'
+export const provide = 'xiaotangyuanLearning'
 export const inject = ['agentDefaultModel', 'agents', 'attachments', 'credentials', 'llm', 'sessions', 'tools']
 
 export function apply(ctx: Context, config: Config = {}): void {
@@ -25,6 +27,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   const feedback = resolved.feedback.enabled ? new SignedFeedbackClient(ctx, resolved.feedback) : undefined
   const memory = resolved.memory.enabled ? new MemoryService(ctx, resolved.memory) : undefined
   const skills = resolved.skills.enabled ? new SkillService(new SkillStore(resolved.skills)) : undefined
+  new XiaoTangYuanLearningService(ctx, memory, skills)
   registerGameTools(ctx, feedback, resolved.installers.dontStarve)
   if (memory !== undefined) registerMemoryTools(ctx, memory)
 
@@ -73,6 +76,11 @@ export function apply(ctx: Context, config: Config = {}): void {
 }
 
 export type { Config } from './config.js'
+export { XiaoTangYuanLearningService } from './runtime/learning-service.js'
+export type { ProductLearningSnapshot } from './runtime/learning-service.js'
+export type { GameAtomExecutor, SkillProgram, SkillRecord, SkillRunResult } from './runtime/skills/contracts.js'
+export { SkillService } from './runtime/skills/skill-service.js'
+export { SkillStore } from './runtime/skills/skill-store.js'
 export type { FeedbackReceipt, FeedbackReport, FeedbackSubmission } from './runtime/feedback/contracts.js'
 export type { AdapterHello, GameAtomDefinition, GameChatContext, GameChatRequest } from './protocol/game.js'
 export type { RpcFailure, RpcRequest, RpcSuccess } from './protocol/json-rpc.js'

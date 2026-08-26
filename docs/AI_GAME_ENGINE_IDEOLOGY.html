@@ -707,7 +707,7 @@
         <h1 id="hero-title"><span class="gradient-text">AI-Native</span><br>Game Harness</h1>
         <p class="hero-copy">
           一套面向 <strong>AI 原生与 AI 连接型游戏</strong> 的可视化承载与编排系统：复用 DeepSeek Harness 的模型、Agent、工具、会话和插件能力，再补上游戏连接、安装、记忆、视觉、语音与安全边界。
-          当前源码已统一到一个仓库：DSH Session 是默认 Agent 主链，Game Harness Core 与 Adapter Protocol 承载游戏边界；游戏版统一使用本机 <strong>33145</strong>，星露谷与饥荒按 V 说话，缺氧由 Mod 用 Q 控制 Harness 录音。《缺氧》无游戏协议测试和游戏侧分段分析已经完成，真实游戏最终验收与正式签名 Release 仍在推进。
+          当前源码已统一到一个仓库：DSH Session 是默认 Agent 主链，Game Harness Core 与 Adapter Protocol 承载游戏边界；诊断页已经能关联 Session、Tool、Action、语音分段耗时与重连，并导出脱敏 Trace。Game Pack 注册表、第三方 Adapter Starter 与协议体检也已落地；真实游戏最终验收、第三方可信启动与正式签名 Release 仍在推进。
         </p>
         <div class="actions">
           <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看新项目 ↗</a>
@@ -1010,7 +1010,7 @@
         <article class="feature card">
           <div class="feature-icon">APP</div>
           <h3>Windows 桌面开发包</h3>
-          <p>Electron 已能启动内置 DSH、隔离用户 Profile、装配小汤圆 <span class="mono">0.7.7</span> 和独立 ONI Adapter <span class="mono">0.1.5</span>，并生成 NSIS <span class="mono">.exe</span>。星露谷/饥荒按 <span class="mono">V</span>，缺氧按 <span class="mono">Q</span>；目前仍是未签名的本地开发产物。</p>
+          <p>Electron 已能启动内置 DSH、隔离用户 Profile、装配小汤圆 <span class="mono">0.7.7</span> 和独立 ONI Adapter <span class="mono">0.1.6</span>，并生成 NSIS <span class="mono">.exe</span>。桌面版会注入动态 Adapter Protocol 地址，使缺氧动作统一经过 Harness Core 与可审计 Trace。星露谷/饥荒按 <span class="mono">V</span>，缺氧按 <span class="mono">Q</span>；目前仍是未签名的本地开发产物。</p>
         </article>
         <article class="feature card">
           <div class="feature-icon">WIRE</div>
@@ -1020,11 +1020,11 @@
       </div>
       <div class="state-law card">
         <strong>产品接线已完成，下一步验收真实游戏</strong>
-        <span>小汤圆已经验证 DSH 模型选择、Credentials、Agent Session、Tool Calling、流式回复、记忆和多模态；产品页已接入 DSH Session 公开文本流与 Core Trace。下一步是用真实游戏验收完整链路，不能跳过现有能力去重写模型客户端。</span>
+        <span>小汤圆已经验证 DSH 模型选择、Credentials、Agent Session、Tool Calling、流式回复、记忆和技能试跑；默认产品现已用同一个 DSH Session 接回这两套学习基础：记忆按 gameId + saveId 召回并后台提取，技能只能由 Adapter action 组成且真实试跑全成功后保存。剧情、等级和角色成长仍与自学习分开。</span>
       </div>
       <div class="state-law card">
         <strong>当前已实现</strong>
-        <span><span class="mono">desktop:start</span> 与 <span class="mono">desktop:dsh</span> 启动内置 DSH 产品链；<span class="mono">desktop:demo</span> 只承担确定性测试。<span class="mono">integration:xiaotangyuan</span> 已用随机端口、本地模拟模型和双插件验证 Web、Gateway、结构化状态与对话并自动清理进程。缺氧 Bridge <span class="mono">0.6.7</span> 已加入 Q 键录音生命周期和精灵旁状态提示，但尚未发布，也未完成真实存档验收。</span>
+        <span><span class="mono">desktop:start</span> 与 <span class="mono">desktop:dsh</span> 启动内置 DSH 产品链；<span class="mono">game-learning-binding</span> 复用小汤圆唯一的 MemoryService 与 SkillService，不建立第二套 Agent 或数据库。Desktop 新增“自学习”页，分别显示当前存档记忆、已验证技能与失败尝试；真实存档的重启召回和技能重放仍需现场验收。</span>
       </div>
     </section>
 
@@ -1039,7 +1039,7 @@
       <div class="surface-grid">
         <article class="feature card"><div class="feature-icon">APP</div><h3>apps / runtime</h3><p><span class="mono">apps/desktop</span> 管理窗口、产品 IPC 与内置 DSH 子进程；<span class="mono">runtime/dsh-profile</span> 固定上游版本、默认配置与插件装配，不自研另一套通用 Runtime。</p></article>
         <article class="feature card"><div class="feature-icon">BIND</div><h3>packages / dsh-binding</h3><p>默认产品接线：把 DSH Agent 的游戏 Tool Call 映射为 Harness Core action，并把 ActionResult 与新 Observation 返回 DSH Agent。</p></article>
-        <article class="feature card"><div class="feature-icon">PLUG</div><h3>plugins</h3><p>Game Core、Transport、Memory、Media、UI、Installer 等跨游戏能力只实现一次，并遵循 DSH 的注入、事件和可逆生命周期。</p></article>
+        <article class="feature card"><div class="feature-icon">PLUG</div><h3>plugins</h3><p>Game Core、Transport、Learning Binding 与小汤圆现有 Memory、Skill、Media、Installer 能力遵循 DSH 的注入、事件和可逆生命周期；学习接线不拥有第二套 Session。</p></article>
         <article class="feature card"><div class="feature-icon">WIRE</div><h3>contracts</h3><p>独立定义 Harness 与 C#、Lua、C++ Mod 共同使用的 Bridge 消息和 Schema，避免线协议反向依赖某个 TypeScript 插件。</p></article>
         <article class="feature card"><div class="feature-icon">GAME</div><h3>games / &lt;game&gt;</h3><p>同一游戏的 Harness Plugin、薄 Native Bridge 与 Pack 放在一起，确保它们共同测试、固定兼容范围并作为一个 Game Pack 发行。</p></article>
         <article class="feature card"><div class="feature-icon">TEST</div><h3>tests</h3><p>分别验证协议兼容、DSH 插件装配、持久 Session 事件与游戏 Trace 关联、最终游戏状态，明确区分“能够构建”和“真的执行成功”。</p></article>
@@ -1057,11 +1057,12 @@
           <div class="section-kicker">07 · Product surfaces</div>
           <h2>引擎必须“看得见”</h2>
         </div>
-        <p class="section-summary">产品专属对话页、分析页和 Adapter 中心已经共享 DSH Agent 会话与 Harness Core 的可审计游戏 Trace；DSH Web 继续提供底层会话 API，但产品窗口不再跳转到通用 DSH 页面。</p>
+        <p class="section-summary">产品专属对话页、自学习页、分析页和 Adapter 中心共享同一个 DSH Agent 会话与 Harness Core 游戏 Trace；自学习页把存档记忆、已验证技能和失败尝试分开展示，不暴露隐藏思维。</p>
       </div>
       <div class="surface-grid">
         <article class="feature card"><div class="feature-icon">DSH</div><h3>已验证：模型与会话</h3><p>内置 DSH 已提供模型选择、Credentials、Agent Session、Tool Calling 和流式回复；产品继续复用，不另建模型 Runtime。</p></article>
-        <article class="feature card"><div class="feature-icon">NOW</div><h3>已接线：游戏产品页面</h3><p>对话页实时消费 DSH Session 公开文本；分析页从 DSH 历史与官方 sessionStats 投影读取通用事实和耗时，再合并 Core 的 action-result 与游戏侧 Trace，并把 Core 校验、Adapter 往返、Bridge 往返、游戏内执行和动作后观察按同一 requestId 串联；Adapter 中心消费 Core Snapshot。</p></article>
+        <article class="feature card"><div class="feature-icon">NOW</div><h3>已接线：游戏产品页面</h3><p>对话页实时消费 DSH Session 公开文本，并使用游戏展示器注册表渲染状态：未知 Adapter 默认获得通用 observation 查看器，缺氧与 Mock Game 可有专属摘要。分析页沿 Session → 回合 → 步骤 → Tool callId → 游戏 requestId 精确定位，显示游戏动作四段耗时和语音 ASR / 首字 / Agent / TTS 分段；支持失败、超时、重连、语音与动作筛选，并导出不含聊天正文、转写和隐藏思维的脱敏诊断。Adapter 中心同时展示实时连接与已安装 Game Pack。</p></article>
+        <article class="feature card"><div class="feature-icon">SDK</div><h3>已提供：第三方接入起点</h3><p><span class="mono">examples/adapter-starter</span> 是可复制的 Adapter 与 Game Pack 模板，<span class="mono">adapter-conformance</span> 检查 hello、observe、action/result 和 revision；Game Pack 注册表负责限额校验、事务安装、发现和版本安全卸载。安装不等于信任，权限授权、签名和第三方启动策略完成前不会自动执行未知入口。</p></article>
         <article class="feature card"><div class="feature-icon">SAFE</div><h3>只展示可审计事实</h3><p><span class="mono">reasoning-delta</span> 与 Driver <span class="mono">analysis</span> 在产品边界过滤；页面只展示调用参数、结果、错误码、revision、耗时和连接状态。</p></article>
       </div>
     </section>
@@ -1093,8 +1094,8 @@
       <div class="timeline">
         <article class="phase card"><div class="phase-num">SOURCE · 已迁入</div><h3>统一源码资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 1 · 已完成</div><h3>跑通最小闭环</h3><ul><li>固定 DSH Runtime Profile 与插件版本</li><li>实现 Game Core、Transport 与 Fake Harness Plugin</li><li>完成 DSH 事件、游戏侧 Trace 和权威状态验收</li></ul></article>
-        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>真实游戏端到端验收</h3><ul><li>Electron、专属页面和 Windows 安装包已可构建</li><li>内置 DSH、双插件和本地模型冒烟闭环已自动化</li><li>用真实游戏核对 Session、Action、分段耗时与重连</li></ul></article>
-        <article class="phase card"><div class="phase-num">PHASE 3</div><h3>开放开发生态</h3><ul><li>多语言 Native Bridge SDK</li><li>Game Pack 签名、权限与兼容范围</li><li>官方目录、测试与认证</li></ul></article>
+        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>真实游戏端到端验收</h3><ul><li>Electron、诊断筛选与脱敏导出已接线</li><li>Game Pack 注册表、Adapter Starter 与协议体检已落地</li><li>用真实游戏核对状态、文字、语音、Action、分段耗时与重连</li></ul></article>
+        <article class="phase card"><div class="phase-num">PHASE 3</div><h3>可信开放生态</h3><ul><li>多语言 Native Bridge SDK 与开发者 CLI</li><li>Game Pack 权限授权、可信启动、签名与兼容范围</li><li>官方目录、真实游戏测试与认证</li></ul></article>
       </div>
     </section>
 

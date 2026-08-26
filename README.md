@@ -10,7 +10,7 @@ AI Native Game Harness 是一个面向 AI 原生与 AI 连接型游戏、基于 
 
 ```text
 apps/
-  desktop/          对话页、分析页、Adapter 中心
+  desktop/          对话页、自学习页、分析页、Adapter 中心
 
 packages/
   harness-core/     Adapter 路由、动作校验、revision 与游戏侧 Trace
@@ -45,6 +45,16 @@ pnpm desktop:demo
 - **Game Adapter**：运行在游戏侧或独立进程，提供观察、动作、事件和权威结果。
 - **Game Pack**：分发剧情、角色、玩法数据、资源和 Adapter 入口清单。
 - **Standalone Agent Driver**：仅用于 Mock 测试或经过 ADR 替换门槛确认的具体缺口。
+
+## 自学习边界
+
+自学习不是另一套 Agent，也不是角色等级系统。默认产品继续使用同一个 DSH Session，只增加两条相互独立的闭环：
+
+- **记忆学习**：每轮由 DSH Tool 按 `gameId + saveId` 召回；回复完成后使用当前 DSH 默认模型在后台提取少量长期事实。当前 Observation 和真实 Tool 结果永远优先于旧记忆。
+- **技能学习**：候选 `xiaotangyuan-skill-v1` 程序只能调用当前 Adapter 已声明的 action capability，并通过 Harness Core 在真实游戏中逐步试跑；整段成功才保存，失败只保留诊断记录。
+- **产品可见性**：Desktop“自学习”页分开展示当前存档记忆、该游戏已学技能和最近失败尝试。剧情、角色成长、等级与 Bug 技能不属于本阶段。
+
+默认接线是 `DSH Session → game-learning-binding → 小汤圆现有 MemoryService / SkillService → Harness Core → Adapter Protocol`。它复用已验证的存储和门禁，不复制第二份学习数据库。
 
 ## DSH-first 主路径
 
@@ -86,12 +96,7 @@ AI Native Game Harness/
 ├─ plugins/                     # 跨游戏复用的标准 DSH 插件
 │  ├─ game-core/                # 游戏上下文、状态与统一领域服务
 │  ├─ game-transport/           # Bridge 连接、请求、事件、取消和健康检查
-│  ├─ adapter-manager/          # 游戏发现、连接、权限和能力管理
-│  ├─ game-memory/              # 按 gameId + saveId 隔离的游戏记忆
-│  ├─ game-media/               # 语音、视觉与媒体通道
-│  ├─ game-ui/                  # 对话、分析和连接诊断界面
-│  ├─ game-installer/           # 游戏与 Mod 安装定位
-│  ├─ game-bundle/              # Game Pack 安装、校验与更新
+│  ├─ game-learning-binding/    # 默认 DSH Session 与现有记忆/技能服务接线
 │  └─ xiaotangyuan-game/        # 已迁入的多游戏 DSH 插件与当前产品能力
 ├─ contracts/                   # 跨进程线协议与 Schema；它是契约，不是插件
 ├─ games/
@@ -187,12 +192,17 @@ pnpm check
 - 独立 Platform Runtime 原型已能托管 Harness Core 和 WebSocket Adapter Host，并通过安全 IPC 驱动对话页、分析页和 Adapter 中心；它是测试夹具，不是目标默认 AI Runtime；
 - Agent Driver 已改为双向动作循环：Agent 只提出动作，Core 统一校验、执行并把结果和新状态回传；
 - `game-core + game-transport + dsh-binding` 已装入真实 DSH Agent 进程：模型能调用 Adapter 动作，Core 会把 `ActionResult` 与最新权威 Observation 返回 Agent；
-- Desktop 产品窗口现在常驻：对话页直接消费 DSH Session 的公开文本流，分析页从 DSH Session 历史与 `sessionStats` 投影读取回合/步骤/Tool 事实和官方耗时，再合并 Core 游戏侧 Trace，并分开显示 Core 校验、Adapter 往返、Bridge 往返、游戏内执行和动作后状态刷新；Adapter 中心显示连接、能力、协议版本和重连状态；
+- Desktop 产品窗口现在常驻：对话页直接消费 DSH Session 的公开文本流，分析页保留 DSH 原生 `SessionId`、`turn`、`step` 和 `callId`，再用 Binding 原样复用的 `callId/requestId` 合并 Core 游戏侧 Trace；页面可沿 `Session → 回合 → 步骤 → Tool callId → 游戏 requestId` 定位一次动作，并分开显示 Core 校验、Adapter 往返、Bridge 往返、游戏内执行和动作后状态刷新；Adapter 中心显示连接、能力、协议版本和重连状态；
+- 对话页的游戏状态区已改为展示器注册表：未知游戏自动使用通用 observation 查看器，《缺氧》显示殖民地摘要，只有 Mock Game 保留金币地图；多个 Adapter 连接时可在 Adapter 中心切换当前游戏；
+- 分析页已加入失败、超时、重连、语音与动作筛选，能够搜索关联 id；语音链路记录 ASR、模型首字、Agent、TTS 和总耗时，诊断导出会脱敏并限制为最近 500 条 Trace，不包含聊天正文、语音转写或隐藏思维；
+- Desktop 已能从目录校验、安装、登记、替换和卸载 Game Pack；第三方可复制 `examples/adapter-starter`，并用 `adapter-conformance` 在 CI 中验证 hello、observe、action/result 与 revision；
+- 安装 Game Pack 当前不会自动执行未知第三方入口：Pack 启动、权限授权和签名策略在安全层落地前保持显式；
 - 模型 `reasoning-delta` 与 Standalone Driver 的 `analysis` 不进入产品 IPC 或 Core Trace；页面只记录事件类型、调用参数、结果、错误码、revision 和耗时；
 - `dsh-xiaotangyuan-game` 的本地 `0.7.7` Harness Plugin 已能打包、安装到隔离 DSH Profile、合并配置并真实启动 WebSocket Gateway；
 - 源码基线与桌面发行 Runtime 已统一固定为 DSH `0.1.1-rc.2`，端口使用 `33145`，不占用日常实例的 `32145`；
 - Electron 已恢复内置 DSH 为默认产品路径；`desktop:demo` 继续保留为不依赖模型的 Standalone 测试夹具；
 - 当前桌面游戏版会同时装配通用小汤圆插件和独立 ONI Adapter；两者仍是两个 DSH Bundle，独立插件安装场景不会被强制绑定；
+- 桌面产品会把动态 `adapterProtocolUrl` 注入 ONI Adapter；缺氧动作由 Adapter Protocol 进入 Harness Core 后再注册为 DSH Tools，不再绕过 Core 直接执行；
 - 桌面游戏版使用独立运行配置：星露谷和饥荒默认按住 `V` 语音；缺氧因游戏内 `V` 已占用，由 Mod 用 `Q` 发送 `voice.start` / `voice.stop`；通用插件源码默认键仍为 `F8`；
 - 流式 ASR 的中间转写和最终转写只在 Harness 内部送入 Agent，不再把玩家原话重复显示到游戏气泡；
 - 可在 Windows 本地构建 `.exe` 安装包，但尚未创建签名和正式 GitHub Release，因此 GitHub 暂无公开下载按钮。
@@ -211,7 +221,10 @@ pnpm check
 | 游戏版统一使用 `33145`；星露谷/饥荒按 `V`，缺氧按 `Q` | 已实现 |
 | 缺氧 C# Bridge `0.6.7` | 源码已构建，尚未发布 Release |
 | Windows NSIS `.exe` | 本地已构建，未签名、未发布 |
-| 产品专属对话页、分析页与 Adapter 中心 | 已接入 DSH Session + Core Snapshot；游戏动作四段耗时与 `requestId` 关联已进入分析页 |
+| 产品专属对话页、分析页与 Adapter 中心 | 已接入 DSH Session + Core Snapshot；`Session → turn → step → callId → requestId` 与游戏动作四段耗时已进入分析页；任意新 Adapter 可先用通用状态查看器 |
+| 脱敏诊断、筛选与语音分段耗时 | 已实现；导出最近最多 500 条 Trace，不导出聊天正文、转写和隐藏思维 |
+| Game Pack 安装注册表 | 已实现目录校验、事务安装、替换、发现和版本安全卸载；暂不自动执行第三方入口 |
+| 第三方 Adapter Starter 与协议体检 | 已实现；可复制模板，并以 conformance report 接入 CI |
 | 首个真实游戏 Game Pack 的最终游戏内验收 | 尚未完成 |
 | GitHub Release 与自动升级 | 尚未完成 |
 
@@ -254,9 +267,9 @@ pnpm smoke:dsh-product
 
 接下来按产品闭环继续：
 
-1. 在至少一个真实游戏存档中完成状态、文字、语音和动作闭环验收；
-2. 核对产品页的 Session、Tool/Action、revision、分段耗时和断线重连；
-3. 生成校验和并发布 GitHub Release。
+1. 按 [真实游戏端到端验收清单](docs/REAL_GAME_ACCEPTANCE.md) 在至少一个真实存档完成状态、文字、语音、动作、失败和重连闭环；
+2. 为第三方 Game Pack 增加权限授权、可信启动策略和签名验证，再允许 Desktop 启动其 Adapter 入口；
+3. 生成校验和并发布签名 GitHub Release。
 
 DSH 不自动追新，但可以受控升级。运行 `pnpm dsh:update:check` 查看候选版本，升级规则见 [UPGRADING_DSH.md](docs/UPGRADING_DSH.md)。
 

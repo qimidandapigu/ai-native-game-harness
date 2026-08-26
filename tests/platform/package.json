@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@ai-native-game-harness/adapter-protocol": "workspace:*",
+    "@ai-native-game-harness/adapter-conformance": "workspace:*",
     "@ai-native-game-harness/adapter-websocket": "workspace:*",
     "@ai-native-game-harness/dsh-binding": "workspace:*",
     "@ai-native-game-harness/game-pack": "workspace:*",

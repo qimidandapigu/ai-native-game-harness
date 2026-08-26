@@ -24,6 +24,10 @@ contextBridge.exposeInMainWorld('harnessDesktop', {
       }
     },
     reset: (gameId) => ipcRenderer.invoke('platform:reset', { gameId }),
+    exportDiagnostics: () => ipcRenderer.invoke('platform:export-diagnostics'),
+    listGamePacks: () => ipcRenderer.invoke('platform:list-game-packs'),
+    installGamePack: () => ipcRenderer.invoke('platform:install-game-pack'),
+    uninstallGamePack: (id, version) => ipcRenderer.invoke('platform:uninstall-game-pack', { id, version }),
     onSnapshot(callback) {
       const listener = (_event, snapshot) => callback(snapshot)
       ipcRenderer.on('platform-snapshot', listener)

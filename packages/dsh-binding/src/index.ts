@@ -23,7 +23,7 @@ export interface DshToolRegistry {
 export interface DshGameBindingOptions {
   /** Override the stable model-visible tool name when a product needs a custom namespace. */
   toolName?: (gameId: string, capability: AdapterCapability) => string
-  /** Override DSH session correlation. By default the calling Agent id is used. */
+  /** Override DSH session correlation. By default Agent.id, DSH's canonical SessionId, is used. */
   sessionId?: (exec: ToolRunContext) => string
 }
 

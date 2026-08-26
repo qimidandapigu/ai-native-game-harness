@@ -75,7 +75,8 @@ $runtimePackages = @(
   @{ Name = 'dsh-binding'; Source = (Join-Path $repoRoot 'packages/dsh-binding') },
   @{ Name = 'bridge-contract'; Source = (Join-Path $repoRoot 'contracts/bridge-v1') },
   @{ Name = 'game-core'; Source = (Join-Path $repoRoot 'plugins/game-core') },
-  @{ Name = 'game-transport'; Source = (Join-Path $repoRoot 'plugins/game-transport') }
+  @{ Name = 'game-transport'; Source = (Join-Path $repoRoot 'plugins/game-transport') },
+  @{ Name = 'game-learning-binding'; Source = (Join-Path $repoRoot 'plugins/game-learning-binding') }
 )
 foreach ($runtimePackageEntry in $runtimePackages) {
   $runtimePackageTarget = Join-Path $runtimeScopeRoot $runtimePackageEntry.Name
@@ -91,7 +92,7 @@ $appModules = Join-Path $appRoot 'node_modules'
 $scopeRoot = Join-Path $appModules '@ai-native-game-harness'
 New-Item -ItemType Directory -Force -Path $scopeRoot | Out-Null
 
-foreach ($packageName in @('adapter-protocol', 'adapter-websocket', 'harness-core')) {
+foreach ($packageName in @('adapter-protocol', 'adapter-websocket', 'harness-core', 'game-pack')) {
   $packageRoot = Join-Path $repoRoot "packages/$packageName"
   $packageTarget = Join-Path $scopeRoot $packageName
   New-Item -ItemType Directory -Force -Path $packageTarget | Out-Null
@@ -116,6 +117,7 @@ $stagePackage = [ordered]@{
   main = 'src/main.mjs'
   dependencies = [ordered]@{
     '@ai-native-game-harness/adapter-websocket' = '0.1.0'
+    '@ai-native-game-harness/game-pack' = '0.1.0'
     '@ai-native-game-harness/harness-core' = '0.1.0'
     'ws' = '8.21.3'
   }

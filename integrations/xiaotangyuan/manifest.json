@@ -19,7 +19,7 @@
   },
   "oniAdapter": {
     "packageName": "@qimidandapigu/oni-adapter",
-    "expectedVersion": "0.1.5",
+    "expectedVersion": "0.1.6",
     "source": "games/oxygen-not-included/adapter"
   },
   "stable": {

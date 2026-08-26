@@ -405,7 +405,13 @@ export class GameGateway implements VoiceInteractionHandler {
     }
   }
 
-  async respond(processId: number, transcript: string, _signal: AbortSignal): Promise<{ reply: string, speechPlayed: boolean }> {
+  async respond(processId: number, transcript: string, _signal: AbortSignal): Promise<{
+    reply: string
+    speechPlayed: boolean
+    sessionId: string
+    interactionId: string
+    gameId: string
+  }> {
     const connection = this.connectionForProcess(processId)
     if (connection?.session === undefined) throw new Error('前台游戏没有连接到小汤圆 Gateway')
     this.markInteraction(connection)
@@ -418,7 +424,13 @@ export class GameGateway implements VoiceInteractionHandler {
     const speechPlayed = await this.finishSpeechReply(processId, result.interactionId, result.reply)
     this.notify(connection, 'assistant.present', { text: result.reply, source: 'voice' })
     this.finishTextStream(connection, result.interactionId, result.reply, 'voice')
-    return { reply: result.reply, speechPlayed }
+    return {
+      reply: result.reply,
+      speechPlayed,
+      sessionId: result.sessionId,
+      interactionId: result.interactionId,
+      gameId: connection.adapter?.gameId ?? 'unknown',
+    }
   }
 
   failed(processId: number, message: string): void {

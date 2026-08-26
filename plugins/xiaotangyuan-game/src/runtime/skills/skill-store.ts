@@ -71,6 +71,13 @@ export class SkillStore {
     return this.document.skills.filter(skill => skill.gameId === gameId && skill.status === 'active')
   }
 
+  listLearningAttempts(gameId?: string, limit = 100): SkillLearningAttempt[] {
+    return this.document.learningAttempts
+      .filter(attempt => gameId === undefined || attempt.gameId === gameId)
+      .slice(-Math.max(0, limit))
+      .map(attempt => structuredClone(attempt))
+  }
+
   upsert(record: SkillRecord): SkillRecord {
     if (!/^[a-z0-9][a-z0-9._-]{2,99}$/.test(record.id)) throw new Error('技能 ID 无效')
     if (record.name.trim() === '' || record.description.trim() === '') throw new Error('技能名称和描述不能为空')

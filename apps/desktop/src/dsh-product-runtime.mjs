@@ -2,6 +2,16 @@ import { randomUUID } from 'node:crypto'
 import WebSocket from 'ws'
 
 const EMPTY_CORE_SNAPSHOT = Object.freeze({ adapters: [], observations: [], traces: [] })
+const EMPTY_LEARNING_SNAPSHOT = Object.freeze({
+  schemaVersion: 1,
+  updatedAt: '',
+  enabled: { memory: false, skills: false },
+  memories: [],
+  playStatistics: [],
+  skills: [],
+  skillAttempts: [],
+})
+const PRODUCT_TURN_PREFIX = 'AI_GAME_HARNESS_PRODUCT_TURN_V1\n'
 const EMPTY_SESSION_STATS = Object.freeze({
   turns: 0,
   steps: 0,
@@ -14,9 +24,28 @@ const EMPTY_SESSION_STATS = Object.freeze({
 })
 const MAX_TRACES = 500
 const CHAT_TIMEOUT_MS = 10 * 60_000
+const DIAGNOSTIC_KINDS = new Set(['game-agent.latency', 'voice.latency', 'voice.failed'])
+const DIAGNOSTIC_DETAIL_KEYS = {
+  'game-agent.latency': new Set(['source', 'provider', 'model', 'modelSelectionMs', 'captureMs', 'attachmentMs', 'agentReadyMs', 'firstTextMs', 'agentWaitMs', 'totalMs']),
+  'voice.latency': new Set(['source', 'processId', 'asrMs', 'agentMs', 'ttsMs', 'totalMs', 'speechStreamed']),
+  'voice.failed': new Set(['source', 'processId', 'stage', 'errorName', 'timeout', 'elapsedMs']),
+}
 
 function asErrorMessage(error) {
   return error instanceof Error ? error.message : String(error)
+}
+
+export function productTurnContent(message) {
+  return [
+    PRODUCT_TURN_PREFIX.trimEnd(),
+    'This is an AI Native Game Harness Desktop game turn.',
+    'Before answering, call game_learning_memory_recall exactly once with the original PLAYER_MESSAGE as query when that tool is available.',
+    'Use recalled memory only as possibly stale context. Current game observation and successful tool results are authoritative.',
+    'If the player asks you to learn a repeatable game procedure, call game_learning_skill_catalog before game_learning_skill_learn; only report it learned when learned=true.',
+    'If the player asks to run a learned procedure, call game_learning_skill_catalog before game_learning_skill_run and only report success when success=true.',
+    'PLAYER_MESSAGE:',
+    message,
+  ].join('\n')
 }
 
 function safeJson(text) {
@@ -51,7 +80,11 @@ export function normalizeSessionStats(value) {
   return normalized
 }
 
-function dshTraceFromEvent(event, sessionId, gameId) {
+function callContextKey(sessionId, callId) {
+  return `${sessionId}\u0000${callId}`
+}
+
+function dshTraceFromEvent(event, sessionId, gameId, callContexts = new Map()) {
   let kind
   let detail
   switch (event?.type) {
@@ -70,20 +103,62 @@ function dshTraceFromEvent(event, sessionId, gameId) {
     case 'tool/call':
       kind = 'dsh.tool.called'
       detail = {
+        turn: event.data.turn,
+        step: event.data.step,
         callId: String(event.data.callId),
         tool: event.data.name,
         arguments: safeJson(event.data.arguments),
       }
+      callContexts.set(String(event.data.callId), detail)
       break
     case 'tool/result': {
       const callId = String(event.data.message?.source?.callId ?? event.data.message?.content?.[0]?.toolCallId ?? '')
       const isError = Boolean(event.data.error || event.data.message?.content?.[0]?.isError)
       kind = 'dsh.tool.result'
       detail = {
+        turn: event.data.turn,
+        step: event.data.step,
         callId,
         ok: !isError,
         ...(event.data.error?.code ? { errorCode: event.data.error.code } : {}),
-        result: contentText(event.data.message?.content),
+        result: contentText(event.data.message?.content?.[0]?.content),
+      }
+      break
+    }
+    case 'tool/code-dispatch-start': {
+      const callId = String(event.data.subCallId)
+      const parentCallId = String(event.data.parentCallId)
+      const parent = callContexts.get(parentCallId) ?? callContexts.get(String(event.data.rootCallId))
+      kind = 'dsh.tool.called'
+      detail = {
+        ...(parent?.turn === undefined ? {} : { turn: parent.turn }),
+        ...(parent?.step === undefined ? {} : { step: parent.step }),
+        callId,
+        parentCallId,
+        rootCallId: String(event.data.rootCallId),
+        tool: event.data.name,
+        arguments: event.data.arguments,
+        transport: 'code-mode',
+      }
+      callContexts.set(callId, detail)
+      break
+    }
+    case 'tool/code-dispatch': {
+      const callId = String(event.data.subCallId)
+      const parentCallId = String(event.data.parentCallId)
+      const context = callContexts.get(callId)
+        ?? callContexts.get(parentCallId)
+        ?? callContexts.get(String(event.data.rootCallId))
+      kind = 'dsh.tool.result'
+      detail = {
+        ...(context?.turn === undefined ? {} : { turn: context.turn }),
+        ...(context?.step === undefined ? {} : { step: context.step }),
+        callId,
+        parentCallId,
+        rootCallId: String(event.data.rootCallId),
+        ok: !event.data.isError,
+        result: contentText(event.data.content),
+        transport: 'code-mode',
       }
       break
     }
@@ -104,6 +179,79 @@ function dshTraceFromEvent(event, sessionId, gameId) {
   }
 }
 
+/** Project DSH's durable event log without dropping its native turn/step identity. */
+export function projectDshTraces(events, sessionId, gameId) {
+  const callContexts = new Map()
+  return events
+    .map((event) => dshTraceFromEvent(event, sessionId, gameId, callContexts))
+    .filter(Boolean)
+}
+
+/**
+ * Join DSH Tool traces to Core/Adapter traces. DSH's callId is deliberately
+ * reused as the game requestId by dsh-binding, so no timestamp guessing is
+ * involved and concurrent calls remain distinguishable.
+ */
+export function correlateDshGameTraces(coreTraces, sessionTraces) {
+  const contexts = new Map()
+  for (const trace of sessionTraces) {
+    if (trace.kind !== 'dsh.tool.called' && trace.kind !== 'dsh.tool.result') continue
+    const callId = String(trace.detail?.callId ?? '')
+    if (!callId) continue
+    const previous = contexts.get(callContextKey(trace.sessionId, callId)) ?? {}
+    contexts.set(callContextKey(trace.sessionId, callId), {
+      ...previous,
+      ...(trace.detail?.turn === undefined ? {} : { turn: trace.detail.turn }),
+      ...(trace.detail?.step === undefined ? {} : { step: trace.detail.step }),
+      ...(trace.detail?.parentCallId === undefined ? {} : { parentCallId: trace.detail.parentCallId }),
+      ...(trace.detail?.rootCallId === undefined ? {} : { rootCallId: trace.detail.rootCallId }),
+    })
+  }
+
+  return coreTraces.map((trace) => {
+    const rawCallId = trace.detail?.callId ?? trace.detail?.requestId
+    if (rawCallId === undefined || rawCallId === null || rawCallId === '') return trace
+    const callId = String(rawCallId)
+    const context = contexts.get(callContextKey(trace.sessionId, callId))
+    if (!context) return trace
+    return {
+      ...trace,
+      detail: {
+        ...trace.detail,
+        callId,
+        ...context,
+      },
+    }
+  })
+}
+
+export function normalizeProductDiagnostic(value) {
+  if (!value || typeof value !== 'object' || value.schemaVersion !== 1 || !DIAGNOSTIC_KINDS.has(value.kind)) return undefined
+  const detail = {}
+  const allowedDetailKeys = DIAGNOSTIC_DETAIL_KEYS[value.kind]
+  if (value.detail && typeof value.detail === 'object' && !Array.isArray(value.detail)) {
+    for (const [key, candidate] of Object.entries(value.detail)) {
+      if (!allowedDetailKeys.has(key)) continue
+      if (typeof candidate === 'number' && Number.isFinite(candidate)) detail[key] = Math.max(0, candidate)
+      else if (typeof candidate === 'boolean') detail[key] = candidate
+      else if (typeof candidate === 'string') detail[key] = candidate.slice(0, 200)
+    }
+  }
+  const id = typeof value.id === 'string' && value.id ? value.id.slice(0, 200) : randomUUID()
+  const createdAt = typeof value.createdAt === 'string' && Number.isFinite(Date.parse(value.createdAt))
+    ? new Date(value.createdAt).toISOString()
+    : new Date().toISOString()
+  return {
+    id,
+    kind: value.kind,
+    createdAt,
+    sessionId: typeof value.sessionId === 'string' && value.sessionId ? value.sessionId.slice(0, 200) : undefined,
+    gameId: typeof value.gameId === 'string' && value.gameId ? value.gameId.slice(0, 200) : undefined,
+    interactionId: typeof value.interactionId === 'string' && value.interactionId ? value.interactionId.slice(0, 200) : undefined,
+    detail,
+  }
+}
+
 export class DshProductRuntime {
   #baseUrl
   #cwd
@@ -113,6 +261,7 @@ export class DshProductRuntime {
   #sessionId
   #agentPreset
   #coreSnapshot = EMPTY_CORE_SNAPSHOT
+  #learningSnapshot = EMPTY_LEARNING_SNAPSHOT
   #sessionTraces = []
   #listeners = new Set()
   #streamTasks = []
@@ -128,6 +277,7 @@ export class DshProductRuntime {
   #projectionSeq = -1
   #lastSessionSeq = -1
   #refreshTask
+  #callContexts = new Map()
 
   constructor({ baseUrl, cwd, adapterUrl, fetchImpl = fetch, WebSocketImpl = WebSocket }) {
     this.#baseUrl = baseUrl.replace(/\/$/, '')
@@ -170,11 +320,13 @@ export class DshProductRuntime {
   }
 
   snapshot() {
-    const traces = [...this.#coreSnapshot.traces, ...this.#sessionTraces]
+    const coreTraces = correlateDshGameTraces(this.#coreSnapshot.traces, this.#sessionTraces)
+    const traces = [...coreTraces, ...this.#sessionTraces]
       .sort((left, right) => String(left.createdAt).localeCompare(String(right.createdAt)))
       .slice(-MAX_TRACES)
     return structuredClone({
       ...this.#coreSnapshot,
+      learning: this.#learningSnapshot,
       traces,
       runtime: {
         kind: 'dsh',
@@ -204,6 +356,31 @@ export class DshProductRuntime {
     this.#publish()
   }
 
+  attachLearningSnapshot(snapshot) {
+    if (!snapshot || snapshot.schemaVersion !== 1 || !snapshot.enabled
+      || !Array.isArray(snapshot.memories) || !Array.isArray(snapshot.skills)
+      || !Array.isArray(snapshot.skillAttempts) || !Array.isArray(snapshot.playStatistics)) return
+    this.#learningSnapshot = structuredClone(snapshot)
+    this.#publish()
+  }
+
+  attachDiagnosticRecord(value) {
+    const record = normalizeProductDiagnostic(value)
+    if (!record) return false
+    this.#appendSessionTrace({
+      traceId: `diagnostic:${record.id}`,
+      sessionId: record.sessionId ?? this.#sessionId ?? 'dsh-diagnostic',
+      gameId: record.gameId ?? this.#coreSnapshot.adapters.find((adapter) => adapter.status === 'connected')?.gameId ?? 'dsh-session',
+      kind: record.kind,
+      createdAt: record.createdAt,
+      detail: {
+        ...record.detail,
+        ...(record.interactionId === undefined ? {} : { interactionId: record.interactionId }),
+      },
+    })
+    return true
+  }
+
   async chat({ message }, onEvent = () => undefined) {
     if (!this.#sessionId) throw new Error('DSH Session 尚未创建。')
     if (this.#pendingChat) throw new Error('DSH Session 正在处理上一条消息。')
@@ -225,7 +402,7 @@ export class DshProductRuntime {
       const result = await this.#rpc('session.prompt', {
         sessionId: this.#sessionId,
         mode: 'queue',
-        content: [{ type: 'text', text: message }],
+        content: [{ type: 'text', text: productTurnContent(message) }],
         clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       })
       if (result.command) {
@@ -375,7 +552,7 @@ export class DshProductRuntime {
     if (typeof event?.seq === 'number' && event.seq <= this.#lastSessionSeq) return
     if (typeof event?.seq === 'number') this.#lastSessionSeq = event.seq
     const gameId = this.#coreSnapshot.adapters.find((adapter) => adapter.status === 'connected')?.gameId ?? 'dsh-session'
-    const trace = dshTraceFromEvent(event, this.#sessionId, gameId)
+    const trace = dshTraceFromEvent(event, this.#sessionId, gameId, this.#callContexts)
     if (trace) this.#appendSessionTrace(trace)
     this.#handlePendingSessionEvent(event)
   }
@@ -458,12 +635,18 @@ export class DshProductRuntime {
         ? history.events.map((entry) => entry?.event).filter((event) => event && typeof event.seq === 'number')
         : []
       const gameId = this.#coreSnapshot.adapters.find((adapter) => adapter.status === 'connected')?.gameId ?? 'dsh-session'
+      this.#callContexts = new Map()
       const historyTraces = events
-        .map((event) => dshTraceFromEvent(event, this.#sessionId, gameId))
+        .map((event) => dshTraceFromEvent(event, this.#sessionId, gameId, this.#callContexts))
         .filter(Boolean)
       const historyMaxSeq = events.reduce((max, event) => Math.max(max, event.seq), -1)
       const newerLiveTraces = this.#sessionTraces.filter((trace) => Number(trace.detail?.seq) > historyMaxSeq)
       this.#sessionTraces = [...historyTraces, ...newerLiveTraces].slice(-MAX_TRACES)
+      for (const trace of newerLiveTraces) {
+        if (trace.kind === 'dsh.tool.called' && trace.detail?.callId) {
+          this.#callContexts.set(String(trace.detail.callId), trace.detail)
+        }
+      }
 
       const unseenBoundary = this.#lastSessionSeq
       for (const event of events) {

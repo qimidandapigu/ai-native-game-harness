@@ -15,6 +15,7 @@
       </div>
       <nav class="primary-nav" aria-label="主导航">
         <button class="nav-item active" data-page="chat" aria-current="page"><span class="nav-icon">◇</span><span>对话</span></button>
+        <button class="nav-item" data-page="learning"><span class="nav-icon">◉</span><span>自学习</span></button>
         <button class="nav-item" data-page="analysis"><span class="nav-icon">⌁</span><span>分析</span></button>
         <button class="nav-item" data-page="adapters"><span class="nav-icon">⌘</span><span>Adapter 中心</span></button>
       </nav>
@@ -49,31 +50,39 @@
             <form class="composer" id="chat-form">
               <label for="message-input">给游戏伙伴一个目标</label>
               <div class="input-row">
-                <textarea id="message-input" rows="1" placeholder="例如：帮我去捡那枚金币" required></textarea>
+                <textarea id="message-input" rows="1" placeholder="例如：总结当前游戏状态" required></textarea>
                 <button type="submit" class="send" aria-label="发送">↑</button>
               </div>
               <div class="suggestions">
-                <button type="button" data-prompt="现在游戏是什么状态？">查看游戏状态</button>
-                <button type="button" data-prompt="帮我去捡金币">去捡金币</button>
+                <button type="button" id="suggestion-primary" data-prompt="现在游戏是什么状态？">查看游戏状态</button>
+                <button type="button" id="suggestion-secondary" data-prompt="根据当前游戏状态，建议我下一步做什么？">建议下一步</button>
               </div>
             </form>
           </div>
 
           <aside class="state-panel">
-            <div class="panel-heading"><div><p class="eyebrow">AUTHORITATIVE STATE</p><h2>实时游戏状态</h2></div><span id="revision-badge">REV 0</span></div>
-            <div class="mini-map" aria-label="Mock Game 地图">
-              <div class="grid-lines"></div>
-              <div class="coin" id="coin-marker"><span>●</span><small>金币</small></div>
-              <div class="player" id="player-marker"><span>◆</span><small>玩家</small></div>
-            </div>
-            <div class="stats">
-              <div><span>位置</span><strong id="stat-position">0, 0</strong></div>
-              <div><span>体力</span><strong id="stat-energy">10</strong></div>
-              <div><span>金币</span><strong id="stat-coins">0</strong></div>
-            </div>
-            <button class="secondary" id="reset-game" disabled>重置游戏</button>
+            <div class="panel-heading"><div><p class="eyebrow" id="state-kicker">AUTHORITATIVE STATE</p><h2 id="state-title">实时游戏状态</h2></div><span id="revision-badge">NO GAME</span></div>
+            <div class="game-view" id="game-view" aria-live="polite"></div>
+            <button class="secondary" id="reset-game" disabled hidden>重置游戏</button>
           </aside>
         </div>
+      </section>
+
+      <section class="page" id="page-learning" aria-labelledby="page-title">
+        <div class="section-intro learning-intro">
+          <div><p class="eyebrow">MEMORY + VERIFIED SKILLS</p><h2>记忆与技能分开学习</h2><p>记忆按游戏和存档隔离；技能按游戏保存。技能只有在真实游戏中完整试跑成功后才会进入技能库。</p></div>
+          <div class="section-actions"><button class="secondary compact learning-chat" data-learning-prompt="请列出你记得的当前存档长期记忆，并告诉我哪些需要纠正。">管理记忆</button><button class="primary learning-chat" data-learning-prompt="我想教你一个新的可重复游戏技能。请先询问目标，再根据当前 Adapter 能力生成程序并真实试跑。">学习新技能</button></div>
+        </div>
+        <div class="learning-metrics">
+          <article class="metric-card"><span>当前存档记忆</span><strong id="learning-memory-count">0</strong><small id="learning-save-id">等待游戏存档</small></article>
+          <article class="metric-card"><span>已学会技能</span><strong id="learning-skill-count">0</strong><small>只统计真实试跑成功</small></article>
+          <article class="metric-card"><span>失败学习尝试</span><strong id="learning-failed-count">0</strong><small>保留诊断，不进入技能库</small></article>
+        </div>
+        <div class="learning-grid">
+          <article class="learning-card"><div class="panel-heading"><div><p class="eyebrow">SAVE-SCOPED MEMORY</p><h2>当前存档记忆</h2></div><span id="learning-memory-status">等待同步</span></div><div id="learning-memory-list" class="learning-list"></div></article>
+          <article class="learning-card"><div class="panel-heading"><div><p class="eyebrow">VERIFIED PROCEDURES</p><h2>已学技能</h2></div><span id="learning-skill-status">等待同步</span></div><div id="learning-skill-list" class="learning-list"></div></article>
+        </div>
+        <article class="learning-card attempts-card"><div class="panel-heading"><div><p class="eyebrow">AUDIT HISTORY</p><h2>最近技能学习尝试</h2></div><span>成功才保存</span></div><div id="learning-attempt-list" class="learning-list compact-list"></div></article>
       </section>
 
       <section class="page" id="page-analysis" aria-labelledby="page-title">
@@ -86,15 +95,36 @@
           <article class="metric-card"><span>Adapter 往返</span><strong id="metric-adapter-action">—</strong><small>Core 实测</small></article>
           <article class="metric-card"><span>Bridge 往返</span><strong id="metric-bridge-action">—</strong><small>Adapter 实测</small></article>
           <article class="metric-card"><span>游戏内执行</span><strong id="metric-game-action">—</strong><small>游戏 Bridge 实测</small></article>
+          <article class="metric-card"><span>最近语音识别</span><strong id="metric-asr">—</strong><small>小汤圆已有 ASR 计时</small></article>
+          <article class="metric-card"><span>最近模型首字</span><strong id="metric-first-text">—</strong><small>游戏 Agent 公开计时</small></article>
+          <article class="metric-card"><span>最近语音合成</span><strong id="metric-tts">—</strong><small>小汤圆已有 TTS 计时</small></article>
+          <article class="metric-card"><span>最近语音总耗时</span><strong id="metric-voice-total">—</strong><small>录音完成到播报完成</small></article>
         </div>
         <article class="trace-card">
           <div class="panel-heading"><div><p class="eyebrow">OBSERVABILITY</p><h2>运行轨迹</h2></div><span id="metric-traces">最近 0 条</span></div>
+          <div class="trace-toolbar" aria-label="运行轨迹筛选与导出">
+            <label>类型
+              <select id="trace-filter">
+                <option value="all">全部</option>
+                <option value="failures">失败</option>
+                <option value="timeouts">超时</option>
+                <option value="reconnects">断线与重连</option>
+                <option value="voice">语音与模型耗时</option>
+                <option value="actions">Tool 与游戏动作</option>
+              </select>
+            </label>
+            <label class="trace-search">搜索
+              <input id="trace-search" type="search" placeholder="Session、callId、错误码或游戏">
+            </label>
+            <button class="secondary compact" id="export-diagnostics" type="button">导出脱敏诊断</button>
+            <small id="diagnostic-status" role="status"></small>
+          </div>
           <div class="trace-list" id="trace-list"></div>
         </article>
       </section>
 
       <section class="page" id="page-adapters" aria-labelledby="page-title">
-        <div class="section-intro"><div><p class="eyebrow">GAME ADAPTER PROTOCOL</p><h2>连接游戏，不绑定运行时</h2><p>每个游戏只需实现统一的观察、动作与事件接口。Agent 实现可以替换，游戏 Adapter 不必改写。</p></div><button class="primary" id="refresh-adapters">刷新连接</button></div>
+        <div class="section-intro"><div><p class="eyebrow">GAME ADAPTER PROTOCOL</p><h2>连接游戏，不绑定运行时</h2><p>每个游戏只需实现统一的观察、动作与事件接口。Agent 实现可以替换，游戏 Adapter 不必改写。</p></div><div class="section-actions"><button class="secondary compact" id="install-game-pack">安装 Game Pack</button><button class="primary" id="refresh-adapters">刷新连接</button></div></div>
         <article class="runtime-card">
           <div><span>Agent Runtime</span><strong id="runtime-agent">等待启动</strong></div>
           <div><span>Session</span><strong id="runtime-session">—</strong></div>
@@ -102,6 +132,8 @@
           <div><span>重连次数</span><strong id="runtime-reconnects">0</strong></div>
         </article>
         <div class="adapter-list" id="adapter-list"></div>
+        <div class="section-intro pack-heading"><div><p class="eyebrow">GAME PACKS</p><h2>已安装的游戏内容与入口</h2><p>Game Pack 保存剧情、角色、玩法、资源和 Adapter 入口。安装只校验并登记文件，不会自动执行第三方程序。</p></div><span id="game-pack-count">0 个</span></div>
+        <div class="game-pack-list" id="game-pack-list"></div>
         <article class="architecture-note">
           <span>依赖方向</span>
           <div class="flow"><b>桌面产品</b><i>→</i><b>Harness Core</b><i>→</i><b>Adapter Protocol</b><i>→</i><b>你的游戏</b></div>

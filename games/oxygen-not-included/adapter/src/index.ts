@@ -16,6 +16,7 @@ import {
   type GameObservation,
   type JsonValue,
 } from '@ai-native-game-harness/adapter-protocol'
+import { ReconnectingAdapterClient } from '@ai-native-game-harness/adapter-websocket'
 import WebSocket from 'ws'
 import { resolveConfig, type Config, type OniInstallerConfig } from './config.js'
 import { detectOni, installOniMod } from './installation.js'
@@ -27,7 +28,7 @@ type BridgeToolResult = ToolResult & { bridgeRoundTripMs: number; gameExecutionM
 
 const GAME_ID = 'oxygen-not-included'
 const ADAPTER_ID = 'qimidandapigu.oxygen-not-included-fairy'
-const ADAPTER_VERSION = '0.1.5'
+const ADAPTER_VERSION = '0.1.6'
 const objectSchema = (properties: Record<string, JsonValue>, required: string[] = []): Record<string, JsonValue> => ({
   type: 'object',
   additionalProperties: false,
@@ -51,7 +52,7 @@ const ONI_CAPABILITIES: AdapterCapability[] = [
 ]
 const ONI_ACTIONS = new Set(ONI_CAPABILITIES.filter(item => item.kind === 'action').map(item => item.name))
 
-const ROLE = '你是住在《缺氧》里的小汤圆，是玩家傲娇、调皮但可靠的伙伴。使用简洁自然中文，不用 Markdown。需要操作游戏时必须调用 oni_ 开头的工具；只有工具返回 success=true 后才能说动作已经执行。玩家明确要求你改为跟随某个复制人时，调用 oni_companion_follow；不要因为普通选择或提到复制人就切换。玩家让你吸水、收水或把这里的水吸走时调用 oni_companion_absorb_water；玩家让你喷水、放水或把储水喷到这里时调用 oni_companion_spray_water。水技能是否学会、储水量和种类以当前观察及工具结果为准。'
+const ROLE = '你是住在《缺氧》里的小汤圆，是玩家傲娇、调皮但可靠的伙伴。使用简洁自然中文，不用 Markdown。需要操作游戏时必须调用名称中包含 oni_ 的游戏工具；只有工具返回 ok=true 后才能说动作已经执行。玩家明确要求你改为跟随某个复制人时，调用包含 oni_companion_follow 的工具；不要因为普通选择或提到复制人就切换。玩家让你吸水、收水或把这里的水吸走时调用包含 oni_companion_absorb_water 的工具；玩家让你喷水、放水或把储水喷到这里时调用包含 oni_companion_spray_water 的工具。水技能是否学会、储水量和种类以当前观察及工具结果为准。'
 
 export const name = 'oni-adapter'
 export const inject = ['tools']
@@ -285,7 +286,7 @@ export class OniAdapter implements GameAdapter {
     if (this.gatewayUrl === undefined) return
     this.disconnect(); this.processId = processId; this.saveId = saveId
     const socket = this.socket = new WebSocket(this.gatewayUrl)
-    socket.on('open', () => socket.send(JSON.stringify({ jsonrpc: '2.0', id: `oni-hello-${processId}`, method: 'adapter.hello', params: { adapterId: 'qimidandapigu.oxygen-not-included-fairy', gameId: 'oxygen-not-included', version: '0.1.5', protocolVersion: '1.1', capabilities: ['assistant.text-stream'], processId, saveId } })))
+    socket.on('open', () => socket.send(JSON.stringify({ jsonrpc: '2.0', id: `oni-hello-${processId}`, method: 'adapter.hello', params: { adapterId: 'qimidandapigu.oxygen-not-included-fairy', gameId: 'oxygen-not-included', version: ADAPTER_VERSION, protocolVersion: '1.1', capabilities: ['assistant.text-stream'], processId, saveId } })))
     socket.on('error', () => { if (this.socket === socket) this.socket = undefined })
     socket.on('close', () => { if (this.socket === socket) this.socket = undefined })
     socket.on('message', raw => {
@@ -440,11 +441,25 @@ export function registerOniInstallTools(ctx: Context, installer: OniInstallerCon
 export function apply(ctx: Context, config: Config = {}): void {
   const resolved = resolveConfig(config)
   const adapter = new OniAdapter(resolved.bridgeRoot, `ws://${resolved.host}:${resolved.port}`)
-  registerOniTools(ctx, adapter)
+  const protocolClient = resolved.adapterProtocolUrl === undefined
+    ? undefined
+    : new ReconnectingAdapterClient({
+        url: resolved.adapterProtocolUrl,
+        adapter,
+        requestTimeoutMs: 15_000,
+      })
+  // Standalone/legacy DSH profiles keep the original direct tools. The Desktop
+  // product supplies adapterProtocolUrl, so game actions are registered once by
+  // game-transport -> dsh-binding after the Harness handshake succeeds.
+  if (protocolClient === undefined) registerOniTools(ctx, adapter)
   registerOniInstallTools(ctx, resolved.installer)
   ctx.effect(() => {
     adapter.start()
-    return () => adapter.close()
+    protocolClient?.start()
+    return async () => {
+      await protocolClient?.stop()
+      await adapter.close()
+    }
   })
 }
 

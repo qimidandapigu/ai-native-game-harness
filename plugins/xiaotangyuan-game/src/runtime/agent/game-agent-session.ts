@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
+import { publishProductDiagnostic } from '../diagnostics.js'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@deepseek-ai/dsh-agent'
 import { createUserMessage, type ContentBlock } from '@deepseek-ai/dsh-llm'
@@ -209,6 +210,24 @@ export class GameAgentSession {
       this.ctx.logger.info(
         `xiaotangyuan latency interaction=${interactionId} game=${this.adapter?.gameId ?? 'unknown'} source=${source} model=${input.selection.provider}/${input.selection.model} selectionMs=${Math.round(input.timing.modelSelectionMs)} captureMs=${Math.round(input.timing.captureMs)} attachmentMs=${Math.round(input.timing.attachmentMs)} agentReadyMs=${Math.round(agentReady - prepared)} firstTextMs=${firstText} agentWaitMs=${Math.round(result.agentWaitMs)} totalMs=${Math.round(performance.now() - started)}`,
       )
+      publishProductDiagnostic({
+        kind: 'game-agent.latency',
+        sessionId: result.sessionId,
+        gameId: this.adapter?.gameId ?? 'unknown',
+        interactionId,
+        detail: {
+          source,
+          provider: input.selection.provider,
+          model: input.selection.model,
+          modelSelectionMs: Math.round(input.timing.modelSelectionMs),
+          captureMs: Math.round(input.timing.captureMs),
+          attachmentMs: Math.round(input.timing.attachmentMs),
+          agentReadyMs: Math.round(agentReady - prepared),
+          ...(result.firstTextMs === undefined ? {} : { firstTextMs: Math.round(result.firstTextMs) }),
+          agentWaitMs: Math.round(result.agentWaitMs),
+          totalMs: Math.round(performance.now() - started),
+        },
+      })
       if (mode === 'normal') {
         this.memory?.scheduleLearn(this.memorySessionKey, this.adapter, request, result.reply, interactionId, input.selection)
       }

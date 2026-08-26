@@ -17,6 +17,7 @@ const mime: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
 }
 
 async function body(request: IncomingMessage): Promise<Record<string, unknown>> {
@@ -53,7 +54,7 @@ const server = createServer(async (request, response) => {
     }
 
     const requested = url.pathname === '/' ? 'product.html' : url.pathname.slice(1)
-    if (!['product.html', 'product.css', 'product.js'].includes(requested)) return json(response, 404, { error: 'Not found' })
+    if (!['product.html', 'product.css', 'product.js', 'game-view-models.mjs', 'diagnostics.mjs'].includes(requested)) return json(response, 404, { error: 'Not found' })
     const file = join(uiRoot, requested)
     const content = await readFile(file)
     response.writeHead(200, { 'content-type': mime[extname(file)] ?? 'application/octet-stream', 'cache-control': 'no-store' })

@@ -47,3 +47,11 @@ export function assertGamePackManifest(manifest: GamePackManifest): void {
     throw new Error('Game Pack permissions must be unique')
   }
 }
+
+export {
+  GAME_PACK_MANIFEST,
+  GamePackRegistry,
+  readGamePackManifest,
+  type InstalledGamePack,
+  type LoadedGamePackContent,
+} from './registry.js'

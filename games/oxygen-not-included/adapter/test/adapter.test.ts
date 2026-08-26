@@ -24,6 +24,16 @@ describe('ONI Adapter file bridge', () => {
   it('resolves the default Windows bridge directory with path separators', () => {
     const resolved = resolveConfig()
     expect(resolved.bridgeRoot).toBe(join(process.env.LOCALAPPDATA ?? process.cwd(), 'XiaoTangYuan', 'oni-bridge'))
+    expect(resolved.adapterProtocolUrl).toBeUndefined()
+  })
+
+  it('accepts only a loopback Harness Adapter Protocol WebSocket URL', () => {
+    expect(resolveConfig({ adapterProtocolUrl: 'ws://127.0.0.1:33245/adapter' }).adapterProtocolUrl)
+      .toBe('ws://127.0.0.1:33245/adapter')
+    expect(() => resolveConfig({ adapterProtocolUrl: 'https://127.0.0.1/adapter' }))
+      .toThrow('must use WebSocket')
+    expect(() => resolveConfig({ adapterProtocolUrl: 'ws://192.168.1.20:33245/adapter' }))
+      .toThrow('loopback host')
   })
 
   it('grounds tool actions to the latest cursor and returns the C# result', async () => {

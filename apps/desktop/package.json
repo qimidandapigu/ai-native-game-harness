@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@ai-native-game-harness/adapter-websocket": "workspace:*",
+    "@ai-native-game-harness/game-pack": "workspace:*",
     "@ai-native-game-harness/harness-core": "workspace:*",
     "ws": "8.21.3"
   },

@@ -28,7 +28,7 @@ Adapter 动作应提供语言无关的对象根节点 `inputSchema`。Binding �
 
 ## 当前完成边界
 
-- 已完成：DSH Tool 定义、参数 Schema、Core action/action-result、成功/拒绝结果、会话和 callId 关联、生命周期卸载。
+- 已完成：DSH Tool 定义、参数 Schema、Core action/action-result、成功/拒绝结果、会话和 callId 关联、生命周期卸载。默认会话标识直接使用 DSH 官方定义中与 SessionId 同一身份的 `Agent.id`，不会另造第二套 Session ID。
 - 已验证：真实 DSH Agent 通过 Binding、Core 和 WebSocket Adapter 驱动 Mock Game 完成 `move → collect`，收到金币 `1`、revision `2` 的权威结果。
 - 已完成：Desktop 产品页面共享该 DSH Session 与 Core Trace；DSH 通用耗时读取官方 `sessionStats` 投影，不在 Binding 或 Core 中重新计算。
 - 待完成：真实游戏重复同一权威结果与产品页面验收。
