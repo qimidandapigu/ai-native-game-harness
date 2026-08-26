@@ -104,7 +104,7 @@ export class OniAdapter implements GameAdapter {
   }
 
   async observe(): Promise<GameObservation> {
-    if (this.observation === undefined || this.saveId === undefined) throw new Error('《缺氧》尚未连接到 AIHarness')
+    if (this.observation === undefined || this.saveId === undefined) throw new Error('《缺氧》尚未连接到 AI Native Game Harness')
     return {
       gameId: GAME_ID,
       saveId: this.saveId,
@@ -157,7 +157,7 @@ export class OniAdapter implements GameAdapter {
   }
 
   private async executeBridgeTool(name: string, args: ObjectValue, signal: AbortSignal, callId: string): Promise<BridgeToolResult> {
-    if (this.directory === undefined || this.processId === undefined) throw new Error('《缺氧》尚未连接到 AIHarness')
+    if (this.directory === undefined || this.processId === undefined) throw new Error('《缺氧》尚未连接到 AI Native Game Harness')
     const ui = typeof this.observation?.ui === 'object' && this.observation.ui !== null ? this.observation.ui as ObjectValue : undefined
     const cursor = (typeof ui?.cursor === 'object' && ui.cursor !== null ? ui.cursor : this.observation?.cursor)
     const targetCell = typeof cursor === 'object' && cursor !== null && Number.isInteger((cursor as ObjectValue).cell)

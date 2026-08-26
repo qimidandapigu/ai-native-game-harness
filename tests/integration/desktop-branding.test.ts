@@ -27,15 +27,24 @@ describe('AI Native Game Harness branding', () => {
       'apps/desktop/src/product.html',
       'apps/desktop/src/status.html',
       'games/stardew-valley/adapter/ModEntry.cs',
+      'games/dont-starve-together/README.md',
       'games/dont-starve-together/game-mod/modinfo.lua',
       'games/dont-starve-together/src/dont_starve_ai_mod/app.py',
       'games/dont-starve-together/src/dont_starve_ai_mod/cli.py',
       'games/dont-starve-together/src/dont_starve_ai_mod/harness_client.py',
+      'games/oxygen-not-included/adapter/src/index.ts',
+      'games/oxygen-not-included/adapter/README.md',
+      'games/oxygen-not-included/bridge/README.md',
+      'games/oxygen-not-included/bridge/docs/QUICK_START.md',
+      'games/oxygen-not-included/bridge/src/ConfigManager.cs',
+      'games/oxygen-not-included/bridge/src/DoubaoAIRuntime.cs',
+      'plugins/xiaotangyuan-game/README.md',
       'plugins/xiaotangyuan-game/src/tools/game-mod-tools.ts',
     ]
 
     for (const path of playerFacingFiles) {
       expect(read(path), path).not.toContain('DeepSeek Harness')
+      expect(read(path), path).not.toMatch(/\bAIHarness\b/)
     }
 
     for (const path of [

@@ -1,7 +1,7 @@
 # Oxygen Not Included Adapter
 
-这是可独立安装、选择性加载的 DeepSeek Harness 插件，不是通用 Harness
-核心的内置模块。当前源码版本为 `0.1.6`，只有选择《缺氧》的玩家需要下载它。
+这是 AI Native Game Harness 中可独立安装、选择性加载的《缺氧》Adapter，
+不是通用 Harness 核心的内置模块。当前源码版本为 `0.1.6`，只有选择《缺氧》的玩家需要下载它。
 
 它负责：
 

@@ -1,6 +1,6 @@
-# Don't Starve AI Mod
+# 小汤圆 · 饥荒联机版 AI Mod
 
-让《饥荒联机版》的切斯特接入 DeepSeek Harness。按住 `F8` 说话、松开发送，按 `Shift+V` 重新生成上一条回答。
+让《饥荒联机版》的切斯特接入 AI Native Game Harness。按住 `V` 说话、松开发送，按 `Shift+V` 重新生成上一条回答。
 
 本项目统一维护在 `ai-native-game-harness/games/dont-starve-together`。请从主仓库根目录运行 `pnpm check:dst`；构建发行包使用 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-dont-starve-release.ps1`。不要再向旧 `dsh-xiaotangyuan-game` 或 `dont-starve-ai-mod` 仓库提交功能代码。
 
@@ -16,7 +16,7 @@
   ├─ 转发 Lua 事件和结构化状态
   └─ 把 Harness 回复写回切斯特气泡
           ↓ 本机 WebSocket
-DeepSeek Harness
+AI Native Game Harness
   ├─ 按已注册的游戏进程截取客户区
   ├─ 麦克风、ASR、模型、会话记忆与 TTS
   ├─ 通用工具和玩家反馈
@@ -39,11 +39,11 @@ Python Adapter 不再调用任何模型、语音或截图 API，也不保存独�
 ## 使用要求
 
 - Windows 与《饥荒联机版》
-- DeepSeek Harness
+- AI Native Game Harness
 - `@qimidandapigu/dsh-xiaotangyuan-game` 0.6.1 或更新版本
 - 开发环境需要 Python 3.11+
 
-模型、视觉、ASR、TTS 和玩家反馈凭据全部在 DeepSeek Harness 中配置。本项目的 `.env` 只允许保存本机 Gateway 地址和游戏路径，不应放任何 API Key。
+模型、视觉、ASR、TTS 和玩家反馈凭据全部在 AI Native Game Harness 中配置。本项目的 `.env` 只允许保存本机 Gateway 地址和游戏路径，不应放任何 API Key。
 
 ## 玩家安装包
 
@@ -84,7 +84,7 @@ python -m pip install -e .
 "<DST 目录>\mods\dont-starve-ai-mod\ChesterAI.exe" %command%
 ```
 
-平时先启动 DeepSeek Harness，再从 Steam 启动游戏。启动器会获得真实 DST 进程 ID，连接 Harness，并在游戏退出时自动关闭 Adapter。
+平时先启动 AI Native Game Harness，再从 Steam 启动游戏。启动器会获得真实 DST 进程 ID，连接 Harness，并在游戏退出时自动关闭 Adapter。
 
 ## 首次验证
 

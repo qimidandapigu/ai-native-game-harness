@@ -10,13 +10,13 @@ the cursor through natural-language requests. Its skill board is available from
 the fairy panel and shows unlock state, stored element, and mass.
 
 The TypeScript ONI Adapter lives in `adapter/` as its own installable Harness plugin. It
-bridges this Mod to the local AIHarness Gateway and registers ONI-specific tools. The
+bridges this Mod to the local AI Native Game Harness Gateway and registers ONI-specific tools. The
 generic Harness plugin does not depend on it. The current Windows Game Edition bundles
 the separate ONI Adapter for out-of-box support, while other distributions can still
 omit or independently install that Adapter.
 
 AI credentials, screenshot capture, ASR, TTS, memory, and model selection belong to
-AIHarness, not to the Mod. The Bridge contains no direct model or speech client.
+AI Native Game Harness, not to the Mod. The Bridge contains no direct model or speech client.
 
 Current compatible versions are ONI Adapter `0.1.6`, C# Bridge `0.6.7`, and
 Harness plugin `0.7.7`. The Harness sends the player text, current game-window

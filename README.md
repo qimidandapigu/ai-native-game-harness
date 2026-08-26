@@ -12,9 +12,9 @@ AI Native Game Harness 想为玩家提供一个可以进入不同游戏的 AI �
 
 > `v1.0.0` 源码版本已经发布。开发者可以运行源码和演示；面向普通玩家的一键安装包仍在准备中。
 
-> `1.0` 分支和 `v1.0.0` 标签保存稳定源码；`main` 分支持续接收后续开发，不会反向改动 1.0 稳定版本。
+> `1.0` 分支和 `v1.0.0` 标签保存稳定源码；`main` 当前标记为 `1.1.0-dev.0` 开发线，后续改动不会反向进入 1.0 稳定版本。
 
-**[查看产品介绍](docs/AI_GAME_ENGINE_IDEOLOGY.html)** · **[接入一个新游戏](docs/INDEPENDENT_PLATFORM.md)** · **[关注正式发布](https://github.com/qimidandapigu/ai-native-game-harness/releases)**
+**[查看产品介绍](docs/AI_GAME_ENGINE_IDEOLOGY.html)** · **[接入一个新游戏](docs/INDEPENDENT_PLATFORM.md)** · **[查看版本发布](https://github.com/qimidandapigu/ai-native-game-harness/releases)**
 
 ## 关注小汤圆，加入交流群
 
@@ -95,7 +95,7 @@ AI 理解当前状态，回答或请求执行动作
 
 | 使用者 | 当前建议 |
 | --- | --- |
-| 普通玩家 | 暂时等待正式 Release；目前没有推荐的一键安装包 |
+| 普通玩家 | 可以查看 `v1.0.0` 稳定源码；一键安装包仍在准备中 |
 | 游戏开发者 / MOD 作者 | 可以使用 Adapter Starter 和 Mock Game 评估接入方式 |
 | 项目贡献者 | 可以运行源码、自动测试和桌面演示 |
 

@@ -23,7 +23,7 @@ namespace DoubaoAI.ONI
 
                 Current = JsonConvert.DeserializeObject<ModConfig>(File.ReadAllText(path)) ?? new ModConfig();
                 Current.Normalize();
-                Debug.Log("[DoubaoAI] Bridge 配置已加载；模型、语音、截图和记忆由 AIHarness 管理。");
+                Debug.Log("[DoubaoAI] Bridge 配置已加载；模型、语音、截图和记忆由 AI Native Game Harness 管理。");
             }
             catch (Exception ex)
             {

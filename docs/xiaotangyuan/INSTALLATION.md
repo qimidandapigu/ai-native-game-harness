@@ -8,7 +8,7 @@
 
 | 项目 | 要求 |
 |---|---|
-| DeepSeek Harness 插件 | 源码 `0.7.7`；旧仓库最新公开 Release `0.5.1` |
+| 小汤圆 Harness 插件 | 源码 `0.7.7`；旧仓库最新公开 Release `0.5.1` |
 | Stardew Valley | `1.6.15` 或更高 |
 | SMAPI | `4.4.0` 或更高 |
 | Content Patcher | 安装器固定为 `2.9.1` |
@@ -53,7 +53,7 @@ Harness Web：http://127.0.0.1:3080
 
 ## 2. 配置模型和语音凭据
 
-密钥只绑定到 DeepSeek Harness，不写进星露谷 MOD，也不写进小汤圆配置文件。
+密钥只绑定到 AI Native Game Harness，不写进星露谷 MOD，也不写进小汤圆配置文件。
 
 默认语音配置引用：
 

@@ -1,6 +1,6 @@
 {
   "name": "ai-native-game-harness-workspace",
-  "version": "1.0.0",
+  "version": "1.1.0-dev.0",
   "private": true,
   "description": "AI Native Game Harness distribution and plugin workspace.",
   "type": "module",

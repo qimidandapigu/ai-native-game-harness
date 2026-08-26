@@ -1,13 +1,13 @@
 # Oxygen Not Included C# Bridge
 
-这是 AIHarness 缺氧 Adapter 的游戏内 Bridge，只负责：
+这是 AI Native Game Harness 缺氧 Adapter 的游戏内 Bridge，只负责：
 
 - 读取周期、世界、鼠标格、选中对象和复制人状态；
 - 显示精灵、文字面板、状态和回复气泡；
 - 校验并执行移动、挖掘、分段挖路和白名单建筑任务；
 - 通过本地文件协议与 TypeScript ONI Adapter 通信。
 
-模型、API Key、截图、录音、ASR、TTS、对话历史和长期记忆全部由 AIHarness 管理，本 Mod 不包含这些实现。
+模型、API Key、截图、录音、ASR、TTS、对话历史和长期记忆全部由 AI Native Game Harness 管理，本 Mod 不包含这些实现。
 
 当前 Bridge 源码版本为 `0.6.7`。精灵不再固定在屏幕角落，而是绑定一个自己选定并记住的复制人悬浮跟随；只有玩家明确命令时才会切换目标。四帧横向 Sprite Sheet 会根据复制人的实际移动方向选择画面：静止为正面，水平移动为左/右，上下攀爬均为背面。按住 `Q` 会开始语音输入，松开后进入思考和回答阶段，精灵旁会同步显示“聆听中”“思考中”“回答中”状态。Bridge 通过下面的用户目录加载，不应复制到 Steam 游戏程序集目录：
 

@@ -1,6 +1,6 @@
 # @qimidandapigu/dsh-xiaotangyuan-game
 
-运行在 DeepSeek Harness 中的“小汤圆游戏 AI”重型运行时。当前插件版本为 `0.7.7`，源码由 AI Native Game Harness 主仓库统一维护。
+AI Native Game Harness 的“小汤圆游戏 AI”通用运行时，底层运行在内置 DSH Runtime 中。当前插件版本为 `0.7.7`，源码由 AI Native Game Harness 主仓库统一维护。
 
 ## 职责
 

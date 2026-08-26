@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace DoubaoAI.ONI
 {
-    // Thin game Bridge. AI models, media, memory and credentials live in AIHarness.
+    // Thin game Bridge. AI models, media, memory and credentials live in AI Native Game Harness.
     internal sealed class DoubaoAIRuntime : MonoBehaviour
     {
         private OniHarnessBridge _bridge;
@@ -25,7 +25,7 @@ namespace DoubaoAI.ONI
         private Rect _panelRect;
         private string _input = string.Empty;
         private string _reply = "我是精灵。把鼠标指到目标位置，可以问攻略，也可以让我指挥复制人。";
-        private string _status = "正在连接 AIHarness…";
+        private string _status = "正在连接 AI Native Game Harness…";
         private bool _panelOpen;
         private bool _busy;
         private float _bubbleUntil;
@@ -286,7 +286,7 @@ namespace DoubaoAI.ONI
 
         private void OnHarnessNotification(string method, string text)
         {
-            if (method == "gateway.ready") { _status = "AIHarness 已连接"; return; }
+            if (method == "gateway.ready") { _status = "AI Native Game Harness 已连接"; return; }
             if (method == "assistant.status")
             {
                 if (text == "recording") _status = "聆听中…";
@@ -313,9 +313,9 @@ namespace DoubaoAI.ONI
             }
             if (method == "assistant.error")
             {
-                _busy = false; _status = "AIHarness 请求失败";
+                _busy = false; _status = "AI Native Game Harness 请求失败";
                 _floatingStatus = string.Empty;
-                _reply = string.IsNullOrWhiteSpace(text) ? "请确认 AIHarness 已启动。" : text;
+                _reply = string.IsNullOrWhiteSpace(text) ? "请确认 AI Native Game Harness 已启动。" : text;
                 _bubbleUntil = Time.unscaledTime + 10f;
             }
         }
@@ -388,7 +388,7 @@ namespace DoubaoAI.ONI
             if (send && !_busy && !string.IsNullOrWhiteSpace(_input))
             {
                 string text = _input.Trim(); _input = string.Empty; _busy = true;
-                _status = "正在交给 AIHarness 思考…";
+                _status = "正在交给 AI Native Game Harness 思考…";
                 _bridge.SendChat(text, SafeCollectSnapshot(), SafeCollectCommandSnapshot());
             }
             GUI.DragWindow(new Rect(0, 0, 500, 36));

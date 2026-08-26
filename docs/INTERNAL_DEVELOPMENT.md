@@ -164,6 +164,7 @@ pnpm desktop:dist
 - 唯一源码仓库：`ai-native-game-harness`。
 - 旧仓库 `dsh-xiaotangyuan-game` 只保留历史和旧 Release，不再维护第二套源码。
 - `1.0` 分支与 `v1.0.0` 标签固定在提交 `a6921ef`，只保存 1.0 稳定源码；后续开发只进入 `main`，不能移动该标签或用开发提交覆盖稳定分支。
+- `main` 根工作区版本为 `1.1.0-dev.0`，用来明确区分稳定源码快照和后续开发线；各插件、Adapter 与 Bridge 继续独立版本。
 - 主仓库 `v1.0.0` Release 目前只提供 GitHub 自动生成的源码归档，不包含签名安装包。
 - 旧仓库公开稳定包仍为 Harness Plugin `0.5.1`、ONI Adapter `0.1.3`。
 - `main` 中的 Harness Plugin `0.7.7`、ONI Adapter `0.1.6` 与 Bridge `0.6.7` 仍属于后续开发内容，不能写成 `v1.0.0` 已包含的独立公开安装包。
