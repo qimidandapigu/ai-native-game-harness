@@ -20,7 +20,7 @@
   <title>AI Native Game Harness｜单机游戏内 AI 同伴小汤圆</title>
   <link rel="canonical" href="https://qimidandapigu.github.io/ai-native-game-harness/">
   <link rel="icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=20260828-1">
+  <link rel="stylesheet" href="styles.css?v=20260828-2">
   <script
     defer
     src="https://vibecafe.ai/telemetry/v1.js"
@@ -38,27 +38,31 @@
     <nav aria-label="主导航">
       <a href="#experience">玩家体验</a>
       <a href="#real-games">真实游戏</a>
-      <a href="#developers">开发者接入</a>
+      <a href="#getting-started">怎么开始</a>
       <a href="#progress">当前进展</a>
       <a href="#community">参与测试</a>
     </nav>
+    <div class="audience-switch" aria-label="选择页面版本">
+      <a class="active" href="index.html" aria-current="page">玩家版</a>
+      <a href="developers.html">开发者版</a>
+    </div>
     <a class="header-link" href="https://github.com/qimidandapigu/ai-native-game-harness" target="_blank" rel="noreferrer">GitHub <span>↗</span></a>
   </header>
 
   <main id="content">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow"><span></span> OPEN SOURCE · BUILT ON DEEPSEEK HARNESS</p>
+        <p class="eyebrow"><span></span> OPEN SOURCE · AI COMPANION FOR GAMES</p>
         <p class="product-pill"><span>首个产品角色</span> 单机游戏内 AI 同伴「小汤圆」</p>
         <h1>让 AI<br><em>真正进入游戏</em></h1>
         <p class="hero-lead">小汤圆不只在聊天窗口里回答问题。它能看懂当前局面、参与游戏行动、记住共同经历，并根据玩家的选择动态续写故事。</p>
         <div class="hero-actions">
           <a class="button primary" href="#real-games">看看它如何进入游戏 <span>↓</span></a>
-          <a class="button secondary" href="#developers">为我的游戏接入 AI</a>
+          <a class="button secondary" href="#progress">现在可以使用吗</a>
         </div>
         <div class="hero-points" aria-label="产品特点">
           <span><i>✓</i> 游戏事实决定结果</span>
-          <span><i>✓</i> 一个 Adapter 接入</span>
+          <span><i>✓</i> 记忆按存档隔离</span>
           <span><i>✓</i> 本机连接优先</span>
         </div>
       </div>
@@ -87,7 +91,7 @@
               <div class="choices"><button>一起去看看</button><button>先准备补给</button></div>
             </div>
             <div class="runtime-strip">
-              <span><i></i> Adapter 在线</span>
+              <span><i></i> 游戏已连接</span>
               <span>记忆 18</span>
               <span>技能 4</span>
               <span>Trace 可审计</span>
@@ -104,7 +108,7 @@
     <section class="section real-games" id="real-games">
       <div class="section-heading">
         <div><p class="eyebrow"><span></span> ALREADY INSIDE THE GAME</p><h2>AI 已经开始进入<br>真实游戏世界</h2></div>
-        <p>从农场里的日常陪伴，到荒野中的生存建议，再到殖民地的操作分析，同一套 AI 游戏底座可以通过不同 Adapter 进入不同游戏。</p>
+        <p>从农场里的日常陪伴，到荒野中的生存建议，再到殖民地的操作分析，同一个 AI 伙伴可以理解不同游戏里的真实局面。</p>
       </div>
       <div class="real-game-grid">
         <article class="game-shot-card featured">
@@ -166,7 +170,7 @@
           <span class="feature-number">01</span>
           <div class="feature-icon">◇</div>
           <h3>看懂此刻的局面</h3>
-          <p>位置、背包、任务、附近角色和场景变化，都可以通过游戏适配器准确告诉 AI。</p>
+          <p>位置、背包、任务、附近角色和场景变化，都可以由游戏准确告诉 AI。</p>
         </article>
         <article class="feature-card">
           <span class="feature-number">02</span>
@@ -199,42 +203,31 @@
       <div class="proof-flow">
         <article><span>01</span><div><small>AI 生成</small><strong>“去林间寻找声音来源”</strong><p>结合世界观与玩家选择生成下一段目标。</p></div></article>
         <article><span>02</span><div><small>玩家与 AI 行动</small><strong>移动、观察、交互</strong><p>所有动作都通过游戏明确开放的能力执行。</p></div></article>
-        <article class="verified"><span>03</span><div><small>游戏确认</small><strong>目标已真实完成</strong><p>Adapter 返回状态证据，剧情才会进入下一段。</p></div><b>VERIFIED</b></article>
+        <article class="verified"><span>03</span><div><small>游戏确认</small><strong>目标已真实完成</strong><p>游戏返回状态证据，剧情才会进入下一段。</p></div><b>VERIFIED</b></article>
       </div>
     </section>
 
-    <section class="section developers" id="developers">
+    <section class="section player-start" id="getting-started">
       <div class="section-heading">
-        <div><p class="eyebrow"><span></span> FOR GAME CREATORS</p><h2>你的游戏，不必重做一套 AI 系统</h2></div>
-        <p>开发者专注于自己的世界、角色和玩法。模型、Agent、会话、记忆、工具与桌面界面由统一底座复用。</p>
+        <div><p class="eyebrow"><span></span> GETTING STARTED</p><h2>从关注项目，到真正进入游戏</h2></div>
+        <p>目前仍是开发验证阶段，还没有面向普通玩家的正式签名安装包。我们会把安装、选择游戏和进入游戏的过程收敛成一个应用。</p>
       </div>
-      <div class="developer-layout">
-        <div class="steps">
-          <article><span>1</span><div><h3>描述游戏世界</h3><p>提供角色、世界观、玩法边界与资源清单。</p></div></article>
-          <article><span>2</span><div><h3>实现 Game Adapter</h3><p>告诉系统如何观察状态、执行动作和接收事件。</p></div></article>
-          <article><span>3</span><div><h3>获得完整 AI 体验</h3><p>复用对话、动态剧情、自学习和可视化分析。</p></div></article>
-          <a class="button secondary" href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/docs/INDEPENDENT_PLATFORM.md" target="_blank" rel="noreferrer">查看游戏接入说明 <span>↗</span></a>
-        </div>
-        <div class="architecture-card">
-          <div class="arch-title"><small>OPEN GAME RUNTIME</small><span>可替换 · 可审计 · 可扩展</span></div>
-          <div class="arch-row primary-row"><b>DeepSeek Harness</b><p>模型 · Agent · Session · Tool</p></div>
-          <i class="down">↓</i>
-          <div class="arch-grid"><div><b>Harness Core</b><small>生命周期与能力</small></div><div><b>Story Runtime</b><small>动态剧情与存档</small></div><div><b>Game Pack</b><small>世界、角色与玩法</small></div></div>
-          <i class="down">↓</i>
-          <div class="arch-row adapter-row"><b>Adapter Protocol</b><p>观察 · 动作 · 事件 · 错误</p></div>
-          <i class="down">↓</i>
-          <div class="game-row"><span>星露谷物语</span><span>饥荒联机版</span><span>缺氧</span><span>你的游戏 +</span></div>
-        </div>
+      <div class="player-step-grid">
+        <article><span>01</span><h3>关注测试进展</h3><p>先通过小红书、QQ 群或 GitHub 查看最新验证结果和可用范围。</p></article>
+        <article><span>02</span><h3>安装一个应用</h3><p>正式版本会统一管理模型配置、语音能力和不同游戏的安装包。</p></article>
+        <article><span>03</span><h3>选择自己的游戏</h3><p>只下载需要的游戏内容，不必一次安装所有游戏的组件和 MOD。</p></article>
+        <article><span>04</span><h3>进入游戏开始陪伴</h3><p>通过文字或语音交流，让 AI 根据当前存档和真实局面作出回应。</p></article>
       </div>
+      <div class="availability-note"><strong>当前状态</strong><span><b>v1.0.0</b> 已提供稳定源码，Windows 一键安装包仍在准备中。自动测试和本地安装验证不等于真实游戏长期体验已经完成。</span></div>
     </section>
 
     <section class="section progress" id="progress">
       <div class="section-heading">
         <div><p class="eyebrow"><span></span> CURRENT PROGRESS</p><h2>正在从“能够运行”走向“玩家可以直接使用”</h2></div>
-        <p>项目已经开放源码和开发者演示。Windows 一键安装包已完成本地安装、内置 DSH 启动和卸载验证；正式签名 Release、真实游戏长期体验与更多 Adapter 仍在持续开发。</p>
+        <p>项目已经开放源码和开发演示。Windows 一键安装包已完成本地安装、内置 AI 运行时启动和卸载验证；正式签名版本和真实游戏长期体验仍在持续开发。</p>
       </div>
       <div class="status-board">
-        <article><span class="status done">可用</span><h3>开源运行时与协议</h3><p>核心接口、Adapter Protocol、Game Pack 与 Mock Game 自动测试。</p></article>
+        <article><span class="status done">已跑通</span><h3>游戏 AI 基础能力</h3><p>对话、状态理解、动作结果、记忆隔离和测试游戏已经形成完整闭环。</p></article>
         <article><span class="status testing">验证中</span><h3>动态剧情与自学习</h3><p>剧情由同一 Agent 会话生成，技能需要真实试跑成功后才能保存。</p></article>
         <article><span class="status testing">本地已验证</span><h3>Windows 安装与真实游戏</h3><p>未签名 NSIS 已通过本机安装—启动—卸载；继续完善真实游戏长期体验与公开签名。</p></article>
       </div>
@@ -268,8 +261,8 @@
     <section class="final-cta">
       <img src="logo.png" alt="AI Native Game Harness 标志" width="86" height="86">
       <p class="eyebrow"><span></span> OPEN SOURCE</p>
-      <h2>让下一款游戏，拥有一个<br>真正属于它的 AI 伙伴</h2>
-      <p>如果你是玩家、游戏开发者或 MOD 作者，欢迎查看项目、提出想法，或者为自己的游戏实现第一个 Adapter。</p>
+      <h2>等小汤圆真正走进游戏，<br>和你一起留下新的故事</h2>
+      <p>如果你想体验、讨论或参与后续测试，可以关注项目进展并加入交流群。正式玩家安装包准备好后，会在版本发布页明确提供。</p>
       <div class="hero-actions">
         <a class="button primary" href="#community">参与测试与交流</a>
         <a class="button secondary" href="https://github.com/qimidandapigu/ai-native-game-harness" target="_blank" rel="noreferrer">查看 GitHub 项目 <span>↗</span></a>
@@ -282,8 +275,8 @@
       <img src="logo.png" alt="" width="38" height="38">
       <span><strong>AI Native</strong><small>Game Harness</small></span>
     </div>
-    <p>基于 DeepSeek Harness 构建的社区开源项目，并非 DeepSeek 官方产品。</p>
-    <div><a href="https://github.com/qimidandapigu/ai-native-game-harness" target="_blank" rel="noreferrer">GitHub</a><a href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/LICENSE" target="_blank" rel="noreferrer">MIT License</a></div>
+    <p>面向单机游戏 AI 伙伴的社区开源项目，当前处于开发验证阶段。</p>
+    <div><a href="developers.html">开发者版</a><a href="https://github.com/qimidandapigu/ai-native-game-harness" target="_blank" rel="noreferrer">GitHub</a><a href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/LICENSE" target="_blank" rel="noreferrer">MIT License</a></div>
   </footer>
 </body>
 </html>
