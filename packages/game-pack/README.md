@@ -1,6 +1,8 @@
 # Game Pack
 
-Game Pack 是一个游戏接入包的可分发清单，不是另一套游戏运行时。它把 Adapter 入口、剧情、角色、玩法说明、本地化、资源和权限声明放在同一个可校验目录中。
+Game Pack 是一个游戏接入包的可分发清单，不是另一套游戏运行时。它把 Adapter 入口、动态叙事边界、角色、玩法说明、本地化、资源和权限声明放在同一个可校验目录中。
+
+`content.narrative` 保存世界观、主题、允许的目标和禁止编造的事实，供同一个 DSH Session 动态生成剧情。它不是预先写死的节点表；已经生成的 `StoryBeat` 由 Story Runtime 校验和持久化，是否完成只能由 Adapter 的权威 Observation 证明。`content.story` 只为旧 Pack 保留兼容。
 
 ## 安装边界
 

@@ -317,6 +317,9 @@ describe('independent platform boundary', () => {
     expect(content).toMatch(/^AI_GAME_HARNESS_PRODUCT_TURN_V1\n/)
     expect(content).toContain('call game_learning_memory_recall exactly once')
     expect(content).toContain('call game_learning_skill_catalog before game_learning_skill_learn')
+    expect(content).toContain('Call game_story_context exactly once')
+    expect(content).toContain('generate only 1 to 3 near-term StoryBeat-v1 objects')
+    expect(content).toContain('Never claim a beat completed until Story Runtime has accepted Adapter Observation evidence')
     expect(content).toContain('PLAYER_MESSAGE:\n记住我想先完成基地供氧')
   })
 

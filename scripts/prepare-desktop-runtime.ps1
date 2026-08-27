@@ -72,11 +72,14 @@ $runtimePackages = @(
   @{ Name = 'adapter-protocol'; Source = (Join-Path $repoRoot 'packages/adapter-protocol') },
   @{ Name = 'adapter-websocket'; Source = (Join-Path $repoRoot 'packages/adapter-websocket') },
   @{ Name = 'harness-core'; Source = (Join-Path $repoRoot 'packages/harness-core') },
+  @{ Name = 'game-pack'; Source = (Join-Path $repoRoot 'packages/game-pack') },
+  @{ Name = 'story-runtime'; Source = (Join-Path $repoRoot 'packages/story-runtime') },
   @{ Name = 'dsh-binding'; Source = (Join-Path $repoRoot 'packages/dsh-binding') },
   @{ Name = 'bridge-contract'; Source = (Join-Path $repoRoot 'contracts/bridge-v1') },
   @{ Name = 'game-core'; Source = (Join-Path $repoRoot 'plugins/game-core') },
   @{ Name = 'game-transport'; Source = (Join-Path $repoRoot 'plugins/game-transport') },
-  @{ Name = 'game-learning-binding'; Source = (Join-Path $repoRoot 'plugins/game-learning-binding') }
+  @{ Name = 'game-learning-binding'; Source = (Join-Path $repoRoot 'plugins/game-learning-binding') },
+  @{ Name = 'dsh-story-generator'; Source = (Join-Path $repoRoot 'plugins/dsh-story-generator') }
 )
 foreach ($runtimePackageEntry in $runtimePackages) {
   $runtimePackageTarget = Join-Path $runtimeScopeRoot $runtimePackageEntry.Name

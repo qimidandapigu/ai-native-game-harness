@@ -23,6 +23,7 @@ let dshProductRuntime
 let dshProductUnsubscribe
 let lastDshCoreSnapshot
 let lastDshLearningSnapshot
+let lastDshStorySnapshot
 const pendingDshDiagnostics = []
 let demoAdapterProcess
 let gamePackRegistry
@@ -193,6 +194,9 @@ function runtimePaths() {
     learningPluginPath: packaged
       ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-learning-binding', 'dist', 'index.js')
       : join(repoRoot, 'plugins', 'game-learning-binding', 'dist', 'index.js'),
+    storyPluginPath: packaged
+      ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'dsh-story-generator', 'dist', 'index.js')
+      : join(repoRoot, 'plugins', 'dsh-story-generator', 'dist', 'index.js'),
     oniPath: oniArchive ? join(pluginRoot, oniArchive) : undefined,
     oniVersion,
   }
@@ -304,7 +308,7 @@ async function waitForWeb(url, child, timeoutMs = 60_000) {
 }
 
 function writeProductPatch(paths, adapterPort) {
-  for (const pluginPath of [paths.corePluginPath, paths.transportPluginPath, paths.learningPluginPath]) {
+  for (const pluginPath of [paths.corePluginPath, paths.transportPluginPath, paths.learningPluginPath, paths.storyPluginPath]) {
     if (!existsSync(pluginPath)) throw new Error(`产品 Runtime 插件尚未构建：${pluginPath}`)
   }
   const stateRoot = join(app.getPath('userData'), 'runtime-state')
@@ -313,13 +317,18 @@ function writeProductPatch(paths, adapterPort) {
   const coreUrl = pathToFileURL(paths.corePluginPath).href
   const transportUrl = pathToFileURL(paths.transportPluginPath).href
   const learningUrl = pathToFileURL(paths.learningPluginPath).href
-  writeFileSync(productPatchPath, `- id: xiaotangyuan-oni-adapter\n  config:\n    adapterProtocolUrl: 'ws://127.0.0.1:${adapterPort}/adapter'\n- insert:\n    - id: ai-native-game-core-product\n      name: '${coreUrl}'\n      config:\n        productSnapshotOutput: true\n    - id: ai-native-game-transport-product\n      name: '${transportUrl}'\n      config:\n        enabled: true\n        host: 127.0.0.1\n        port: ${adapterPort}\n        path: /adapter\n        requestTimeoutMs: 10000\n    - id: ai-native-game-learning-product\n      name: '${learningUrl}'\n`)
+  const storyUrl = pathToFileURL(paths.storyPluginPath).href
+  const yamlString = (value) => String(value).replaceAll("'", "''")
+  const storyDataRoot = yamlString(join(app.getPath('userData'), 'story'))
+  const gamePackRoot = yamlString(join(app.getPath('userData'), 'game-packs'))
+  writeFileSync(productPatchPath, `- id: xiaotangyuan-oni-adapter\n  config:\n    adapterProtocolUrl: 'ws://127.0.0.1:${adapterPort}/adapter'\n- insert:\n    - id: ai-native-game-core-product\n      name: '${coreUrl}'\n      config:\n        productSnapshotOutput: true\n    - id: ai-native-game-transport-product\n      name: '${transportUrl}'\n      config:\n        enabled: true\n        host: 127.0.0.1\n        port: ${adapterPort}\n        path: /adapter\n        requestTimeoutMs: 10000\n    - id: ai-native-game-learning-product\n      name: '${learningUrl}'\n    - id: ai-native-game-story-product\n      name: '${storyUrl}'\n      config:\n        dataRoot: '${storyDataRoot}'\n        gamePackRoot: '${gamePackRoot}'\n        productSnapshotOutput: true\n`)
   return productPatchPath
 }
 
 function collectProductRecords(data) {
   const snapshotPrefix = 'AI_GAME_HARNESS_SNAPSHOT '
   const learningPrefix = 'AI_GAME_HARNESS_LEARNING '
+  const storyPrefix = 'AI_GAME_HARNESS_STORY '
   const diagnosticPrefix = 'AI_GAME_HARNESS_DIAGNOSTIC '
   collectProductRecords.buffer = `${collectProductRecords.buffer ?? ''}${data.toString()}`
   const lines = collectProductRecords.buffer.split(/\r?\n/)
@@ -332,6 +341,9 @@ function collectProductRecords(data) {
       } else if (line.startsWith(learningPrefix)) {
         lastDshLearningSnapshot = JSON.parse(line.slice(learningPrefix.length))
         dshProductRuntime?.attachLearningSnapshot(lastDshLearningSnapshot)
+      } else if (line.startsWith(storyPrefix)) {
+        lastDshStorySnapshot = JSON.parse(line.slice(storyPrefix.length))
+        dshProductRuntime?.attachStorySnapshot(lastDshStorySnapshot)
       } else if (line.startsWith(diagnosticPrefix)) {
         const record = JSON.parse(line.slice(diagnosticPrefix.length))
         if (!dshProductRuntime?.attachDiagnosticRecord(record)) {
@@ -393,6 +405,7 @@ async function startRuntime() {
   })
   if (lastDshCoreSnapshot) dshProductRuntime.attachCoreSnapshot(lastDshCoreSnapshot)
   if (lastDshLearningSnapshot) dshProductRuntime.attachLearningSnapshot(lastDshLearningSnapshot)
+  if (lastDshStorySnapshot) dshProductRuntime.attachStorySnapshot(lastDshStorySnapshot)
   await dshProductRuntime.start()
   for (const record of pendingDshDiagnostics.splice(0)) dshProductRuntime.attachDiagnosticRecord(record)
   dshProductUnsubscribe = dshProductRuntime.subscribe((snapshot) => {

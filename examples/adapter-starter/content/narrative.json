@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "kind": "dynamic-narrative-policy",
+  "world": "玩家与 AI 伙伴共同探索一个会响应真实游戏状态的世界。剧情只能建立在 Adapter 已观察到的事实之上。",
+  "themes": ["陪伴", "探索", "共同成长"],
+  "allowedGoals": ["使用当前 Adapter 能力形成可验证的小目标", "根据玩家选择延续尚未解决的线索"],
+  "forbiddenClaims": ["在 Observation 没有证据时宣称目标完成", "生成游戏当前不支持的动作"],
+  "pacing": "每次只滚动生成 1 到 3 个短 StoryBeat，并根据新 Observation 再续写。"
+}

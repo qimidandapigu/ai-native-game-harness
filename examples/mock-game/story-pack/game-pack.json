@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "mock-story-smoke",
+  "version": "0.1.0",
+  "displayName": "Mock Dynamic Story Smoke",
+  "adapter": {
+    "id": "mock-game.adapter",
+    "entry": "adapter/client.js",
+    "protocolVersion": "1.0"
+  },
+  "content": {
+    "narrative": "content/narrative.json"
+  },
+  "permissions": ["game.observe", "game.action"],
+  "assets": []
+}

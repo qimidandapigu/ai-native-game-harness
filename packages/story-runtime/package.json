@@ -1,0 +1,16 @@
+{
+  "name": "@ai-native-game-harness/story-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Validated rolling story state for dynamically generated game narratives.",
+  "type": "module",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ai-native-game-harness/adapter-protocol": "workspace:*"
+  }
+}

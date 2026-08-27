@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "kind": "dynamic-narrative-policy",
+  "world": "玩家与 AI 伙伴刚进入一座小小的金币花园。所有叙事事实都必须来自 Mock Game 当前 Observation。",
+  "themes": ["初次相遇", "共同探索", "用行动建立信任"],
+  "allowedGoals": ["移动到地图上的真实目标", "拾取 Observation 中尚未收集的金币"],
+  "forbiddenClaims": ["不能虚构 Observation 中不存在的地点、物品或任务", "不能在 Adapter 证明前宣称目标完成"],
+  "pacing": "只生成一个可在当前 Mock Game 中立即验证的短剧情片段。"
+}

@@ -541,6 +541,39 @@
     .feature:nth-child(2) .feature-icon { color: var(--cyan); background: rgba(95, 225, 218, .07); }
     .feature:nth-child(3) .feature-icon { color: var(--amber); background: rgba(244, 199, 104, .07); }
 
+    .evidence-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .evidence-shot {
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .evidence-shot img {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      display: block;
+      object-fit: cover;
+      image-rendering: auto;
+    }
+
+    .evidence-shot figcaption { padding: 20px 22px 22px; }
+    .evidence-shot strong { display: block; margin-bottom: 7px; font-size: 16px; }
+    .evidence-shot span { color: var(--muted); font-size: 13px; }
+
+    .evidence-note {
+      margin-top: 14px;
+      color: var(--faint);
+      font-size: 11px;
+    }
+
     .protocol-sample {
       margin-top: 17px;
       padding: 15px;
@@ -627,7 +660,7 @@
       .hero { grid-template-columns: 1fr; min-height: auto; }
       .hero-map { max-width: 650px; }
       .section-head { grid-template-columns: 1fr; gap: 16px; }
-      .principles, .position-grid, .surface-grid { grid-template-columns: 1fr 1fr; }
+      .principles, .position-grid, .surface-grid, .evidence-gallery { grid-template-columns: 1fr 1fr; }
       .architecture { grid-template-columns: 1fr; }
       .arrow { min-height: 34px; transform: rotate(90deg); }
       .gamepack-grid { grid-template-columns: 1fr 1fr; }
@@ -640,7 +673,7 @@
       .nav-links { display: none; }
       main { padding-top: 38px; }
       .hero { padding-bottom: 30px; gap: 34px; }
-      .principles, .position-grid, .protocol-grid, .surface-grid, .role-grid, .timeline, .boundary { grid-template-columns: 1fr; }
+      .principles, .position-grid, .protocol-grid, .surface-grid, .evidence-gallery, .role-grid, .timeline, .boundary { grid-template-columns: 1fr; }
       .definition { grid-template-columns: 1fr; padding: 25px; }
       .boundary > div + div { border-left: 0; border-top: 1px solid var(--line); }
       .source-note, footer { align-items: flex-start; flex-direction: column; }
@@ -682,6 +715,7 @@
       </a>
       <div class="nav-links">
         <a href="#positioning">定位</a>
+        <a href="#game-evidence">画面</a>
         <a href="#principles">原则</a>
         <a href="#reuse-policy">复用门槛</a>
         <a href="#architecture">架构</a>
@@ -698,11 +732,11 @@
   <main id="top">
     <section class="hero reveal" aria-labelledby="hero-title">
       <div>
-        <div class="eyebrow">Product doctrine · v10 · 2026-08-27</div>
+        <div class="eyebrow">Product doctrine · v11 · 2026-08-27</div>
         <h1 id="hero-title"><span class="gradient-text">AI-Native</span><br>Game Harness</h1>
         <p class="hero-copy">
           一套面向 <strong>AI 原生与 AI 连接型游戏</strong> 的可视化承载与编排系统：复用 DeepSeek Harness 的模型、Agent、工具、会话和插件能力，再补上游戏连接、安装、记忆、视觉、语音与安全边界。
-          当前源码已统一到一个仓库：AI Runtime Session 是默认 Agent 主链，Game Harness Core 与 Adapter Protocol 承载游戏边界；同一游戏存档可在重连后恢复会话，技能可以通过受限源码表达条件、有限循环和失败回退。桌面应用默认进入通用 Harness，并可明确切换到游戏专属页面；源码开发版与公开安装包严格区分，真实游戏最终验收、第三方可信启动与正式签名安装包仍在推进。
+          当前源码已统一到一个仓库：AI Runtime Session 是默认 Agent 主链，Game Harness Core 与 Adapter Protocol 承载游戏边界；同一游戏存档可在重连后恢复会话，技能可以通过受限源码表达条件、有限循环和失败回退。桌面应用默认进入通用 Harness，并可明确切换到游戏专属页面；Windows NSIS 开发包已完成本地安装、无系统 Node/pnpm 启动、内置 DSH 页面和卸载验收。源码开发版与公开 Release 严格区分，真实游戏最终验收、第三方可信启动与正式签名仍在推进。
         </p>
         <div class="actions">
           <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看新项目 ↗</a>
@@ -742,6 +776,31 @@
           它默认复用 DSH 的通用 Agent 能力，通过 dsh-binding 接入游戏 Harness Core，把跨游戏能力做成标准 DSH 插件，并把必须进入游戏进程的部分压缩成薄 Native Bridge / Adapter。
         </blockquote>
       </div>
+    </section>
+
+    <section id="game-evidence" class="reveal">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">00A · In-game evidence</div>
+          <h2>AI 已经进入真实游戏画面</h2>
+        </div>
+        <p class="section-summary">这些《星露谷物语》开发验证截图展示角色呈现、玩法互动和环境回应方向。图片用于说明已经做过的真实游戏探索，不替代当前版本的长期存档端到端验收。</p>
+      </div>
+      <div class="evidence-gallery">
+        <figure class="evidence-shot">
+          <img src="../site/games/stardew-valley-giant-crop.jpg" alt="星露谷物语中小汤圆陪伴玩家观察巨大作物">
+          <figcaption><strong>一起见证农场成长</strong><span>AI 围绕存档中真实发生的事件回应，形成属于这个农场的共同经历。</span></figcaption>
+        </figure>
+        <figure class="evidence-shot">
+          <img src="../site/games/stardew-valley-sunflower-flight.jpg" alt="星露谷物语向日葵田中的小汤圆互动玩法">
+          <figcaption><strong>不只陪聊，也能参与玩法</strong><span>角色表达、游戏事件和可执行能力结合起来，让 AI 成为玩法的一部分。</span></figcaption>
+        </figure>
+        <figure class="evidence-shot">
+          <img src="../site/games/stardew-valley-rainy-companion.jpg" alt="星露谷物语雨天场景中小汤圆回应环境">
+          <figcaption><strong>对当前环境作出回应</strong><span>天气、地点与附近事件成为对话和动态剧情的事实依据。</span></figcaption>
+        </figure>
+      </div>
+      <p class="evidence-note">画面来自本项目开发验证记录，非对应游戏官方宣传或合作声明；游戏名称、画面与原始素材权利归各自权利方所有。</p>
     </section>
 
     <section id="positioning" class="reveal">
@@ -808,7 +867,7 @@
       </div>
       <div class="state-law card">
         <strong>当前结论</strong>
-        <span>直接 OpenAI-compatible Agent Driver 暂不进入路线；DSH Tool 到 Harness Core action/action-result 的 Binding 已装入真实 DSH Agent 进程，产品页面也已共享 Session 与 Core Trace。下一步是完成真实游戏 Desktop 端到端验收。正式规则见 ADR 0001。</span>
+        <span>直接 OpenAI-compatible Agent Driver 暂不进入路线；DSH Tool 到 Harness Core action/action-result 的 Binding 已装入真实 DSH Agent 进程，产品页面也已共享 Session 与 Core Trace。下一步先建立 20–50 个 StoryBeat 的长剧情自动验收，再在真实游戏 Desktop 中核对语音分段耗时和完整闭环。正式规则见 ADR 0001。</span>
       </div>
     </section>
 
@@ -880,11 +939,11 @@
         <div class="gamepack-grid">
           <article class="pack-lane content">
             <div class="lane-label">Declarative content</div>
-            <h3>剧情与角色配置</h3>
-            <p>策划能够直接阅读、版本化和修改的数据，不需要重新编译引擎。</p>
+            <h3>叙事边界与角色配置</h3>
+            <p>策划定义可读、可版本化的世界与边界，不预写玩家必须照着走的完整剧情树。</p>
             <div class="arch-list">
               <div class="arch-item">世界观、人物小传与语言风格</div>
-              <div class="arch-item">剧情节点、任务目标与触发条件</div>
+              <div class="arch-item">主题、允许目标、禁写事实与节奏约束</div>
               <div class="arch-item">数值、概率、冷却与关系阈值</div>
               <div class="arch-item">角色提示词、知识与本地化</div>
             </div>
@@ -892,13 +951,14 @@
 
           <article class="pack-lane logic">
             <div class="lane-label">DSH game plugin</div>
-            <h3>动态玩法与剧情逻辑</h3>
-            <p>算法、状态机、知识、工具定义和持续运行能力进入标准 DSH Harness Plugin。</p>
+            <h3>动态生成与剧情运行时</h3>
+            <p>同一个 DSH Session 滚动生成 1–3 个 StoryBeat；标准插件提供 Tool，纯 Runtime 校验、推进并按存档保存。</p>
             <div class="arch-list">
-              <div class="arch-item">动态剧情导演与章节调度</div>
+              <div class="arch-item">game_story_context / propose / choose</div>
+              <div class="arch-item">StoryBeat 校验、历史、分支与结局</div>
               <div class="arch-item">关系网络与长期角色成长</div>
               <div class="arch-item">程序化任务与多角色协作</div>
-              <div class="arch-item">自定义剧情页、关系图和分析面板</div>
+              <div class="arch-item">动态剧情页、关系图和分析面板</div>
             </div>
           </article>
 
@@ -921,7 +981,8 @@
         </div>
 
         <div class="placement-rule" aria-label="内容放置判断规则">
-          <div><b>能用数据描述</b><span>放进配置与内容文件</span></div>
+          <div><b>世界观和生成边界</b><span>放进 Game Pack narrative 配置</span></div>
+          <div><b>模型生成的近期剧情</b><span>交给 Story Runtime 校验和存档</span></div>
           <div><b>需要知识、工具或算法</b><span>做成 DSH Harness Plugin</span></div>
           <div><b>必须调用游戏原生 API</b><span>放进薄 Native Bridge</span></div>
           <div><b>决定真实游戏结果</b><span>留在游戏本体</span></div>
@@ -987,9 +1048,9 @@
       <div class="section-head">
         <div>
           <div class="section-kicker">05 · Build baseline</div>
-          <h2>代码已经走到桌面开发预览</h2>
+          <h2>代码已经走到本地安装验收</h2>
         </div>
-        <p class="section-summary">DSH 模型链、游戏插件闭环、独立 Adapter 测试切片和产品页面接线都已落到代码；dsh-binding 已在真实 DSH Agent 进程中完成 Tool 到 Core action-result 的闭环。《缺氧》Adapter 也已能在不启动游戏时自动验证协议与错误路径。当前缺口是让真实游戏完成 Desktop 端到端验收，而不是新写模型 Runtime。</p>
+        <p class="section-summary">DSH 模型链、游戏插件闭环、独立 Adapter 测试切片、产品页面和本地 Windows 安装器都已落到代码与验收；dsh-binding 已在真实 DSH Agent 进程中完成 Tool 到 Core action-result 的闭环。《缺氧》Adapter 也已能在不启动游戏时自动验证协议与错误路径。当前缺口是长剧情质量、真实语音分段耗时和真实游戏存档闭环，而不是新写模型 Runtime。</p>
       </div>
       <div class="surface-grid">
         <article class="feature card">
@@ -1005,7 +1066,7 @@
         <article class="feature card">
           <div class="feature-icon">APP</div>
           <h3>Windows 桌面开发包</h3>
-          <p>Electron 已能启动内置 Runtime、隔离用户 Profile、装配小汤圆 <span class="mono">0.7.7</span> 和独立 ONI Adapter <span class="mono">0.1.6</span>，并生成 NSIS <span class="mono">.exe</span>。应用默认显示通用 Harness，可通过页面按钮、菜单、快捷键和返回按钮切换游戏专属页面；窗口与页面统一使用小汤圆品牌。星露谷/饥荒按 <span class="mono">V</span>，缺氧按 <span class="mono">Q</span>；目前仍是未签名的本地开发产物。</p>
+          <p>Electron 已能启动内置 Runtime、隔离用户 Profile、装配小汤圆 <span class="mono">0.7.7</span> 和独立 ONI Adapter <span class="mono">0.1.6</span>，并生成约 <span class="mono">271 MiB</span> 的 NSIS <span class="mono">.exe</span>。实际安装后在不提供系统 Node/pnpm 的 PATH 下启动了 Renderer、DSH NodeService 与媒体 Host，本地 DSH 页面返回 HTTP 200，短路径静默卸载无残留；目前仍是未签名、未上传 Release 的本地开发产物。</p>
         </article>
         <article class="feature card">
           <div class="feature-icon">WIRE</div>
@@ -1014,12 +1075,12 @@
         </article>
       </div>
       <div class="state-law card">
-        <strong>产品接线已完成，下一步验收真实游戏</strong>
-        <span>小汤圆已经验证模型选择、Credentials、Agent Session、Tool Calling、流式回复、记忆和技能试跑；默认产品使用同一条 Agent 主链：会话与记忆按 gameId + saveId 隔离并可在重连后恢复，技能由模型生成受限源码，只能调用 Adapter action，完整真实试跑成功后才保存。剧情、等级和角色成长仍与自学习分开。</span>
+        <strong>产品接线与本地安装已完成，下一步验收长期体验</strong>
+        <span>小汤圆已经验证模型选择、Credentials、Agent Session、Tool Calling、流式回复、记忆和技能试跑；默认产品使用同一条 Agent 主链。动态剧情也由该 Session 生成，不新增剧情 Agent：Game Pack 给边界，Story Runtime 校验并按 gameId + saveId 保存，Adapter Observation 证明完成。剧情、等级和角色成长仍与自学习分开。</span>
       </div>
       <div class="state-law card">
         <strong>当前已实现</strong>
-        <span><span class="mono">desktop:start</span> 与 <span class="mono">desktop:dsh</span> 启动内置产品链；<span class="mono">game-learning-binding</span> 复用小汤圆唯一的 MemoryService 与 SkillService，不建立第二套 Agent 或数据库。Desktop 显示当前存档记忆、已验证技能与失败尝试；技能源码 v2 支持条件、最多 10 次循环、回退与断言，旧 v1 文件会保留并迁移。流式 TTS 已避免中途失败后的重复整段播放；真实游戏存档仍需现场验收。</span>
+        <span><span class="mono">desktop:start</span> 与 <span class="mono">desktop:dsh</span> 启动内置产品链；<span class="mono">game-learning-binding</span> 复用小汤圆唯一的 MemoryService 与 SkillService，<span class="mono">dsh-story-generator</span> 给同一个 Session 提供动态剧情 Tool。Desktop 显示当前剧情目标、选择、不可回写历史、当前存档记忆、已验证技能与失败尝试。Mock Game 已证明虚构事实会被拒绝、真实 Observation 才能推进剧情；真实模型和真实存档仍需现场验收。</span>
       </div>
       <div class="state-law card">
         <strong>公开发布边界</strong>
@@ -1027,7 +1088,7 @@
       </div>
       <div class="state-law card">
         <strong>验证边界</strong>
-        <span><span class="mono">pnpm check</span> 已覆盖工作区构建、28 项集成测试和 20 项平台测试；<span class="mono">pnpm check:xiaotangyuan</span> 又通过饥荒 25 项、反馈服务 4 项、ONI Adapter 14 项和小汤圆插件 84 项测试。<span class="mono">pnpm desktop:prepare</span> 已完成构建、打包、同存档会话恢复冒烟和桌面 Runtime 准备；隔离的 <span class="mono">smoke:dsh-product</span> 仍因上游 Web UI 包缺失失败。自动测试与本地模拟模型不能替代真实游戏存档验收。</span>
+        <span><span class="mono">pnpm check</span> 已覆盖工作区构建、29 项集成测试和 20 项平台测试；<span class="mono">pnpm check:xiaotangyuan</span> 又通过饥荒 25 项、反馈服务 4 项、ONI Adapter 14 项和小汤圆插件 84 项测试。<span class="mono">smoke:dsh-product</span>、<span class="mono">smoke:dsh-adapter</span> 与 <span class="mono">smoke:dsh-story</span> 当前均通过：剧情冒烟让当前 headless DSH 模型生成并完成金币 StoryBeat，第二次启动后读回同一条 completed 历史和 revision 2 证据。安装包还完成了敏感标识扫描、SHA256、隔离安装、产品主链启动和完整卸载验证。一次 Mock Game 冒烟和一次本机安装不能替代真实游戏存档、长时间连续剧情、多样本质量验收或公开签名。</span>
       </div>
     </section>
 
@@ -1042,7 +1103,7 @@
       <div class="surface-grid">
         <article class="feature card"><div class="feature-icon">APP</div><h3>apps / runtime</h3><p><span class="mono">apps/desktop</span> 管理窗口、产品 IPC 与内置 DSH 子进程；<span class="mono">runtime/dsh-profile</span> 固定上游版本、默认配置与插件装配，不自研另一套通用 Runtime。</p></article>
         <article class="feature card"><div class="feature-icon">BIND</div><h3>packages / dsh-binding</h3><p>默认产品接线：把 DSH Agent 的游戏 Tool Call 映射为 Harness Core action，并把 ActionResult 与新 Observation 返回 DSH Agent。</p></article>
-        <article class="feature card"><div class="feature-icon">PLUG</div><h3>plugins</h3><p>Game Core、Transport、Learning Binding 与小汤圆现有 Memory、Skill、Media、Installer 能力遵循 DSH 的注入、事件和可逆生命周期；学习接线不拥有第二套 Session。</p></article>
+        <article class="feature card"><div class="feature-icon">PLUG</div><h3>plugins</h3><p>Game Core、Transport、Learning Binding、Story Generator 与小汤圆现有 Memory、Skill、Media、Installer 能力遵循 DSH 的注入、事件和可逆生命周期；学习与剧情接线都不拥有第二套 Session。</p></article>
         <article class="feature card"><div class="feature-icon">WIRE</div><h3>contracts</h3><p>独立定义 Harness 与 C#、Lua、C++ Mod 共同使用的 Bridge 消息和 Schema，避免线协议反向依赖某个 TypeScript 插件。</p></article>
         <article class="feature card"><div class="feature-icon">GAME</div><h3>games / &lt;game&gt;</h3><p>同一游戏的 Harness Plugin、薄 Native Bridge 与 Pack 放在一起，确保它们共同测试、固定兼容范围并作为一个 Game Pack 发行。</p></article>
         <article class="feature card"><div class="feature-icon">TEST</div><h3>tests</h3><p>分别验证协议兼容、DSH 插件装配、持久 Session 事件与游戏 Trace 关联、最终游戏状态，明确区分“能够构建”和“真的执行成功”。</p></article>
@@ -1060,7 +1121,7 @@
           <div class="section-kicker">07 · Product surfaces</div>
           <h2>引擎必须“看得见”</h2>
         </div>
-        <p class="section-summary">产品专属对话页、自学习页、分析页和 Adapter 中心共享同一个 DSH Agent 会话与 Harness Core 游戏 Trace；自学习页把存档记忆、已验证技能和失败尝试分开展示，不暴露隐藏思维。</p>
+        <p class="section-summary">产品专属对话页、动态剧情页、自学习页、分析页和 Adapter 中心共享同一个 DSH Agent 会话与 Harness Core 游戏 Trace；剧情页展示生成结果与 Adapter 证据，自学习页分开显示记忆与技能，不暴露隐藏思维。</p>
       </div>
       <div class="surface-grid">
         <article class="feature card"><div class="feature-icon">DSH</div><h3>已验证：模型与会话</h3><p>内置 DSH 已提供模型选择、Credentials、Agent Session、Tool Calling 和流式回复；产品继续复用，不另建模型 Runtime。</p></article>
@@ -1097,7 +1158,7 @@
       <div class="timeline">
         <article class="phase card"><div class="phase-num">SOURCE · 已迁入</div><h3>统一源码资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 1 · 已完成</div><h3>跑通最小闭环</h3><ul><li>固定 DSH Runtime Profile 与插件版本</li><li>实现 Game Core、Transport 与 Fake Harness Plugin</li><li>完成 DSH 事件、游戏侧 Trace 和权威状态验收</li></ul></article>
-        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>真实游戏端到端验收</h3><ul><li>Electron、诊断筛选与脱敏导出已接线</li><li>Game Pack 注册表、Adapter Starter 与协议体检已落地</li><li>用真实游戏核对状态、文字、语音、Action、分段耗时与重连</li></ul></article>
+        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>长期体验与真实游戏验收</h3><ul><li>本地 NSIS 安装—启动—卸载与诊断导出已验证</li><li>连续运行 20–50 个 StoryBeat，检查重复、遗忘、事实和玩家选择</li><li>用真实游戏核对状态、文字、语音、Action、分段耗时与重连</li></ul></article>
         <article class="phase card"><div class="phase-num">PHASE 3</div><h3>可信开放生态</h3><ul><li>多语言 Native Bridge SDK 与开发者 CLI</li><li>Game Pack 权限授权、可信启动、签名与兼容范围</li><li>官方目录、真实游戏测试与认证</li></ul></article>
       </div>
     </section>

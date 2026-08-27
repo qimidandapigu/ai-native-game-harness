@@ -9,7 +9,7 @@
     "protocolVersion": "1.0"
   },
   "content": {
-    "story": "content/story.md",
+    "narrative": "content/narrative.json",
     "characters": "content/characters.json",
     "gameplay": "content/gameplay.md",
     "localization": "content/localization.zh-CN.json"
