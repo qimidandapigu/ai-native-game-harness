@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071018">
+  <meta name="description" content="用 AI Native Game Harness 为游戏接入可观察、可行动、可记忆、可审计的 AI。复用 Agent、语音、视觉、记忆和动态剧情，只实现游戏自己的 Adapter。">
+  <meta name="robots" content="index,follow">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="AI Native Game Harness">
+  <meta property="og:title" content="AI Native Game Harness｜开发者接入">
+  <meta property="og:description" content="描述游戏世界，实现一个 Adapter，复用完整 AI 游戏运行时。">
+  <meta property="og:url" content="https://qimidandapigu.github.io/ai-native-game-harness/developers.html">
+  <meta property="og:image" content="https://qimidandapigu.github.io/ai-native-game-harness/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AI Native Game Harness｜开发者接入">
+  <meta name="twitter:description" content="描述游戏世界，实现一个 Adapter，复用完整 AI 游戏运行时。">
+  <meta name="twitter:image" content="https://qimidandapigu.github.io/ai-native-game-harness/og.png">
+  <title>AI Native Game Harness｜开发者接入</title>
+  <link rel="canonical" href="https://qimidandapigu.github.io/ai-native-game-harness/developers.html">
+  <link rel="icon" href="logo.png">
+  <link rel="stylesheet" href="styles.css?v=20260828-2">
+  <script
+    defer
+    src="https://vibecafe.ai/telemetry/v1.js"
+    data-vc-product-id="cmtb5fwyn00010akprjcnt4gz"
+    data-vc-auth-key="vc_web_YqZ8bweYYQLn5moTR8GtZiiP_HXuuIffsxd3GFPPl74"
+  ></script>
+</head>
+<body id="top" class="developer-page">
+  <a class="skip-link" href="#content">跳到主要内容</a>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="返回玩家版首页">
+      <img src="logo.png" alt="" width="42" height="42">
+      <span><strong>AI Native</strong><small>Game Harness</small></span>
+    </a>
+    <nav aria-label="开发者导航">
+      <a href="#value">开发价值</a>
+      <a href="#integration">接入方式</a>
+      <a href="#architecture">架构边界</a>
+      <a href="#evidence">验证证据</a>
+      <a href="#status">当前状态</a>
+    </nav>
+    <div class="audience-switch" aria-label="选择页面版本">
+      <a href="index.html">玩家版</a>
+      <a class="active" href="developers.html" aria-current="page">开发者版</a>
+    </div>
+    <a class="header-link" href="https://github.com/qimidandapigu/ai-native-game-harness" target="_blank" rel="noreferrer">GitHub <span>↗</span></a>
+  </header>
+
+  <main id="content">
+    <section class="hero developer-hero">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> OPEN SOURCE GAME AI RUNTIME</p>
+        <p class="product-pill"><span>面向开发者</span> 游戏团队 · MOD 作者 · AI 游戏创业者</p>
+        <h1>让你的游戏<br><em>拥有真正能行动的 AI</em></h1>
+        <p class="hero-lead">不用为每款游戏重做模型、Agent、语音、视觉、记忆和工具系统。描述游戏世界，实现一个 Adapter，就能把统一的 AI 运行时接入自己的玩法。</p>
+        <div class="hero-actions">
+          <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness/tree/main/examples/adapter-starter" target="_blank" rel="noreferrer">从 Adapter Starter 开始 <span>↗</span></a>
+          <a class="button secondary" href="#integration">查看接入流程</a>
+        </div>
+        <div class="hero-points" aria-label="开发者特点">
+          <span><i>✓</i> 不绑定单一模型厂商</span>
+          <span><i>✓</i> C# / Lua / C++ 可接入</span>
+          <span><i>✓</i> 动作结果由游戏确认</span>
+        </div>
+      </div>
+
+      <div class="product-window" aria-label="Adapter 接入示意">
+        <div class="window-bar">
+          <div class="window-dots"><i></i><i></i><i></i></div>
+          <span>game-pack.json</span>
+          <b><i></i> ADAPTER ONLINE</b>
+        </div>
+        <div class="developer-console">
+          <div class="developer-console-head">
+            <div><small>GAME ADAPTER PROTOCOL</small><strong>把游戏事实和动作交给 AI</strong></div>
+            <span>v1.1</span>
+          </div>
+          <pre class="dev-code"><span class="comment">// 只描述这款游戏独有的能力</span>
+{
+  <span class="keyword">"gameId"</span>: <span class="string">"my-native-game"</span>,
+  <span class="keyword">"observation"</span>: [<span class="string">"scene"</span>, <span class="string">"player"</span>, <span class="string">"entities"</span>],
+  <span class="keyword">"actions"</span>: [<span class="string">"move"</span>, <span class="string">"interact"</span>, <span class="string">"use-item"</span>],
+  <span class="keyword">"events"</span>: [<span class="string">"quest-updated"</span>, <span class="string">"combat-ended"</span>]
+}</pre>
+          <div class="dev-result">
+            <small>HARNESS RESULT</small>
+            <strong>ActionResult + new Observation + Trace</strong>
+            <span>VERIFIED</span>
+          </div>
+          <div class="runtime-strip">
+            <span><i></i> Schema 通过</span><span>revision 12</span><span>权限已声明</span><span>Trace 可审计</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust-strip" aria-label="开发者核心能力">
+      <span>Harness Core</span><i></i><span>Adapter Protocol</span><i></i><span>Game Pack</span><i></i><span>Story Runtime</span><i></i><span>Native Bridge</span>
+    </section>
+
+    <section class="section" id="value">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> WHY THIS HARNESS</p><h2>把时间留给玩法，<br>不是重复接 AI API</h2></div>
+        <p>通用能力由统一运行时提供；每款游戏只维护自己的世界知识、状态、动作和原生 API 边界。</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card accent"><span class="feature-number">01</span><div class="feature-icon">CORE</div><h3>复用完整 Agent 主链</h3><p>模型选择、Session、Tool Calling、凭据、权限和流式回复不需要在游戏 Mod 中重新实现。</p></article>
+        <article class="feature-card"><span class="feature-number">02</span><div class="feature-icon">MEDIA</div><h3>复用视觉与语音</h3><p>窗口截图、麦克风、ASR、TTS 和流式播放由桌面运行时统一管理，游戏侧不保存第三方 Key。</p></article>
+        <article class="feature-card"><span class="feature-number">03</span><div class="feature-icon">STATE</div><h3>游戏事实保持权威</h3><p>AI 可以提出行动，但动作是否成功、任务是否完成，必须由 Adapter 返回的新状态证明。</p></article>
+        <article class="feature-card"><span class="feature-number">04</span><div class="feature-icon">PACK</div><h3>按游戏独立发布</h3><p>知识、内容、Adapter 和薄 Bridge 组成 Game Pack，按需安装、升级和卸载，不把所有游戏打进核心。</p></article>
+      </div>
+    </section>
+
+    <section class="section developers" id="integration">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> THREE STEPS</p><h2>三步接入一款游戏</h2></div>
+        <p>先从最小闭环开始：观察一个真实状态，执行一个确定动作，再让游戏返回结果和新状态。</p>
+      </div>
+      <div class="developer-layout">
+        <div class="steps">
+          <article><span>1</span><div><h3>描述世界与能力</h3><p>定义 gameId、状态 Schema、可执行动作、事件和权限范围。</p></div></article>
+          <article><span>2</span><div><h3>实现 Game Adapter</h3><p>把 Harness 的观察和动作请求翻译成游戏 API；必须进程内执行的部分放进薄 Native Bridge。</p></div></article>
+          <article><span>3</span><div><h3>打包并通过一致性检查</h3><p>组合 Game Pack，运行 Mock Game、Adapter conformance 和真实存档闭环。</p></div></article>
+          <a class="button secondary" href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/docs/INDEPENDENT_PLATFORM.md" target="_blank" rel="noreferrer">阅读接入文档 <span>↗</span></a>
+        </div>
+        <div class="architecture-card" id="architecture">
+          <div class="arch-title"><small>ONE RUNTIME · MANY GAMES</small><span>可替换 · 可审计 · 可扩展</span></div>
+          <div class="arch-row primary-row"><b>DeepSeek Harness Runtime</b><p>模型 · Agent · Session · Tool</p></div>
+          <i class="down">↓</i>
+          <div class="arch-grid"><div><b>Harness Core</b><small>校验、路由、Trace</small></div><div><b>Story Runtime</b><small>剧情、目标、存档</small></div><div><b>Game Pack</b><small>知识、内容、权限</small></div></div>
+          <i class="down">↓</i>
+          <div class="arch-row adapter-row"><b>Adapter Protocol</b><p>观察 · 动作 · 事件 · 错误</p></div>
+          <i class="down">↓</i>
+          <div class="game-row"><span>星露谷物语</span><span>饥荒联机版</span><span>缺氧</span><span>你的游戏 +</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section story-demo" id="evidence">
+      <div class="story-copy">
+        <p class="eyebrow"><span></span> AUTHORITATIVE LOOP</p>
+        <h2>AI 负责决策，<br>游戏负责证明</h2>
+        <p>Harness 不接受“模型说已经完成”。每次动作都要关联请求、结果、revision 和新的 Observation，失败也必须原样返回 Agent。</p>
+        <a class="text-link" href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/docs/AI_GAME_ENGINE_IDEOLOGY.html" target="_blank" rel="noreferrer">查看完整架构与边界 <span>→</span></a>
+      </div>
+      <div class="proof-flow">
+        <article><span>01</span><div><small>OBSERVE</small><strong>读取当前权威状态</strong><p>位置、物品、任务、附近实体和游戏 revision。</p></div></article>
+        <article><span>02</span><div><small>ACT</small><strong>调用 Adapter 声明的动作</strong><p>参数先过 Schema、权限和 revision 校验。</p></div></article>
+        <article class="verified"><span>03</span><div><small>VERIFY</small><strong>返回结果与新状态</strong><p>游戏确认成功后，Agent 才能继续回复、记忆或推进剧情。</p></div><b>TRACE LINKED</b></article>
+      </div>
+    </section>
+
+    <section class="section progress" id="status">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> CURRENT BASELINE</p><h2>可以评估接入，<br>仍在走向正式发行</h2></div>
+        <p>核心协议、Mock Game、第三方 Adapter Starter 和多游戏验证代码已经开放；签名安装包、第三方可信启动和真实游戏长期验收仍在推进。</p>
+      </div>
+      <div class="status-board">
+        <article><span class="status done">可运行</span><h3>Core 与协议</h3><p>Harness Core、Adapter Protocol、WebSocket Host、Game Pack 注册表与一致性检查。</p></article>
+        <article><span class="status done">有示例</span><h3>接入起点</h3><p>Adapter Starter、Mock Game，以及星露谷、饥荒和缺氧的不同语言实现。</p></article>
+        <article><span class="status testing">开发验证</span><h3>桌面与发行</h3><p>Windows 本地安装链已验证；正式签名 Release 与开放生态安全策略尚未完成。</p></article>
+      </div>
+    </section>
+
+    <section class="final-cta">
+      <img src="logo.png" alt="AI Native Game Harness 标志" width="86" height="86">
+      <p class="eyebrow"><span></span> BUILD THE FIRST LOOP</p>
+      <h2>先让一个状态、一个动作、<br>一个真实结果跑通</h2>
+      <p>从 Adapter Starter 开始，不必先设计整套 AI 世界。完成最小权威闭环之后，再逐步加入语音、记忆、技能和动态剧情。</p>
+      <div class="hero-actions">
+        <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness/tree/main/examples/adapter-starter" target="_blank" rel="noreferrer">打开 Adapter Starter <span>↗</span></a>
+        <a class="button secondary" href="https://github.com/qimidandapigu/ai-native-game-harness" target="_blank" rel="noreferrer">查看 GitHub 项目</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="brand footer-brand">
+      <img src="logo.png" alt="" width="38" height="38">
+      <span><strong>AI Native</strong><small>Game Harness</small></span>
+    </div>
+    <p>基于 DeepSeek Harness 构建的社区开源项目，并非 DeepSeek 官方产品。</p>
+    <div><a href="index.html">玩家版</a><a href="https://github.com/qimidandapigu/ai-native-game-harness" target="_blank" rel="noreferrer">GitHub</a><a href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/LICENSE" target="_blank" rel="noreferrer">MIT License</a></div>
+  </footer>
+</body>
+</html>
+
