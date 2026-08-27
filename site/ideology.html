@@ -3,797 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#071119">
-  <meta name="description" content="AI Native Game Harness 的完整产品理念、技术原则、架构边界、协议设计、当前实现与路线图。">
+  <meta name="theme-color" content="#071018">
+  <meta name="description" content="AI Native Game Harness 的技术理念、分层架构、协议边界、Game Pack 发行方式和当前实现进展。">
   <meta name="robots" content="index,follow">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:site_name" content="AI Native Game Harness">
   <meta property="og:title" content="AI Native Game Harness｜技术理念与架构">
-  <meta property="og:description" content="从 DSH Runtime、Harness、Game Pack 到 Native Bridge，完整说明 AI 如何可信地进入真实游戏。">
+  <meta property="og:description" content="用五个问题读懂 DSH Runtime、Harness、Game Pack、Native Bridge 与权威游戏状态。">
   <meta property="og:url" content="https://qimidandapigu.github.io/ai-native-game-harness/ideology.html">
   <meta property="og:image" content="https://qimidandapigu.github.io/ai-native-game-harness/og.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="AI Native Game Harness｜技术理念与架构">
-  <meta name="twitter:description" content="从 DSH Runtime、Harness、Game Pack 到 Native Bridge，完整说明 AI 如何可信地进入真实游戏。">
+  <meta name="twitter:description" content="用五个问题读懂 DSH Runtime、Harness、Game Pack、Native Bridge 与权威游戏状态。">
   <meta name="twitter:image" content="https://qimidandapigu.github.io/ai-native-game-harness/og.png">
   <title>AI Native Game Harness｜技术理念与架构</title>
   <link rel="canonical" href="https://qimidandapigu.github.io/ai-native-game-harness/ideology.html">
   <link rel="icon" href="logo.png">
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #071119;
-      --bg-soft: #0a1821;
-      --panel: rgba(15, 31, 41, .82);
-      --panel-strong: #10232e;
-      --line: rgba(172, 192, 224, .16);
-      --line-strong: rgba(172, 192, 224, .28);
-      --text: #f3f6fb;
-      --muted: #a7b2c5;
-      --faint: #748198;
-      --blue: #75a7ff;
-      --cyan: #65e5bd;
-      --amber: #f4c768;
-      --rose: #ff8299;
-      --green: #79dfa5;
-      --shadow: 0 30px 90px rgba(0, 0, 0, .38);
-      --radius: 22px;
-      --max: 1180px;
-    }
-
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; scroll-padding-top: 120px; }
-    body {
-      margin: 0;
-      min-width: 320px;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 11% -6%, rgba(55, 94, 145, .2), transparent 34rem),
-        radial-gradient(circle at 90% 5%, rgba(46, 167, 139, .2), transparent 31rem),
-        var(--bg);
-      font-family: Inter, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      line-height: 1.65;
-    }
-
-    a { color: inherit; }
-    code, .mono { font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; }
-
-    .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      border-bottom: 1px solid var(--line);
-      background: rgba(8, 11, 18, .76);
-      backdrop-filter: blur(18px);
-    }
-
-    .nav {
-      width: min(calc(100% - 36px), var(--max));
-      min-height: 72px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-
-    .brand-mark {
-      width: 42px;
-      height: 42px;
-      object-fit: contain;
-      image-rendering: pixelated;
-      border-radius: 12px;
-    }
-
-    .brand-copy strong, .brand-copy small { display: block; }
-    .brand-copy strong { font-size: 14px; letter-spacing: .035em; }
-    .brand-copy small { margin-top: 2px; color: var(--faint); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .nav-links a { text-decoration: none; }
-    .nav-links a:hover { color: var(--text); }
-    .nav-links .nav-cta {
-      padding: 9px 13px;
-      border: 1px solid rgba(101, 229, 189, .28);
-      border-radius: 9px;
-      color: var(--text);
-      background: rgba(101, 229, 189, .065);
-    }
-
-    .audience-switch { display: flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.025); }
-    .audience-switch a { min-height: 31px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 7px; color: var(--muted); font-size: 10px; text-decoration: none; white-space: nowrap; }
-    .audience-switch a:hover { color: var(--text); }
-    .audience-switch a.active { color: #062017; background: var(--cyan); font-weight: 750; }
-    .mobile-audience { display: none; }
-
-    main {
-      width: min(calc(100% - 36px), var(--max));
-      margin: 0 auto;
-      padding: 48px 0 104px;
-    }
-
-    .hero {
-      min-height: 690px;
-      display: grid;
-      grid-template-columns: minmax(360px, .9fr) minmax(500px, 1.1fr);
-      align-items: center;
-      gap: 66px;
-      padding: 46px 0 82px;
-    }
-
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      margin-bottom: 22px;
-      color: var(--cyan);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-    }
-
-    .eyebrow::before {
-      content: "";
-      width: 24px;
-      height: 1px;
-      background: var(--cyan);
-    }
-
-    h1, h2, h3, p { margin-top: 0; }
-    h1 {
-      max-width: 680px;
-      margin-bottom: 26px;
-      font-size: clamp(48px, 6.2vw, 82px);
-      line-height: 1.04;
-      letter-spacing: -.06em;
-      font-weight: 680;
-    }
-
-    .gradient-text {
-      color: transparent;
-      background: linear-gradient(108deg, #f5f8ff 5%, #9fc0ff 46%, #65e5bd 100%);
-      background-clip: text;
-      -webkit-background-clip: text;
-    }
-
-    .hero-copy {
-      max-width: 610px;
-      margin-bottom: 28px;
-      color: #b8c9cc;
-      font-size: clamp(16px, 1.65vw, 19px);
-      line-height: 1.85;
-    }
-
-    .hero-copy strong { color: var(--text); font-weight: 720; }
-
-    .hero-status {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 9px;
-      margin: 25px 0 0;
-    }
-
-    .hero-status span {
-      padding: 6px 9px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--muted);
-      background: rgba(255, 255, 255, .025);
-      font-size: 10px;
-    }
-
-    .hero-status .live { color: var(--cyan); border-color: rgba(101, 229, 189, .25); background: rgba(101, 229, 189, .065); }
-
-    .actions { display: flex; flex-wrap: wrap; gap: 12px; }
-    .button {
-      min-height: 48px;
-      padding: 0 19px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border: 1px solid var(--line-strong);
-      border-radius: 10px;
-      color: var(--text);
-      background: rgba(255, 255, 255, .035);
-      font-size: 14px;
-      font-weight: 700;
-      text-decoration: none;
-    }
-
-    .button.primary {
-      border-color: rgba(117, 167, 255, .62);
-      border-color: var(--cyan);
-      background: var(--cyan);
-      color: #052019;
-      box-shadow: 0 14px 34px rgba(101, 229, 189, .12);
-    }
-
-    .button:hover { transform: translateY(-1px); }
-
-    .product-demo {
-      position: relative;
-      border: 1px solid rgba(155, 209, 207, .2);
-      border-radius: 20px;
-      background: #08151d;
-      box-shadow: 0 36px 100px rgba(0, 0, 0, .46), 0 0 90px rgba(101, 229, 189, .06);
-      overflow: hidden;
-      transform: perspective(1200px) rotateY(-2deg) rotateX(1deg);
-    }
-
-    .product-demo::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      box-shadow: inset 0 1px rgba(255, 255, 255, .045);
-      pointer-events: none;
-    }
-
-    .demo-bar {
-      min-height: 48px;
-      padding: 0 15px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      border-bottom: 1px solid var(--line);
-      color: var(--faint);
-      font-size: 9px;
-      letter-spacing: .06em;
-    }
-
-    .demo-dots { display: flex; gap: 5px; }
-    .demo-dots i { width: 7px; height: 7px; border-radius: 50%; background: #2a3d47; }
-    .demo-connected { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; color: var(--cyan); font-size: 8px; font-weight: 800; letter-spacing: .11em; }
-    .demo-connected i { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
-
-    .demo-shell { min-height: 454px; display: grid; grid-template-columns: 62px 1fr; }
-    .demo-sidebar { padding: 16px 10px; display: flex; flex-direction: column; align-items: center; gap: 19px; border-right: 1px solid var(--line); background: rgba(4, 12, 18, .5); }
-    .demo-sidebar img { width: 36px; height: 36px; margin-bottom: 9px; border-radius: 10px; }
-    .demo-sidebar span { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; color: #59717b; font-size: 13px; }
-    .demo-sidebar span.active { color: var(--cyan); background: rgba(101, 229, 189, .095); }
-    .demo-main { min-width: 0; padding: 24px; }
-    .demo-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .demo-heading small, .demo-heading strong { display: block; }
-    .demo-heading small { color: var(--cyan); font-size: 7px; font-weight: 800; letter-spacing: .16em; }
-    .demo-heading strong { margin-top: 7px; font-size: 18px; font-weight: 620; }
-    .demo-heading > span { padding: 5px 7px; border-radius: 5px; color: var(--cyan); background: rgba(101, 229, 189, .08); font-size: 7px; }
-
-    .scene-card { margin-top: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: linear-gradient(145deg, rgba(16, 39, 49, .96), rgba(8, 22, 30, .94)); }
-    .scene-card > small { color: var(--cyan); font-size: 7px; font-weight: 800; letter-spacing: .14em; }
-    .scene-card h3 { margin: 9px 0 7px; font-size: 19px; }
-    .scene-card > p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
-    .companion-line { margin-top: 14px; padding: 12px; display: grid; grid-template-columns: 32px 1fr; gap: 10px; border-radius: 10px; background: rgba(101, 229, 189, .065); }
-    .companion-avatar { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid rgba(101, 229, 189, .22); border-radius: 9px; color: var(--cyan); font-size: 10px; font-weight: 800; }
-    .companion-line strong { display: block; color: var(--cyan); font-size: 8px; }
-    .companion-line p { margin: 4px 0 0; color: #d0dfde; font-size: 9px; line-height: 1.6; }
-
-    .proof-result { margin-top: 12px; padding: 10px 11px; display: flex; justify-content: space-between; gap: 12px; border: 1px solid rgba(101, 229, 189, .2); border-radius: 8px; color: var(--muted); font-size: 8px; }
-    .proof-result b { color: var(--cyan); }
-    .demo-runtime { margin-top: 12px; display: grid; grid-template-columns: 1.25fr repeat(3, 1fr); gap: 7px; }
-    .demo-runtime span { padding: 8px 6px; border: 1px solid var(--line); border-radius: 7px; color: #789098; background: rgba(255, 255, 255, .018); text-align: center; font-size: 7px; }
-    .demo-runtime span:first-child { color: var(--cyan); }
-
-    .capability-rail {
-      margin-top: -6px;
-      padding: 19px 24px;
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 1px;
-      border: 1px solid var(--line);
-      border-radius: 15px;
-      background: var(--line);
-      overflow: hidden;
-    }
-
-    .capability-rail div { padding: 12px 14px; background: rgba(8, 20, 28, .97); }
-    .capability-rail strong { display: block; font-size: 12px; }
-    .capability-rail span { display: block; margin-top: 4px; color: var(--faint); font-size: 9px; }
-
-    section[id] { scroll-margin-top: 120px; }
-    section { margin-top: 105px; }
-    .hero { margin-top: 0; }
-    .section-head {
-      display: grid;
-      grid-template-columns: minmax(0, .68fr) minmax(0, 1fr);
-      gap: 46px;
-      align-items: end;
-      margin-bottom: 34px;
-    }
-
-    .section-kicker {
-      margin-bottom: 9px;
-      color: var(--blue);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-    }
-
-    h2 {
-      margin-bottom: 0;
-      font-size: clamp(30px, 4vw, 48px);
-      line-height: 1.12;
-      letter-spacing: -.04em;
-    }
-
-    .section-summary {
-      margin-bottom: 2px;
-      color: var(--muted);
-      font-size: 17px;
-    }
-
-    .principles {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-    }
-
-    .position-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-    }
-
-    .position-card { min-height: 220px; padding: 25px; }
-    .position-card .label {
-      margin-bottom: 34px;
-      color: var(--faint);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-    }
-    .position-card p { margin-bottom: 0; color: var(--muted); font-size: 14px; }
-    .position-card.core { border-color: rgba(117, 167, 255, .5); }
-    .position-card.boundary { border-color: rgba(255, 130, 153, .34); }
-
-    .card {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--panel);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, .12);
-    }
-
-    .principle { min-height: 228px; padding: 25px; }
-    .index {
-      margin-bottom: 38px;
-      color: var(--faint);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: .12em;
-    }
-
-    h3 { margin-bottom: 10px; font-size: 19px; letter-spacing: -.02em; }
-    .principle p, .feature p, .role p { margin-bottom: 0; color: var(--muted); font-size: 14px; }
-
-    .definition {
-      padding: 34px;
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 34px;
-      border-color: rgba(117, 167, 255, .33);
-      background:
-        linear-gradient(130deg, rgba(117, 167, 255, .1), transparent 40%),
-        var(--panel);
-    }
-
-    .definition .tag {
-      width: fit-content;
-      height: fit-content;
-      padding: 8px 11px;
-      border: 1px solid rgba(117, 167, 255, .42);
-      border-radius: 9px;
-      color: var(--blue);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-
-    .definition blockquote {
-      margin: 0;
-      font-size: clamp(21px, 3vw, 31px);
-      line-height: 1.48;
-      letter-spacing: -.025em;
-    }
-
-    .definition blockquote strong { color: var(--cyan); }
-
-    .architecture {
-      padding: 30px;
-      display: grid;
-      grid-template-columns: 1fr 52px 1fr 52px 1fr;
-      gap: 10px;
-      align-items: stretch;
-    }
-
-    .arch-column {
-      padding: 22px;
-      border: 1px solid var(--line);
-      border-radius: 17px;
-      background: rgba(8, 12, 20, .5);
-    }
-
-    .arch-column.engine { border-color: rgba(117, 167, 255, .5); }
-    .arch-column.protocol { border-color: rgba(95, 225, 218, .45); }
-    .arch-title { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
-    .arch-title strong { font-size: 17px; }
-    .arch-title span { color: var(--faint); font-size: 11px; }
-
-    .arch-list { display: grid; gap: 8px; }
-    .arch-item {
-      padding: 9px 11px;
-      border-radius: 9px;
-      color: var(--muted);
-      background: rgba(255, 255, 255, .035);
-      font-size: 12px;
-    }
-
-    .arrow {
-      display: grid;
-      place-items: center;
-      color: var(--faint);
-      font-size: 25px;
-    }
-
-    .gamepack-shell {
-      padding: 30px;
-      border-color: rgba(244, 199, 104, .28);
-      background:
-        linear-gradient(145deg, rgba(244, 199, 104, .07), transparent 42%),
-        var(--panel);
-    }
-
-    .gamepack-topline {
-      margin-bottom: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-    }
-
-    .gamepack-topline strong { font-size: 19px; }
-    .gamepack-topline span { color: var(--faint); font-size: 11px; letter-spacing: .1em; }
-
-    .gamepack-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.08fr 1fr;
-      gap: 14px;
-      align-items: stretch;
-    }
-
-    .pack-lane {
-      min-width: 0;
-      padding: 22px;
-      border: 1px solid var(--line);
-      border-radius: 17px;
-      background: rgba(8, 12, 20, .54);
-    }
-
-    .pack-lane.content { border-color: rgba(95, 225, 218, .34); }
-    .pack-lane.logic { border-color: rgba(117, 167, 255, .38); }
-    .pack-lane.authority { border-color: rgba(255, 130, 153, .32); }
-    .lane-label { margin-bottom: 8px; color: var(--faint); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
-    .pack-lane h3 { margin-bottom: 16px; }
-    .pack-lane p { margin-bottom: 18px; color: var(--muted); font-size: 13px; }
-    .pack-lane .arch-list { margin-top: auto; }
-
-    .pack-manifest {
-      grid-column: 1 / -1;
-      margin: 0 9%;
-      padding: 18px 20px;
-      display: grid;
-      grid-template-columns: 170px 1fr;
-      gap: 18px;
-      align-items: center;
-      border: 1px dashed rgba(244, 199, 104, .42);
-      border-radius: 15px;
-      background: rgba(244, 199, 104, .045);
-    }
-
-    .pack-manifest strong { color: var(--amber); font-size: 14px; }
-    .pack-manifest code { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
-
-    .placement-rule {
-      margin-top: 16px;
-      padding: 18px 20px;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1px;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 15px;
-      background: var(--line);
-    }
-
-    .placement-rule div {
-      min-height: 96px;
-      padding: 15px;
-      background: #0c121d;
-    }
-
-    .placement-rule b { display: block; margin-bottom: 5px; font-size: 13px; }
-    .placement-rule span { color: var(--muted); font-size: 11px; }
-
-    .state-law {
-      margin-top: 16px;
-      padding: 20px 22px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-      border-left: 3px solid var(--rose);
-      border-radius: 0 14px 14px 0;
-      background: rgba(255, 130, 153, .06);
-    }
-
-    .state-law strong { flex: 0 0 auto; color: var(--rose); font-size: 13px; }
-    .state-law span { color: var(--muted); font-size: 13px; }
-
-    .protocol-grid, .surface-grid, .role-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
-
-    .protocol-card { padding: 28px; }
-    .protocol-card.internal { border-color: rgba(117, 167, 255, .35); }
-    .protocol-card.external { border-color: rgba(95, 225, 218, .35); }
-    .protocol-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-      margin: 17px 0 22px;
-    }
-
-    .pill {
-      padding: 5px 9px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--muted);
-      background: rgba(255, 255, 255, .025);
-      font-size: 11px;
-    }
-
-    .rule-list { display: grid; gap: 12px; }
-    .rule {
-      display: grid;
-      grid-template-columns: 24px 1fr;
-      gap: 9px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .rule b { color: var(--green); }
-    .rule.no b { color: var(--rose); }
-
-    .surface-grid { grid-template-columns: repeat(3, 1fr); }
-    .feature { min-height: 240px; padding: 26px; }
-    .feature-icon {
-      width: 42px;
-      height: 42px;
-      margin-bottom: 34px;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--line-strong);
-      border-radius: 12px;
-      color: var(--blue);
-      background: rgba(117, 167, 255, .07);
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .feature:nth-child(2) .feature-icon { color: var(--cyan); background: rgba(95, 225, 218, .07); }
-    .feature:nth-child(3) .feature-icon { color: var(--amber); background: rgba(244, 199, 104, .07); }
-
-    .evidence-gallery {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .evidence-shot {
-      margin: 0;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .evidence-shot img {
-      width: 100%;
-      aspect-ratio: 16 / 10;
-      display: block;
-      object-fit: cover;
-      image-rendering: auto;
-    }
-
-    .evidence-shot figcaption { padding: 20px 22px 22px; }
-    .evidence-shot strong { display: block; margin-bottom: 7px; font-size: 16px; }
-    .evidence-shot span { color: var(--muted); font-size: 13px; }
-
-    .evidence-note {
-      margin-top: 14px;
-      color: var(--faint);
-      font-size: 11px;
-    }
-
-    .protocol-sample {
-      margin-top: 17px;
-      padding: 15px;
-      overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      color: #cbd7eb;
-      background: #080d16;
-      font-size: 11px;
-      line-height: 1.65;
-      white-space: pre;
-    }
-
-    .role-grid { grid-template-columns: repeat(4, 1fr); }
-    .role { min-height: 226px; padding: 24px; }
-    .role .who {
-      margin-bottom: 38px;
-      color: var(--faint);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-    }
-
-    .timeline {
-      position: relative;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-    }
-
-    .phase { padding: 24px; border-top: 2px solid var(--line-strong); }
-    .phase.now { border-top-color: var(--blue); }
-    .phase.next { border-top-color: var(--cyan); }
-    .phase-num { margin-bottom: 26px; color: var(--faint); font-size: 12px; font-weight: 800; }
-    .phase ul { margin: 14px 0 0; padding-left: 17px; color: var(--muted); font-size: 13px; }
-    .phase li + li { margin-top: 7px; }
-
-    .boundary {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      overflow: hidden;
-    }
-
-    .boundary > div { padding: 30px; }
-    .boundary > div + div { border-left: 1px solid var(--line); }
-    .boundary h3 { display: flex; align-items: center; gap: 9px; }
-    .boundary h3 span { font-size: 12px; }
-    .boundary .yes h3 span { color: var(--green); }
-    .boundary .no h3 span { color: var(--rose); }
-    .boundary ul { margin: 18px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
-    .boundary li + li { margin-top: 8px; }
-
-    .source-note {
-      margin-top: 105px;
-      padding: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-      border-color: rgba(244, 199, 104, .26);
-      background: linear-gradient(120deg, rgba(244, 199, 104, .08), transparent 45%), var(--panel);
-    }
-
-    .source-note p { max-width: 760px; margin: 7px 0 0; color: var(--muted); font-size: 14px; }
-    .source-note strong { font-size: 18px; }
-
-    footer {
-      width: min(calc(100% - 36px), var(--max));
-      margin: 0 auto;
-      padding: 28px 0 42px;
-      display: flex;
-      justify-content: space-between;
-      gap: 20px;
-      border-top: 1px solid var(--line);
-      color: var(--faint);
-      font-size: 12px;
-    }
-
-    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .55s ease, transform .55s ease; }
-    .reveal.visible { opacity: 1; transform: none; }
-
-    @media (max-width: 920px) {
-      .nav-links .section-jump { display: none; }
-      .hero { grid-template-columns: 1fr; min-height: auto; }
-      .product-demo { width: min(720px, 100%); margin-left: auto; }
-      .capability-rail { grid-template-columns: repeat(3, 1fr); }
-      .section-head { grid-template-columns: 1fr; gap: 16px; }
-      .principles, .position-grid, .surface-grid, .evidence-gallery { grid-template-columns: 1fr 1fr; }
-      .architecture { grid-template-columns: 1fr; }
-      .arrow { min-height: 34px; transform: rotate(90deg); }
-      .gamepack-grid { grid-template-columns: 1fr 1fr; }
-      .pack-lane.authority { grid-column: 1 / -1; }
-      .placement-rule { grid-template-columns: 1fr 1fr; }
-      .role-grid, .timeline { grid-template-columns: 1fr 1fr; }
-    }
-
-    @media (max-width: 650px) {
-      .nav-links { display: none; }
-      .mobile-audience { margin-left: auto; display: flex; }
-      main { padding-top: 38px; }
-      .hero { padding-bottom: 30px; gap: 34px; }
-      .product-demo { transform: none; }
-      .capability-rail { grid-template-columns: 1fr 1fr; padding: 1px; }
-      .principles, .position-grid, .protocol-grid, .surface-grid, .evidence-gallery, .role-grid, .timeline, .boundary { grid-template-columns: 1fr; }
-      .definition { grid-template-columns: 1fr; padding: 25px; }
-      .boundary > div + div { border-left: 0; border-top: 1px solid var(--line); }
-      .source-note, footer { align-items: flex-start; flex-direction: column; }
-      section { margin-top: 78px; }
-      .architecture { padding: 18px; }
-      .gamepack-shell { padding: 18px; }
-      .gamepack-grid, .placement-rule { grid-template-columns: 1fr; }
-      .pack-lane.authority { grid-column: auto; }
-      .pack-manifest { grid-template-columns: 1fr; margin: 0; }
-      .state-law { align-items: flex-start; flex-direction: column; gap: 8px; }
-      .demo-shell { grid-template-columns: 48px 1fr; }
-      .demo-sidebar { padding-inline: 7px; }
-      .demo-sidebar img { width: 31px; height: 31px; }
-      .demo-main { padding: 18px 14px; }
-      .demo-runtime { grid-template-columns: 1fr 1fr; }
-    }
-
-    @media (max-width: 420px) {
-      .brand-copy small { display: none; }
-      .audience-switch a { padding-inline: 7px; font-size: 9px; }
-      .actions .button { width: 100%; }
-      .capability-rail { grid-template-columns: 1fr; }
-      .demo-bar > span:not(.demo-connected) { display: none; }
-      .scene-card { padding: 15px; }
-      .companion-line { grid-template-columns: 1fr; }
-      .companion-avatar { display: none; }
-    }
-
-    @media (max-width: 360px) {
-      .brand-copy { display: none; }
-      .audience-switch a { padding-inline: 6px; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
-      .reveal { opacity: 1; transform: none; transition: none; }
-      .button:hover { transform: none; }
-    }
-
-    @media print {
-      :root { color-scheme: light; --bg: #fff; --text: #111827; --muted: #475569; --faint: #64748b; --panel: #fff; --line: #dbe3ee; --line-strong: #c2cedd; }
-      body { background: #fff; }
-      .site-header { position: static; background: #fff; }
-      .nav-links, .mobile-audience, .actions { display: none; }
-      main { padding-top: 30px; }
-      .hero { min-height: auto; }
-      .product-demo, .card, .arch-column, .protocol-sample { box-shadow: none; background: #fff; }
-      .gradient-text { color: #111827; background: none; }
-      .reveal { opacity: 1; transform: none; }
-      section { break-inside: avoid; }
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css?v=20260828-2">
+  <link rel="stylesheet" href="ideology.css?v=20260828-1">
   <script
     defer
     src="https://vibecafe.ai/telemetry/v1.js"
@@ -801,530 +29,243 @@
     data-vc-auth-key="vc_web_YqZ8bweYYQLn5moTR8GtZiiP_HXuuIffsxd3GFPPl74"
   ></script>
 </head>
-<body>
+<body id="top" class="ideology-page">
+  <a class="skip-link" href="#content">跳到主要内容</a>
   <header class="site-header">
-    <nav class="nav" aria-label="页面导航">
-      <a class="brand" href="#top">
-        <img class="brand-mark" src="logo.png" alt="">
-        <span class="brand-copy"><strong>AI Native</strong><small>Game Harness</small></span>
-      </a>
-      <div class="nav-links">
-        <a class="section-jump" href="#principles">七条原则</a>
-        <a class="section-jump" href="#architecture">技术架构</a>
-        <a class="section-jump" href="#gamepack">能力归属</a>
-        <div class="audience-switch" aria-label="选择页面版本">
-          <a href="index.html">玩家版</a>
-          <a href="developers.html">开发者版</a>
-          <a class="active" href="ideology.html" aria-current="page">技术理念</a>
-        </div>
-        <a class="nav-cta" href="https://github.com/qimidandapigu/ai-native-game-harness">GitHub ↗</a>
-      </div>
-      <div class="audience-switch mobile-audience" aria-label="选择页面版本">
-        <a href="index.html">玩家版</a>
-        <a href="developers.html">开发者版</a>
-        <a class="active" href="ideology.html" aria-current="page">技术理念</a>
-      </div>
+    <a class="brand" href="index.html" aria-label="返回玩家版首页">
+      <img src="logo.png" alt="" width="42" height="42">
+      <span><strong>AI Native</strong><small>Game Harness</small></span>
+    </a>
+    <nav aria-label="技术理念导航">
+      <a href="#overview">定位</a>
+      <a href="#principles">原则</a>
+      <a href="#architecture">架构</a>
+      <a href="#distribution">协议与发行</a>
+      <a href="#progress">进展</a>
     </nav>
+    <div class="audience-switch" aria-label="选择页面版本">
+      <a href="index.html">玩家版</a>
+      <a href="developers.html">开发者版</a>
+      <a class="active" href="ideology.html" aria-current="page">技术理念</a>
+    </div>
+    <a class="header-link" href="https://github.com/qimidandapigu/ai-native-game-harness" target="_blank" rel="noreferrer">GitHub <span>↗</span></a>
   </header>
 
-  <main id="top">
-    <section class="hero reveal" aria-labelledby="hero-title">
-      <div>
-        <div class="eyebrow">Open source · Product doctrine v12</div>
-        <h1 id="hero-title">让 AI<br><span class="gradient-text">真正进入游戏</span></h1>
-        <p class="hero-copy">
-          给游戏装上一个<strong>会观察、会行动、会记忆、会成长</strong>的 AI 伙伴。它不只在聊天窗口回答问题，而是在游戏规则允许的范围里理解此刻、参与行动，并和玩家一起把故事继续下去。
-        </p>
-        <div class="actions">
-          <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看 GitHub 项目 ↗</a>
-          <a class="button" href="#game-evidence">看看真实游戏画面</a>
-          <a class="button" href="#gamepack">接入你的游戏</a>
-        </div>
-        <div class="hero-status" aria-label="当前产品状态">
-          <span class="live">● 开源开发中</span>
-          <span>main · 1.1.0-dev.0</span>
-          <span>Windows 本地安装已验证</span>
+  <main id="content">
+    <section class="ideology-hero">
+      <div class="ideology-hero-copy">
+        <p class="eyebrow"><span></span> PRODUCT DOCTRINE · V12</p>
+        <p class="product-pill"><span>这页只讲一件事</span> AI 如何可信地进入真实游戏</p>
+        <h1>技术理念<br><em>与架构边界</em></h1>
+        <p class="ideology-lead">不从功能清单开始，而从责任和事实开始。这套架构要保证：AI 能观察、决策和表达，但游戏始终拥有规则、执行结果与存档的最终解释权。</p>
+        <div class="ideology-actions">
+          <a class="button primary" href="#overview">从一句话定位开始 <span>↓</span></a>
+          <a class="button secondary" href="developers.html">查看开发者接入 <span>→</span></a>
         </div>
       </div>
 
-      <div class="product-demo" aria-label="AI Native Game Harness 产品界面示意">
-        <div class="demo-bar">
-          <div class="demo-dots" aria-hidden="true"><i></i><i></i><i></i></div>
-          <span>AI Native Game Harness</span>
-          <b class="demo-connected"><i></i> GAME CONNECTED</b>
+      <aside class="thesis-panel" aria-label="核心结论">
+        <div class="thesis-label">THE CORE THESIS</div>
+        <blockquote>不是把聊天框塞进游戏，<br>而是建立一条可验证的 AI 行动链。</blockquote>
+        <div class="thesis-equation" aria-label="核心架构组成">
+          <span><b>DSH</b><small>通用 AI Runtime</small></span>
+          <i>+</i>
+          <span><b>Harness</b><small>游戏领域编排</small></span>
+          <i>+</i>
+          <span><b>Bridge</b><small>原生 API 连接</small></span>
         </div>
-        <div class="demo-shell">
-          <aside class="demo-sidebar" aria-hidden="true">
-            <img src="logo.png" alt="">
-            <span class="active">◇</span><span>✦</span><span>◉</span><span>⌁</span><span>⌘</span>
-          </aside>
-          <div class="demo-main">
-            <div class="demo-heading">
-              <div><small>STARDEW VALLEY · RAINY DAY</small><strong>一起经历今天的农场</strong></div>
-              <span>REV 12</span>
-            </div>
-            <div class="scene-card">
-              <small>CURRENT GAME CONTEXT</small>
-              <h3>雨落在农场，也带来新的选择</h3>
-              <p>第 2 年春 14 日 · 农场 · 下雨 · 背包中有 12 颗草莓种子</p>
-              <div class="companion-line">
-                <div class="companion-avatar">汤</div>
-                <div><strong>小汤圆</strong><p>今天不用浇水。要不要一起把草莓种下去？游戏会告诉我土地和种子是否真的准备好了。</p></div>
-              </div>
-              <div class="proof-result"><span>种植动作由游戏确认</span><b>READY TO VERIFY</b></div>
-            </div>
-            <div class="demo-runtime">
-              <span>● Adapter 在线</span><span>记忆 18</span><span>技能 4</span><span>Trace 可审计</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        <p>最终状态只由游戏确认，模型不能自行宣布“已经完成”。</p>
+      </aside>
+
+      <nav class="reading-map" aria-label="本页阅读地图">
+        <a href="#overview"><b>01</b><span>它是什么</span><small>定位与边界</small></a>
+        <a href="#principles"><b>02</b><span>坚持什么</span><small>七条原则</small></a>
+        <a href="#architecture"><b>03</b><span>谁负责什么</span><small>四层架构</small></a>
+        <a href="#distribution"><b>04</b><span>如何扩展</span><small>协议与 Game Pack</small></a>
+        <a href="#progress"><b>05</b><span>做到哪了</span><small>证据与路线图</small></a>
+      </nav>
     </section>
 
-    <div class="capability-rail reveal" aria-label="核心产品能力">
-      <div><strong>看见游戏</strong><span>真实状态进入上下文</span></div>
-      <div><strong>听懂玩家</strong><span>文字与语音统一交互</span></div>
-      <div><strong>参与行动</strong><span>结果必须由游戏确认</span></div>
-      <div><strong>记住经历</strong><span>按游戏与存档隔离</span></div>
-      <div><strong>推动故事</strong><span>剧情随选择和事实生长</span></div>
-    </div>
+    <section class="section ideology-section" id="overview">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> 01 · POSITIONING</p><h2>先把一句话<br>说清楚</h2></div>
+        <p>AI Native Game Harness 是基于 DSH Runtime 构建的游戏领域发行版。它复用成熟的模型、Agent、Tool、Session、凭据与插件体系，只新增游戏真正缺少的领域边界。</p>
+      </div>
 
-    <section id="definition" class="reveal">
-      <div class="definition card">
-        <div class="tag">产品承诺</div>
-        <blockquote>
-          AI 可以提出想法、生成剧情和请求行动；但<strong>游戏事实决定结果</strong>。玩家始终知道它看见了什么、调用了什么，以及事情是否真的发生。
-        </blockquote>
+      <div class="definition-callout">
+        <small>ONE-SENTENCE DEFINITION</small>
+        <p><strong>复用 DSH 通用运行时</strong>，用 Harness 组织游戏语义，用薄 Adapter / Mod 连接原生 API，并让<strong>游戏本体保持事实权威</strong>。</p>
       </div>
-    </section>
 
-    <section id="game-evidence" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">00A · In-game evidence</div>
-          <h2>AI 已经进入真实游戏画面</h2>
-        </div>
-        <p class="section-summary">这些《星露谷物语》开发验证截图展示角色呈现、玩法互动和环境回应方向。图片用于说明已经做过的真实游戏探索，不替代当前版本的长期存档端到端验收。</p>
-      </div>
-      <div class="evidence-gallery">
-        <figure class="evidence-shot">
-          <img src="games/stardew-valley-giant-crop.jpg" alt="星露谷物语中小汤圆陪伴玩家观察巨大作物">
-          <figcaption><strong>一起见证农场成长</strong><span>AI 围绕存档中真实发生的事件回应，形成属于这个农场的共同经历。</span></figcaption>
-        </figure>
-        <figure class="evidence-shot">
-          <img src="games/stardew-valley-sunflower-flight.jpg" alt="星露谷物语向日葵田中的小汤圆互动玩法">
-          <figcaption><strong>不只陪聊，也能参与玩法</strong><span>角色表达、游戏事件和可执行能力结合起来，让 AI 成为玩法的一部分。</span></figcaption>
-        </figure>
-        <figure class="evidence-shot">
-          <img src="games/stardew-valley-rainy-companion.jpg" alt="星露谷物语雨天场景中小汤圆回应环境">
-          <figcaption><strong>对当前环境作出回应</strong><span>天气、地点与附近事件成为对话和动态剧情的事实依据。</span></figcaption>
-        </figure>
-      </div>
-      <p class="evidence-note">画面来自本项目开发验证记录，非对应游戏官方宣传或合作声明；游戏名称、画面与原始素材权利归各自权利方所有。</p>
-    </section>
-
-    <section id="positioning" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">00 · Positioning</div>
-          <h2>它本身就是 Harness</h2>
-        </div>
-        <p class="section-summary">它是基于 DeepSeek Harness Runtime 构建的游戏产品发行版：默认继承通用 Agent 与插件能力，再增加游戏领域内核、桌面界面、Game Pack 和 Native Bridge 体系。核心可独立测试，不等于产品默认替换 DSH。</p>
-      </div>
       <div class="position-grid">
-        <article class="position-card core card"><div class="label">What it is</div><h3>DSH-first 的游戏发行版</h3><p>优先复用 DSH Runtime，连接模型、Agent、玩家与游戏；只有具体能力被验证为不匹配时才最小化替换。</p></article>
-        <article class="position-card card"><div class="label">Product form</div><h3>独立桌面应用</h3><p>用户安装的是已经打包 DSH Runtime 与游戏插件的完整产品，不需要预先安装另一个 DSH 应用。</p></article>
-        <article class="position-card card"><div class="label">How games join</div><h3>一游戏一 Harness Plugin</h3><p>插件拥有游戏知识、语义工具与编排；薄 Mod 只暴露状态、事件和原生动作 API。</p></article>
-        <article class="position-card boundary card"><div class="label">What it is not</div><h3>不重写 DSH，也不替代游戏</h3><p>不重造模型、Agent、Tool 与 Session 基础设施，也不接管渲染、物理、逐帧战斗和游戏规则权威。</p></article>
+        <article><span>REUSE</span><h3>通用能力不重造</h3><p>模型、Agent、Tool、Session、语音、视觉、记忆与凭据优先复用 DSH 和共享插件。</p></article>
+        <article><span>DOMAIN</span><h3>游戏差异放进插件</h3><p>每款游戏的知识、语义工具、剧情边界和展示逻辑由独立 Harness Plugin 拥有。</p></article>
+        <article><span>BRIDGE</span><h3>游戏 Mod 保持薄</h3><p>只暴露真实状态、事件和原生动作；不调用模型、不做规划、不保存 Harness 记忆。</p></article>
+        <article><span>AUTHORITY</span><h3>游戏拥有最终事实</h3><p>胜负、物品、任务、地图、存档和动作结果必须由游戏 API 返回确认。</p></article>
       </div>
     </section>
 
-    <section id="principles" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">01 · Principles</div>
-          <h2>七条不可动摇的原则</h2>
-        </div>
-        <p class="section-summary">每个架构决策都应该能回到这些原则；不能解释的复杂度，就不应该进入核心。</p>
-      </div>
-      <div class="principles">
-        <article class="principle card"><div class="index">P / 01</div><h3>复用 DSH 通用运行时</h3><p>模型、Agent、Tool、Session、配置、凭据、权限和插件生命周期沿用 DSH；产品差异集中在游戏领域，不重复造轮子。</p></article>
-        <article class="principle card"><div class="index">P / 02</div><h3>游戏能力首先是 DSH 插件</h3><p>记忆、语音、视觉、UI、安装、Transport 与每游戏语义工具都遵循 DSH 插件生命周期，不写进 Electron Main 或游戏 Mod。</p></article>
-        <article class="principle card"><div class="index">P / 03</div><h3>Mod 必须薄</h3><p>游戏侧只依赖版本化线协议，封装真实状态、事件和原生动作 API；不调用模型、不做规划、不保存 Harness 记忆。</p></article>
-        <article class="principle card"><div class="index">P / 04</div><h3>事实先于推测</h3><p>当前状态和动作结果来自游戏 API；视觉与模型负责理解和表达，不能伪造确定性执行结果。</p></article>
-        <article class="principle card"><div class="index">P / 05</div><h3>界面是一等产品能力</h3><p>对话、分析、权限、记忆和诊断不是附属工具，而是玩家理解并信任 AI 的核心表面。</p></article>
-        <article class="principle card"><div class="index">P / 06</div><h3>版本固定，升级可验证</h3><p>固定 DSH 及其命名空间 Cordis 的兼容版本；升级通过独立变更、Fake Game、协议兼容与真实游戏测试，不自动追新。</p></article>
-        <article class="principle card"><div class="index">P / 07</div><h3>替换必须先举证</h3><p>只有检查具体 DSH 版本、记录游戏需求并用可复现测试证明不匹配后，才允许建立最小替代；接口可替换不等于应该替换。</p></article>
-      </div>
-    </section>
-
-    <section id="reuse-policy" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">01A · DSH-first reuse gate</div>
-          <h2>先复用，确实不匹配再替换</h2>
-        </div>
-        <p class="section-summary">这是一条产品决策，不是临时偏好。独立品牌、独立 Game Adapter Protocol 和可测试核心，都不能被误读为“默认自研另一套 Agent Runtime”。</p>
-      </div>
-      <div class="protocol-grid">
-        <article class="protocol-card internal card">
-          <h3>默认复用 DSH</h3>
-          <div class="rule-list">
-            <div class="rule"><b>✓</b><span>模型、Provider、Credentials、Agent、Tool Calling、Session、Approval、Settings 与插件生命周期。</span></div>
-            <div class="rule"><b>✓</b><span>小汤圆已经验证的模型选择、流式回复、记忆、多模态和游戏工具经验。</span></div>
-            <div class="rule"><b>✓</b><span>通过标准 DSH 插件和 dsh-binding 扩展游戏能力。</span></div>
-          </div>
-        </article>
-        <article class="protocol-card external card">
-          <h3>允许替换的门槛</h3>
-          <div class="rule-list">
-            <div class="rule"><b>1</b><span>检查并记录具体 DSH 能力与版本。</span></div>
-            <div class="rule"><b>2</b><span>写清游戏需求，并用可复现测试证明缺失或不匹配。</span></div>
-            <div class="rule"><b>3</b><span>先评估标准插件扩展，再实现最小、隔离的替代组件。</span></div>
-            <div class="rule no"><b>×</b><span>不能仅因接口可替换、暂时不熟悉或自研更顺手就绕开 DSH。</span></div>
-          </div>
-        </article>
-      </div>
-      <div class="state-law card">
-        <strong>当前结论</strong>
-        <span>直接 OpenAI-compatible Agent Driver 暂不进入路线；DSH Tool 到 Harness Core action/action-result 的 Binding 已装入真实 DSH Agent 进程，产品页面也已共享 Session 与 Core Trace。下一步先建立 20–50 个 StoryBeat 的长剧情自动验收，再在真实游戏 Desktop 中核对语音分段耗时和完整闭环。正式规则见 ADR 0001。</span>
-      </div>
-    </section>
-
-    <section id="architecture" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">02 · Architecture</div>
-          <h2>三层架构，一个清晰边界</h2>
-        </div>
-        <p class="section-summary">DSH Agent 负责通用推理与 Tool Calling，dsh-binding 把工具调用交给游戏 Harness Core，Core 负责动作校验与 Trace，Adapter / 薄 Mod 负责原生 API，游戏负责真实世界。</p>
-      </div>
-      <div class="architecture card">
-        <div class="arch-column engine">
-          <div class="arch-title"><strong>AI-Native Game Harness</strong><span>OWNED BY HARNESS</span></div>
-          <div class="arch-list">
-            <div class="arch-item">DSH Runtime：模型、Agent、Tool、Session 与权限</div>
-            <div class="arch-item">dsh-binding：DSH Tool Call ↔ Core action-result</div>
-            <div class="arch-item">Harness Core：能力校验、revision、路由与 Trace</div>
-            <div class="arch-item">共享游戏插件：Core、Memory、Media、UI、Installer</div>
-            <div class="arch-item">每游戏 Harness Plugin：知识、Schema 与语义编排</div>
-            <div class="arch-item">Transport Plugin：连接、请求、事件、取消与健康检查</div>
-            <div class="arch-item">桌面对话、分析、设置与连接诊断</div>
-          </div>
-        </div>
-        <div class="arrow" aria-hidden="true">→</div>
-        <div class="arch-column protocol">
-          <div class="arch-title"><strong>Bridge Contract</strong><span>STABLE WIRE</span></div>
-          <div class="arch-list">
-            <div class="arch-item">身份与版本握手</div>
-            <div class="arch-item">原生 API 能力发现与 Schema</div>
-            <div class="arch-item">状态快照与游戏事件</div>
-            <div class="arch-item">动作请求与结果回执</div>
-            <div class="arch-item">取消、错误与健康状态</div>
-          </div>
-        </div>
-        <div class="arrow" aria-hidden="true">→</div>
-        <div class="arch-column">
-          <div class="arch-title"><strong>薄 Mod / 游戏</strong><span>OWNED BY GAME</span></div>
-          <div class="arch-list">
-            <div class="arch-item">读取准确游戏状态</div>
-            <div class="arch-item">订阅真实游戏事件</div>
-            <div class="arch-item">调用游戏 API 执行动作</div>
-            <div class="arch-item">执行游戏侧最终校验并返回权威结果</div>
-            <div class="arch-item">保留寻路、战斗与逐帧逻辑的游戏权威</div>
-          </div>
-        </div>
-      </div>
-      <div class="state-law card">
-        <strong>默认调用链</strong>
-        <span>Desktop → pinned DSH Runtime → DSH Agent / Tools → dsh-binding → Harness Core → Game Adapter Protocol → Adapter / Native Bridge → Game API。Standalone Agent 只用于确定性测试或经过替换门槛确认的缺口。</span>
-      </div>
-    </section>
-
-    <section id="gamepack" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">03 · Game Pack</div>
-          <h2>剧情、玩法和代码分别放哪</h2>
-        </div>
-        <p class="section-summary">Game Pack 是一个游戏的完整发行单元：Harness Plugin 安装进 DSH Profile，Native Bridge 安装进游戏 Mods 目录，内容与版本信息把两者组成一次安装。</p>
+    <section class="section ideology-section" id="principles">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> 02 · PRINCIPLES</p><h2>七条原则，<br>分成三组理解</h2></div>
+        <p>原则不是口号，而是遇到“要不要重写、功能放哪、模型能否相信”这些决策时的判断顺序。</p>
       </div>
 
-      <div class="gamepack-shell card" aria-label="Game Pack 剧情与玩法架构图">
-        <div class="gamepack-topline">
-          <strong>Game Pack · 一个游戏的完整 AI 接入包</strong>
-          <span>HARNESS PLUGIN × CONTENT × NATIVE BRIDGE × GAME</span>
-        </div>
-
-        <div class="gamepack-grid">
-          <article class="pack-lane content">
-            <div class="lane-label">Declarative content</div>
-            <h3>叙事边界与角色配置</h3>
-            <p>策划定义可读、可版本化的世界与边界，不预写玩家必须照着走的完整剧情树。</p>
-            <div class="arch-list">
-              <div class="arch-item">世界观、人物小传与语言风格</div>
-              <div class="arch-item">主题、允许目标、禁写事实与节奏约束</div>
-              <div class="arch-item">数值、概率、冷却与关系阈值</div>
-              <div class="arch-item">角色提示词、知识与本地化</div>
-            </div>
-          </article>
-
-          <article class="pack-lane logic">
-            <div class="lane-label">DSH game plugin</div>
-            <h3>动态生成与剧情运行时</h3>
-            <p>同一个 DSH Session 滚动生成 1–3 个 StoryBeat；标准插件提供 Tool，纯 Runtime 校验、推进并按存档保存。</p>
-            <div class="arch-list">
-              <div class="arch-item">game_story_context / propose / choose</div>
-              <div class="arch-item">StoryBeat 校验、历史、分支与结局</div>
-              <div class="arch-item">关系网络与长期角色成长</div>
-              <div class="arch-item">程序化任务与多角色协作</div>
-              <div class="arch-item">动态剧情页、关系图和分析面板</div>
-            </div>
-          </article>
-
-          <article class="pack-lane authority">
-            <div class="lane-label">Game authority</div>
-            <h3>Native Bridge 与游戏本体</h3>
-            <p>Bridge 只封装原生 API；Harness Plugin 才负责调用、组合与解释，游戏本体始终拥有真实状态和最终执行结果。</p>
-            <div class="arch-list">
-              <div class="arch-item">Bridge：状态、事件与细粒度原生动作 API</div>
-              <div class="arch-item">Bridge：游戏侧最终校验与权威回执</div>
-              <div class="arch-item">游戏：战斗、移动、寻路与经济系统</div>
-              <div class="arch-item">游戏：任务完成、物品、金钱与胜负</div>
-            </div>
-          </article>
-
-          <div class="pack-manifest">
-            <strong>game-pack.json</strong>
-            <code>manifest → harness-plugin.tgz + native-bridge.zip + content + compatibility + checksums + uninstall</code>
-          </div>
-        </div>
-
-        <div class="placement-rule" aria-label="内容放置判断规则">
-          <div><b>世界观和生成边界</b><span>放进 Game Pack narrative 配置</span></div>
-          <div><b>模型生成的近期剧情</b><span>交给 Story Runtime 校验和存档</span></div>
-          <div><b>需要知识、工具或算法</b><span>做成 DSH Harness Plugin</span></div>
-          <div><b>必须调用游戏原生 API</b><span>放进薄 Native Bridge</span></div>
-          <div><b>决定真实游戏结果</b><span>留在游戏本体</span></div>
-        </div>
-
-        <div class="state-law">
-          <strong>权威状态原则</strong>
-          <span>凡是影响胜负、物品、金钱、任务完成、角色死亡、地图变化或存档进度的状态，都必须由游戏本体保存并通过 Native Bridge 返回确认；模型不能仅凭文字宣告其生效。</span>
-        </div>
-      </div>
-    </section>
-
-    <section id="protocols" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">04 · Protocols</div>
-          <h2>插件协议与线协议，各司其职</h2>
-        </div>
-        <p class="section-summary">DSH/Cordis 插件协议解决 Harness 内能力如何装配；Bridge Contract 解决 Harness Plugin 如何跨进程调用不同语言的游戏 Mod。Transport 是插件，线上消息格式是独立契约。</p>
-      </div>
-      <div class="protocol-grid">
-        <article class="protocol-card internal card">
-          <h3>DSH / Cordis Plugin Protocol</h3>
-          <p class="section-summary">作为产品默认能力直接沿用 DSH 的 Context、服务、事件、依赖和可逆生命周期。Cordis 按常见英文读法读作 <span class="mono">COR-dis</span>，中文近似“科尔迪斯”。</p>
-          <div class="protocol-meta">
-            <span class="pill">TypeScript / JavaScript</span><span class="pill">同进程</span><span class="pill">@deepseek-ai/*</span><span class="pill">标准 DSH 插件</span>
-          </div>
-          <div class="rule-list">
-            <div class="rule"><b>✓</b><span>复用 DSH 的模型、Agent、Tool、Session、Settings、Credentials 与 Approval 能力。</span></div>
-            <div class="rule"><b>✓</b><span>Game Core、Transport、Memory、Media、UI、Installer 与每游戏 Harness 都是 DSH 插件。</span></div>
-            <div class="rule"><b>✓</b><span>固定整套 DSH 与命名空间 Cordis 兼容版本并提交 lockfile；升级执行兼容测试。</span></div>
-            <div class="rule"><b>✓</b><span>Harness Core 保持 DSH 类型无关是为了测试和边界；正式产品仍由 dsh-binding 连接 DSH。</span></div>
-            <div class="rule no"><b>×</b><span>不混用独立 <span class="mono">cordis</span> 与 <span class="mono">@deepseek-ai/cordis</span>，避免 Context、类型和 peer dependency 分裂。</span></div>
-          </div>
+      <div class="principle-groups">
+        <article class="principle-group">
+          <header><span>A</span><div><small>BASELINE</small><h3>先复用，再谈替换</h3></div></header>
+          <div class="principle-row"><b>P01</b><div><strong>复用 DSH 通用运行时</strong><p>项目集中解决游戏领域问题，不重复造一套 Agent Runtime。</p></div></div>
+          <div class="principle-row"><b>P06</b><div><strong>版本固定，升级可验证</strong><p>升级先通过 Fake Game、协议兼容和真实存档验收。</p></div></div>
+          <div class="principle-row"><b>P07</b><div><strong>替换基础能力必须先举证</strong><p>只有可复现测试证明具体能力不匹配时，才建立最小替代。</p></div></div>
         </article>
 
-        <article class="protocol-card external card">
-          <h3>Native Bridge Contract</h3>
-          <p class="section-summary">由本项目定义的公开线协议，从原型项目 protocol/v1.1 演进；它面向跨进程、跨语言和游戏权威状态。Mod 不需要也不能实现 DSH 插件协议。</p>
-          <div class="protocol-meta">
-            <span class="pill">WebSocket</span><span class="pill">JSON-RPC 2.0</span><span class="pill">JSON Schema</span><span class="pill">跨进程</span>
+        <article class="principle-group">
+          <header><span>B</span><div><small>OWNERSHIP</small><h3>让职责待在正确的位置</h3></div></header>
+          <div class="principle-row"><b>P02</b><div><strong>游戏能力首先插件化</strong><p>记忆、语音、视觉、UI、Transport 和游戏语义工具都能独立启停与测试。</p></div></div>
+          <div class="principle-row"><b>P03</b><div><strong>游戏 Mod 必须薄</strong><p>原生侧只负责状态、事件、动作和权威回执。</p></div></div>
+        </article>
+
+        <article class="principle-group">
+          <header><span>C</span><div><small>TRUST</small><h3>事实与体验共同建立信任</h3></div></header>
+          <div class="principle-row"><b>P04</b><div><strong>事实先于模型推测</strong><p>视觉负责理解，模型负责决策；确定性结果来自游戏 API。</p></div></div>
+          <div class="principle-row"><b>P05</b><div><strong>界面是一等产品能力</strong><p>权限、记忆、动作结果和诊断必须对玩家可见、可理解。</p></div></div>
+        </article>
+      </div>
+
+      <div class="decision-rule">
+        <span>默认决策</span>
+        <p>DSH 已有能力 → <b>直接复用</b>　·　能力存在但边界不合适 → <b>写适配层</b>　·　可复现测试证明缺口 → <b>最小替代</b></p>
+      </div>
+    </section>
+
+    <section class="section ideology-section" id="architecture">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> 03 · ARCHITECTURE</p><h2>四层职责，<br>一条执行链</h2></div>
+        <p>分层不是为了多造服务，而是为了明确每一份状态、每一次决策和每一个动作到底由谁负责。</p>
+      </div>
+
+      <div class="layer-layout">
+        <div class="layer-stack" aria-label="AI 游戏运行时四层架构">
+          <article class="runtime-layer"><span>01 · SHARED RUNTIME</span><div><h3>DSH Runtime</h3><p>模型 · Agent · Tool Calling · Session · Credentials · 权限 · 流式回复</p></div><b>复用</b></article>
+          <i>↓ Tool Call / Public Events</i>
+          <article class="harness-layer"><span>02 · GAME DOMAIN</span><div><h3>Harness Core + 游戏插件</h3><p>能力校验 · 语义工具 · 游戏知识 · Story Runtime · Memory Binding · Trace</p></div><b>本项目</b></article>
+          <i>↓ Versioned Wire Contract</i>
+          <article class="bridge-layer"><span>03 · NATIVE BRIDGE</span><div><h3>Adapter / 薄 Mod</h3><p>Observation · Event · Action · ActionResult · revision · error</p></div><b>每游戏</b></article>
+          <i>↓ Native API</i>
+          <article class="game-layer"><span>04 · AUTHORITY</span><div><h3>游戏本体</h3><p>存档 · 规则 · 物品 · 任务 · 地图 · 最终状态与执行结果</p></div><b>权威</b></article>
+        </div>
+
+        <aside class="ownership-panel">
+          <small>能力应该放在哪里？</small>
+          <dl>
+            <div><dt>通用模型、语音、视觉、记忆</dt><dd>DSH 与共享插件</dd></div>
+            <div><dt>游戏知识、语义工具、剧情边界</dt><dd>每游戏 Harness Plugin</dd></div>
+            <div><dt>原生状态、事件和细粒度动作</dt><dd>Adapter / Native Bridge</dd></div>
+            <div><dt>胜负、资源、任务和存档进度</dt><dd>游戏本体</dd></div>
+          </dl>
+          <div class="execution-path"><small>DEFAULT PRODUCT PATH</small><p>Desktop → DSH Agent → dsh-binding → Harness Core → Bridge Contract → Native Bridge → Game API</p></div>
+        </aside>
+      </div>
+
+      <div class="audit-loop" aria-label="可审计动作闭环">
+        <article><span>01</span><div><small>OBSERVE</small><strong>读取权威状态</strong><p>位置、物品、任务、附近实体和 revision。</p></div></article>
+        <i>→</i>
+        <article><span>02</span><div><small>DECIDE</small><strong>Agent 提出动作</strong><p>参数先过 Schema、权限和版本校验。</p></div></article>
+        <i>→</i>
+        <article><span>03</span><div><small>EXECUTE</small><strong>游戏执行原生 API</strong><p>成功、失败和错误原因原样返回。</p></div></article>
+        <i>→</i>
+        <article class="verified"><span>04</span><div><small>VERIFY</small><strong>结果与新状态关联</strong><p>只有游戏确认后，剧情和记忆才能继续。</p></div></article>
+      </div>
+    </section>
+
+    <section class="section ideology-section" id="distribution">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> 04 · PROTOCOL &amp; DISTRIBUTION</p><h2>一游戏一包，<br>两类协议</h2></div>
+        <p>发行单元和通信边界必须分开理解：Game Pack 负责“这款游戏需要什么”，协议负责“这些能力如何装配与通信”。</p>
+      </div>
+
+      <div class="gamepack-summary">
+        <div class="gamepack-copy"><small>ONE GAME · ONE GAME PACK</small><h3>不同游戏按需加载，不塞进核心</h3><p>用户只安装自己需要的游戏，开发者也能单独版本化、升级和卸载。</p></div>
+        <div class="gamepack-parts">
+          <article><b>PLUGIN</b><strong>Harness Plugin</strong><span>知识、Schema、语义工具与编排</span></article>
+          <article><b>CONTENT</b><strong>角色与剧情配置</strong><span>世界观、目标、禁写事实与节奏</span></article>
+          <article><b>BRIDGE</b><strong>Adapter / Mod</strong><span>状态、事件、原生动作和权威回执</span></article>
+          <article><b>MANIFEST</b><strong>安装与兼容信息</strong><span>版本、权限、校验和与卸载记录</span></article>
+        </div>
+      </div>
+
+      <div class="protocol-grid ideology-protocols">
+        <article class="protocol-card internal"><span>INSIDE HARNESS</span><h3>DSH / Cordis Plugin Protocol</h3><p>管理 Game Core、Memory、Media、UI、Installer、Transport 与每游戏插件的依赖注入、事件和可逆生命周期。</p><ul><li>复用同一个 Agent Session</li><li>插件可独立装配和停用</li><li>凭据不进入游戏 Mod</li></ul></article>
+        <article class="protocol-card wire"><span>ACROSS PROCESSES</span><h3>Native Bridge Contract</h3><p>面向 C#、Lua、C++ 等环境，只传递游戏身份、能力、Observation、Event、Action、Result、revision 与错误。</p><ul><li>稳定、版本化的 JSON 消息</li><li>WebSocket 只是默认 Transport</li><li>不传 Provider Key 和隐藏推理</li></ul></article>
+      </div>
+
+      <div class="boundary-grid ideology-boundaries">
+        <article class="yes"><span>HARNESS OWNS</span><h3>我们负责</h3><ul><li>完整打包并复用通用 AI Runtime</li><li>标准游戏插件与独立 Game Pack</li><li>跨语言、可测试的 Bridge Contract</li><li>基于真实状态的动作回执和 Trace</li></ul></article>
+        <article class="no"><span>NON-GOALS</span><h3>我们明确不做</h3><ul><li>不重写已有模型、Agent、Tool 与 Session</li><li>不把规划、记忆和模型调用塞进 Mod</li><li>不取代 Unity、Godot 或游戏运行时</li><li>不让远程模型控制逐帧战斗和寻路</li></ul></article>
+      </div>
+    </section>
+
+    <section class="section ideology-section" id="progress">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> 05 · EVIDENCE &amp; ROADMAP</p><h2>已验证什么，<br>下一步是什么</h2></div>
+        <p>构建成功、安装成功和真实游戏长期验收是三件不同的事。这里分别说明，不把路线图写成已经完成。</p>
+      </div>
+
+      <div class="evidence-board">
+        <article class="evidence-card done"><span>已验证</span><h3>Core 与协议</h3><p>Harness Core、Adapter Protocol、WebSocket Host、Game Pack 注册表和一致性检查已有实现与自动化测试。</p></article>
+        <article class="evidence-card done"><span>已验证</span><h3>本地桌面发行</h3><p>Windows 本地安装、启动、卸载和诊断导出已经通过开发环境验收。</p></article>
+        <article class="evidence-card partial"><span>已有切片</span><h3>多游戏接入</h3><p>Adapter Starter、Mock Game，以及星露谷、饥荒和缺氧的不同语言实现已经进入同一主仓库。</p></article>
+        <article class="evidence-card current"><span>进行中</span><h3>真实游戏长期验收</h3><p>继续核对真实存档、连续 StoryBeat、状态事实、动作结果、语音、重连和长期记忆。</p></article>
+      </div>
+
+      <div class="roadmap">
+        <article class="complete"><span>PHASE 01 · COMPLETE</span><h3>最小权威闭环</h3><p>固定 Runtime，跑通观察、决策、动作、结果、新状态与 Trace。</p></article>
+        <article class="current"><span>PHASE 02 · NOW</span><h3>长期体验验收</h3><p>把多游戏链路放进真实存档，验证连续运行与失败恢复。</p></article>
+        <article><span>PHASE 03 · NEXT</span><h3>可信开放生态</h3><p>完善签名、权限授权、第三方可信启动、目录与认证机制。</p></article>
+      </div>
+
+      <div class="detail-drawers">
+        <details>
+          <summary><span>源码目录如何表达边界</span><b>展开查看</b></summary>
+          <div class="detail-grid">
+            <article><strong>apps / runtime</strong><p>桌面产品、内置 DSH 进程和固定 Runtime Profile。</p></article>
+            <article><strong>packages / dsh-binding</strong><p>把 Agent Tool Call 映射为 Harness action。</p></article>
+            <article><strong>plugins</strong><p>Game Core、Transport、Learning、Story 与游戏插件。</p></article>
+            <article><strong>contracts</strong><p>跨语言 Bridge 消息与 Schema，不依赖 Cordis 类型。</p></article>
+            <article><strong>games / &lt;game&gt;</strong><p>每款游戏的插件、薄 Bridge 与 Pack 共同测试发行。</p></article>
+            <article><strong>tests / distribution</strong><p>协议、装配、状态、Trace、版本和安装包分别验收。</p></article>
           </div>
-          <div class="rule-list">
-            <div class="rule"><b>✓</b><span>Bridge 上报游戏身份、原生 API 能力、状态、事件和动作结果。</span></div>
-            <div class="rule"><b>✓</b><span>协议不包含 Provider Key、厂商消息结构和模型隐藏推理。</span></div>
-            <div class="rule no"><b>×</b><span>原始音视频和逐帧控制不塞进 JSON；大数据使用独立媒体通道。</span></div>
+        </details>
+        <details>
+          <summary><span>不同参与者各自负责什么</span><b>展开查看</b></summary>
+          <div class="detail-grid roles">
+            <article><strong>游戏接入开发者</strong><p>实现游戏插件与薄 Native Bridge。</p></article>
+            <article><strong>Harness 开发者</strong><p>维护领域插件、协议、桌面发行和兼容性。</p></article>
+            <article><strong>能力插件作者</strong><p>扩展语音、记忆、视觉、安装和分析能力。</p></article>
+            <article><strong>玩家</strong><p>安装产品、连接游戏、选择角色与模型，不需要理解 Harness。</p></article>
           </div>
-          <div class="protocol-sample" aria-label="协议示例">{
-  "jsonrpc": "2.0",
-  "method": "bridge.hello",
-  "params": {
-    "gameId": "my-native-game",
-    "bridgeId": "official-native-bridge",
-    "protocolVersion": "1.1",
-    "capabilities": ["state", "events", "actions"]
-  }
-}</div>
-        </article>
+        </details>
       </div>
     </section>
 
-    <section id="baseline" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">05 · Build baseline</div>
-          <h2>代码已经走到本地安装验收</h2>
-        </div>
-        <p class="section-summary">DSH 模型链、游戏插件闭环、独立 Adapter 测试切片、产品页面和本地 Windows 安装器都已落到代码与验收；dsh-binding 已在真实 DSH Agent 进程中完成 Tool 到 Core action-result 的闭环。《缺氧》Adapter 也已能在不启动游戏时自动验证协议与错误路径。当前缺口是长剧情质量、真实语音分段耗时和真实游戏存档闭环，而不是新写模型 Runtime。</p>
-      </div>
-      <div class="surface-grid">
-        <article class="feature card">
-          <div class="feature-icon">CORE</div>
-          <h3>固定 DSH Runtime</h3>
-          <p>源码基线与 Windows 桌面发行 Runtime 已统一固定为 <span class="mono">@deepseek-ai/dsh 0.1.1-rc.2</span>，以避免模型运行时和 Tool 插件混装。版本不自动追新。</p>
-        </article>
-        <article class="feature card">
-          <div class="feature-icon">LOOP</div>
-          <h3>两级可运行闭环</h3>
-          <p>Fake Game 验证工具、状态、回执与 Trace；小汤圆集成流程会启动桌面同版本 Runtime，装入通用插件和 ONI Adapter，用本地模拟模型完成 Adapter 握手、状态更新、两轮真实流式对话，并验证同一存档重连后恢复原 Session。</p>
-        </article>
-        <article class="feature card">
-          <div class="feature-icon">APP</div>
-          <h3>Windows 桌面开发包</h3>
-          <p>Electron 已能启动内置 Runtime、隔离用户 Profile、装配小汤圆 <span class="mono">0.7.7</span> 和独立 ONI Adapter <span class="mono">0.1.6</span>，并生成约 <span class="mono">271 MiB</span> 的 NSIS <span class="mono">.exe</span>。实际安装后在不提供系统 Node/pnpm 的 PATH 下启动了 Renderer、DSH NodeService 与媒体 Host，本地 DSH 页面返回 HTTP 200，短路径静默卸载无残留；目前仍是未签名、未上传 Release 的本地开发产物。</p>
-        </article>
-        <article class="feature card">
-          <div class="feature-icon">WIRE</div>
-          <h3>独立 Adapter 测试切片</h3>
-          <p>Harness Core、WebSocket Host、Mock Agent 与外置 Mock Adapter 已验证 action-result、错误反馈、动作上限、自动 revision 刷新和一次安全冲突重试；《缺氧》假文件 Bridge 还覆盖 heartbeat 过期目录排除、精确光标格吸水与喷水、事件、超时与重连。Binding 验证了标准 Tool 到 Core 的成功与拒绝回执，它们共同证明游戏边界，不替代通用 Runtime。</p>
-        </article>
-      </div>
-      <div class="state-law card">
-        <strong>产品接线与本地安装已完成，下一步验收长期体验</strong>
-        <span>小汤圆已经验证模型选择、Credentials、Agent Session、Tool Calling、流式回复、记忆和技能试跑；默认产品使用同一条 Agent 主链。动态剧情也由该 Session 生成，不新增剧情 Agent：Game Pack 给边界，Story Runtime 校验并按 gameId + saveId 保存，Adapter Observation 证明完成。剧情、等级和角色成长仍与自学习分开。</span>
-      </div>
-      <div class="state-law card">
-        <strong>当前已实现</strong>
-        <span><span class="mono">desktop:start</span> 与 <span class="mono">desktop:dsh</span> 启动内置产品链；<span class="mono">game-learning-binding</span> 复用小汤圆唯一的 MemoryService 与 SkillService，<span class="mono">dsh-story-generator</span> 给同一个 Session 提供动态剧情 Tool。Desktop 显示当前剧情目标、选择、不可回写历史、当前存档记忆、已验证技能与失败尝试。Mock Game 已证明虚构事实会被拒绝、真实 Observation 才能推进剧情；真实模型和真实存档仍需现场验收。</span>
-      </div>
-      <div class="state-law card">
-        <strong>公开发布边界</strong>
-        <span>主仓库已经用 <span class="mono">1.0</span> 分支、<span class="mono">v1.0.0</span> 标签和 GitHub Release 保存稳定源码快照；该标签固定在提交 <span class="mono">a6921ef</span>。<span class="mono">main</span> 当前标记为 <span class="mono">1.1.0-dev.0</span>，本页新增能力只进入该开发线。Release 当前仅有 GitHub 自动生成的源码归档；<span class="mono">0.7.7 / 0.1.6 / Bridge 0.6.7</span> 仍是后续开发内容，不能当作已发布签名安装包。</span>
-      </div>
-      <div class="state-law card">
-        <strong>验证边界</strong>
-        <span><span class="mono">pnpm check</span> 已覆盖工作区构建、29 项集成测试和 20 项平台测试；<span class="mono">pnpm check:xiaotangyuan</span> 又通过饥荒 25 项、反馈服务 4 项、ONI Adapter 14 项和小汤圆插件 84 项测试。<span class="mono">smoke:dsh-product</span>、<span class="mono">smoke:dsh-adapter</span> 与 <span class="mono">smoke:dsh-story</span> 当前均通过：剧情冒烟让当前 headless DSH 模型生成并完成金币 StoryBeat，第二次启动后读回同一条 completed 历史和 revision 2 证据。安装包还完成了敏感标识扫描、SHA256、隔离安装、产品主链启动和完整卸载验证。一次 Mock Game 冒烟和一次本机安装不能替代真实游戏存档、长时间连续剧情、多样本质量验收或公开签名。</span>
-      </div>
-    </section>
-
-    <section id="structure" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">06 · Repository structure</div>
-          <h2>目录表达边界，不只是整理文件</h2>
-        </div>
-        <p class="section-summary">按运行进程、复用范围、依赖方向和发行单元拆分。通用 AI 能力优先由 DSH 和标准插件提供；框架无关的 Harness Core 只承载游戏动作边界，不扩张为另一套 Agent Runtime。</p>
-      </div>
-      <div class="surface-grid">
-        <article class="feature card"><div class="feature-icon">APP</div><h3>apps / runtime</h3><p><span class="mono">apps/desktop</span> 管理窗口、产品 IPC 与内置 DSH 子进程；<span class="mono">runtime/dsh-profile</span> 固定上游版本、默认配置与插件装配，不自研另一套通用 Runtime。</p></article>
-        <article class="feature card"><div class="feature-icon">BIND</div><h3>packages / dsh-binding</h3><p>默认产品接线：把 DSH Agent 的游戏 Tool Call 映射为 Harness Core action，并把 ActionResult 与新 Observation 返回 DSH Agent。</p></article>
-        <article class="feature card"><div class="feature-icon">PLUG</div><h3>plugins</h3><p>Game Core、Transport、Learning Binding、Story Generator 与小汤圆现有 Memory、Skill、Media、Installer 能力遵循 DSH 的注入、事件和可逆生命周期；学习与剧情接线都不拥有第二套 Session。</p></article>
-        <article class="feature card"><div class="feature-icon">WIRE</div><h3>contracts</h3><p>独立定义 Harness 与 C#、Lua、C++ Mod 共同使用的 Bridge 消息和 Schema，避免线协议反向依赖某个 TypeScript 插件。</p></article>
-        <article class="feature card"><div class="feature-icon">GAME</div><h3>games / &lt;game&gt;</h3><p>同一游戏的 Harness Plugin、薄 Native Bridge 与 Pack 放在一起，确保它们共同测试、固定兼容范围并作为一个 Game Pack 发行。</p></article>
-        <article class="feature card"><div class="feature-icon">TEST</div><h3>tests</h3><p>分别验证协议兼容、DSH 插件装配、持久 Session 事件与游戏 Trace 关联、最终游戏状态，明确区分“能够构建”和“真的执行成功”。</p></article>
-        <article class="feature card"><div class="feature-icon">SHIP</div><h3>distribution</h3><p>将桌面源代码组合成完整应用，将每游戏两端代码组合成 Game Pack；发行物拥有独立版本、校验和、兼容范围与卸载信息。</p></article>
-      </div>
-      <div class="state-law card">
-        <strong>单向依赖规则</strong>
-        <span>Desktop → DSH Profile → DSH Agent / Shared Plugins → dsh-binding → Harness Core → Adapter Contract → Native Bridge → Game API。Core 不反向依赖 DSH 类型，但产品默认由 DSH 驱动。</span>
-      </div>
-    </section>
-
-    <section id="surfaces" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">07 · Product surfaces</div>
-          <h2>引擎必须“看得见”</h2>
-        </div>
-        <p class="section-summary">产品专属对话页、动态剧情页、自学习页、分析页和 Adapter 中心共享同一个 DSH Agent 会话与 Harness Core 游戏 Trace；剧情页展示生成结果与 Adapter 证据，自学习页分开显示记忆与技能，不暴露隐藏思维。</p>
-      </div>
-      <div class="surface-grid">
-        <article class="feature card"><div class="feature-icon">DSH</div><h3>已验证：模型与会话</h3><p>内置 DSH 已提供模型选择、Credentials、Agent Session、Tool Calling 和流式回复；产品继续复用，不另建模型 Runtime。</p></article>
-        <article class="feature card"><div class="feature-icon">NOW</div><h3>已接线：游戏产品页面</h3><p>对话页实时消费 DSH Session 公开文本，并使用游戏展示器注册表渲染状态：未知 Adapter 默认获得通用 observation 查看器，缺氧与 Mock Game 可有专属摘要。分析页沿 Session → 回合 → 步骤 → Tool callId → 游戏 requestId 精确定位，显示游戏动作四段耗时和语音 ASR / 首字 / Agent / TTS 分段；支持失败、超时、重连、语音与动作筛选，并导出不含聊天正文、转写和隐藏思维的脱敏诊断。Adapter 中心同时展示实时连接与已安装 Game Pack。</p></article>
-        <article class="feature card"><div class="feature-icon">SDK</div><h3>已提供：第三方接入起点</h3><p><span class="mono">examples/adapter-starter</span> 是可复制的 Adapter 与 Game Pack 模板，<span class="mono">adapter-conformance</span> 检查 hello、observe、action/result 和 revision；Game Pack 注册表负责限额校验、事务安装、发现和版本安全卸载。安装不等于信任，权限授权、签名和第三方启动策略完成前不会自动执行未知入口。</p></article>
-        <article class="feature card"><div class="feature-icon">SAFE</div><h3>只展示可审计事实</h3><p><span class="mono">reasoning-delta</span> 与 Driver <span class="mono">analysis</span> 在产品边界过滤；页面只展示调用参数、结果、错误码、revision、耗时和连接状态。</p></article>
-      </div>
-    </section>
-
-    <section id="ecosystem" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">08 · Ecosystem</div>
-          <h2>不同参与者，只承担必要复杂度</h2>
-        </div>
-        <p class="section-summary">生态的关键不是让所有人写插件，而是让每一种参与者只接触与自己相关的那层。</p>
-      </div>
-      <div class="role-grid">
-        <article class="role card"><div class="who">Game integrator</div><h3>游戏接入开发者</h3><p>实现每游戏 DSH Harness Plugin 与薄 Native Bridge，前者拥有 AI 语义，后者只封装原生 API。</p></article>
-        <article class="role card"><div class="who">Harness developer</div><h3>Harness 开发者</h3><p>维护游戏领域插件、Bridge Contract、桌面发行、版本兼容和跨游戏基础设施。</p></article>
-        <article class="role card"><div class="who">Plugin author</div><h3>能力开发者</h3><p>遵循 DSH 插件协议扩展语音、记忆、视觉、安装、Transport 或分析面板。</p></article>
-        <article class="role card"><div class="who">Player</div><h3>玩家</h3><p>安装一个应用、连接自己的游戏、选择角色与模型，不需要理解 Harness。</p></article>
-      </div>
-    </section>
-
-    <section id="roadmap" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">09 · Evolution</div>
-          <h2>迁入原型能力，统一维护游戏发行版</h2>
-        </div>
-        <p class="section-summary">源码迁移已经完成；主仓库现在是唯一开发入口，旧仓库只保留历史记录和既有 Release 文件，不再参与构建或双仓库开发。</p>
-      </div>
-      <div class="timeline">
-        <article class="phase card"><div class="phase-num">SOURCE · 已迁入</div><h3>统一源码资产</h3><ul><li>DSH 中已跑通的能力闭环</li><li>星露谷、饥荒、缺氧链路</li><li>protocol/v1.1 跨语言基础</li></ul></article>
-        <article class="phase card"><div class="phase-num">PHASE 1 · 已完成</div><h3>跑通最小闭环</h3><ul><li>固定 DSH Runtime Profile 与插件版本</li><li>实现 Game Core、Transport 与 Fake Harness Plugin</li><li>完成 DSH 事件、游戏侧 Trace 和权威状态验收</li></ul></article>
-        <article class="phase card now"><div class="phase-num">PHASE 2 · 当前</div><h3>长期体验与真实游戏验收</h3><ul><li>本地 NSIS 安装—启动—卸载与诊断导出已验证</li><li>连续运行 20–50 个 StoryBeat，检查重复、遗忘、事实和玩家选择</li><li>用真实游戏核对状态、文字、语音、Action、分段耗时与重连</li></ul></article>
-        <article class="phase card"><div class="phase-num">PHASE 3</div><h3>可信开放生态</h3><ul><li>多语言 Native Bridge SDK 与开发者 CLI</li><li>Game Pack 权限授权、可信启动、签名与兼容范围</li><li>官方目录、真实游戏测试与认证</li></ul></article>
-      </div>
-    </section>
-
-    <section id="boundaries" class="reveal">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">10 · Boundaries</div>
-          <h2>我们做什么，也明确不做什么</h2>
-        </div>
-        <p class="section-summary">清晰的非目标能防止引擎重新膨胀成另一个面向所有场景的通用 Agent 产品。</p>
-      </div>
-      <div class="boundary card">
-        <div class="yes"><h3><span>●</span> Harness 承诺</h3><ul><li>完整打包并复用经过验证的 DSH Runtime</li><li>标准 DSH 游戏插件与可独立安装的 Game Pack</li><li>稳定、跨语言、可测试的 Native Bridge Contract</li><li>基于事实的游戏状态与动作回执</li><li>本机优先的权限、记忆和隐私边界</li></ul></div>
-        <div class="no"><h3><span>●</span> 明确非目标</h3><ul><li>不重写 DSH 已有的模型、Agent、Tool 与 Session</li><li>不在没有缺口证据时开发直接 OpenAI-compatible Driver</li><li>不要求游戏 Mod 使用 TypeScript 或 Cordis</li><li>不把规划、记忆和模型调用塞进游戏 Mod</li><li>不取代 Unity、Godot 或游戏自己的运行时</li><li>不让远程模型控制逐帧战斗和寻路</li></ul></div>
-      </div>
-    </section>
-
-    <aside class="source-note card reveal" aria-label="原项目说明">
+    <section class="ideology-cta">
+      <p class="eyebrow"><span></span> CHOOSE YOUR NEXT STEP</p>
+      <h2>理念看清之后，<br>从最小闭环开始</h2>
+      <p>先让一款游戏返回一个真实状态，执行一个确定动作，再让游戏证明结果。之后再逐步加入语音、记忆、技能和动态剧情。</p>
       <div>
-        <strong>原项目是历史原型，新项目现在同时是源码与产品本体。</strong>
-        <p><span class="mono">dsh-xiaotangyuan-game</span> 验证过的模型接入、多游戏桥接、跨语言 JSON-RPC、记忆、视觉、语音与流式回复源码现已迁入 <span class="mono">ai-native-game-harness</span>。这些是应当优先复用的已验证资产，不是等待重写的旧实现。今后的源码、测试、文档与新 Release 只在主仓库维护；新产品沿用 DSH 与其 <span class="mono">@deepseek-ai/cordis</span> 插件体系，游戏动作边界由 Harness Core 与 Adapter Protocol 补充。</p>
+        <a class="button primary" href="developers.html">进入开发者版 <span>→</span></a>
+        <a class="button secondary" href="https://github.com/qimidandapigu/ai-native-game-harness/tree/main/examples/adapter-starter" target="_blank" rel="noreferrer">打开 Adapter Starter <span>↗</span></a>
       </div>
-      <div class="actions">
-        <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">新项目 ↗</a>
-        <a class="button" href="https://github.com/qimidandapigu/dsh-xiaotangyuan-game">历史原型 ↗</a>
-      </div>
-    </aside>
+    </section>
   </main>
 
   <footer>
-    <span>AI Native Game Harness · Product doctrine v12 · DSH-first</span>
-    <span>本页为产品与架构思想说明，不代表所有目标均已实现。</span>
+    <a class="brand" href="#top">
+      <img src="logo.png" alt="" width="38" height="38">
+      <span><strong>AI Native</strong><small>Game Harness</small></span>
+    </a>
+    <p>产品理念 v12 · 本页区分已实现、已验证与仍在推进的目标。</p>
+    <div><a href="index.html">玩家版</a><a href="developers.html">开发者版</a><a href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/docs/AI_GAME_ENGINE_IDEOLOGY.html" target="_blank" rel="noreferrer">源文档</a></div>
   </footer>
-
-  <script>
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible')
-          observer.unobserve(entry.target)
-        }
-      }
-    }, { threshold: 0.08 })
-
-    document.querySelectorAll('.reveal').forEach((element) => observer.observe(element))
-  </script>
 </body>
 </html>
