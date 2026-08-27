@@ -157,16 +157,15 @@ img { display: block; }
 .real-game-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
 .game-shot-card { min-width: 0; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(150deg, rgba(15, 32, 42, .86), rgba(7, 18, 25, .95)); overflow: hidden; }
 .game-shot-card.featured { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(270px, .58fr); }
-.game-media { position: relative; height: 285px; margin: 0; overflow: hidden; background: #050c11; }
+.game-media { position: relative; height: 350px; margin: 0; overflow: hidden; background: #050c11; isolation: isolate; }
 .game-shot-card.featured .game-media { height: 100%; min-height: 350px; }
-.game-media::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.035); background: linear-gradient(to top, rgba(5,13,18,.18), transparent 40%); }
-.game-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }
+.game-media::before { content: ""; position: absolute; z-index: -1; inset: -20px; background-image: linear-gradient(rgba(2,10,15,.48), rgba(2,10,15,.48)), var(--shot-image); background-size: cover; background-position: center; filter: blur(15px) saturate(.72); transform: scale(1.08); }
+.game-media::after { content: ""; position: absolute; z-index: 2; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.035); background: linear-gradient(to top, rgba(5,13,18,.16), transparent 32%); }
+.game-media > a { position: relative; z-index: 1; width: 100%; height: 100%; display: block; }
+.game-media img { width: 100%; height: 100%; object-fit: contain; transition: transform .45s ease; }
 .game-shot-card:hover .game-media img { transform: scale(1.018); }
-.game-media.oni img { object-position: center; }
-.game-media.dst img { object-position: center 42%; }
-.game-media.stardew-wide img { object-position: center; }
-.game-media.stardew-flight img { object-position: center; image-rendering: auto; }
-.game-media.stardew-rain img { object-position: center 46%; }
+.media-open { position: absolute; z-index: 3; right: 12px; bottom: 12px; padding: 7px 9px; border: 1px solid rgba(255,255,255,.18); border-radius: 7px; color: #e7f2ef; background: rgba(4,14,20,.78); backdrop-filter: blur(8px); font-size: 8px; opacity: .82; transition: opacity .2s ease, border-color .2s ease; }
+.game-media > a:hover .media-open, .game-media > a:focus-visible .media-open { opacity: 1; border-color: rgba(100,228,189,.42); }
 .game-shot-copy { padding: 24px 25px 26px; }
 .featured .game-shot-copy { padding: 34px; display: flex; flex-direction: column; justify-content: center; }
 .game-tag { display: inline-flex; width: max-content; padding: 6px 8px; border-radius: 999px; color: var(--mint); background: rgba(100,228,189,.09); font-size: 8px; letter-spacing: .05em; }
