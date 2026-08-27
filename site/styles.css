@@ -153,6 +153,29 @@ img { display: block; }
 .proof-flow .verified { border-color: rgba(100, 228, 189, .31); background: linear-gradient(135deg, rgba(18, 56, 54, .76), rgba(11, 30, 37, .85)); }
 .proof-flow article > b { padding: 5px 7px; border-radius: 5px; color: var(--mint); background: rgba(100, 228, 189, .09); font-size: 7px; letter-spacing: .1em; }
 
+.real-games { border-top: 1px solid var(--line); }
+.real-game-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+.game-shot-card { min-width: 0; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(150deg, rgba(15, 32, 42, .86), rgba(7, 18, 25, .95)); overflow: hidden; }
+.game-shot-card.featured { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(270px, .58fr); }
+.game-media { position: relative; height: 285px; margin: 0; overflow: hidden; background: #050c11; }
+.game-shot-card.featured .game-media { height: 100%; min-height: 350px; }
+.game-media::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.035); background: linear-gradient(to top, rgba(5,13,18,.18), transparent 40%); }
+.game-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }
+.game-shot-card:hover .game-media img { transform: scale(1.018); }
+.game-media.oni img { object-position: center; }
+.game-media.dst img { object-position: center 42%; }
+.game-media.stardew-wide img { object-position: center; }
+.game-media.stardew-flight img { object-position: center; image-rendering: auto; }
+.game-media.stardew-rain img { object-position: center 46%; }
+.game-shot-copy { padding: 24px 25px 26px; }
+.featured .game-shot-copy { padding: 34px; display: flex; flex-direction: column; justify-content: center; }
+.game-tag { display: inline-flex; width: max-content; padding: 6px 8px; border-radius: 999px; color: var(--mint); background: rgba(100,228,189,.09); font-size: 8px; letter-spacing: .05em; }
+.game-shot-copy h3 { margin: 18px 0 9px; font-size: 19px; font-weight: 590; }
+.featured .game-shot-copy h3 { font-size: 24px; line-height: 1.25; }
+.game-shot-copy p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.75; }
+.game-shot-copy small { margin-top: 24px; color: #718990; font-size: 8px; letter-spacing: .08em; }
+.game-disclaimer { margin: 18px 3px 0; color: #5f747b; font-size: 9px; line-height: 1.6; }
+
 .developers { border-top: 1px solid var(--line); }
 .developer-layout { display: grid; grid-template-columns: .85fr 1.15fr; gap: 55px; }
 .steps { display: grid; align-content: start; gap: 13px; }
@@ -232,6 +255,10 @@ footer a:hover { color: var(--mint); }
   .section-heading, .story-demo, .developer-layout { grid-template-columns: 1fr; gap: 35px; }
   .section-heading { margin-bottom: 38px; }
   .feature-grid, .status-board { grid-template-columns: 1fr; }
+  .real-game-grid { grid-template-columns: 1fr; }
+  .game-shot-card.featured { grid-column: auto; grid-template-columns: 1fr; }
+  .game-shot-card.featured .game-media { min-height: 0; height: 310px; }
+  .featured .game-shot-copy { padding: 25px; }
   .feature-card { min-height: 255px; }
   .feature-icon { margin-top: 30px; }
   .games { grid-template-columns: repeat(2, 1fr); gap: 18px 7px; }
