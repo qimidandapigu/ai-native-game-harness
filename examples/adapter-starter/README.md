@@ -8,4 +8,4 @@
 4. 运行 `pnpm build`，再用 `@ai-native-game-harness/adapter-conformance` 验证。
 5. 把构建后的整个目录作为 Game Pack 安装；Desktop 只校验和登记，不会未经授权自动执行第三方入口。
 
-`content/` 保存剧情、角色、玩法说明和本地化；真正决定游戏结果的规则仍留在游戏本体。
+`content/` 保存动态叙事边界、角色、玩法说明和本地化。剧情由 DSH Session 在运行时滚动生成，不在 Pack 中写死；真正决定游戏结果的规则仍留在游戏本体。

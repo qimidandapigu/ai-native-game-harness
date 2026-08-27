@@ -17,6 +17,7 @@ export interface InstalledGamePack {
 }
 
 export interface LoadedGamePackContent {
+  narrative?: string
   story?: string
   characters?: string
   gameplay?: string

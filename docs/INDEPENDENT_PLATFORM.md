@@ -40,9 +40,11 @@ Game Adapter Protocol（hello / observe / execute / events）
 | `harness-core` | Adapter 注册、动作校验、revision、动作结果回传、Trace | DSH/Cordis 类型、模型 Provider、某个游戏规则 |
 | `adapter-protocol` | 跨游戏 hello、观察、动作、结果与事件契约 | AI 推理、剧情和厂商消息格式 |
 | `adapter-websocket` | 本机 JSON-RPC Host、远程 Adapter 包装和重连参考客户端 | 核心语义、游戏规则、DSH 类型 |
-| `game-pack` | 剧情、角色、玩法、资源、权限与 Adapter 入口清单 | 运行时权威状态、通用 Agent 实现 |
+| `game-pack` | 世界观、角色、动态叙事边界、玩法、资源、权限与 Adapter 入口清单 | 已生成剧情状态、运行时权威状态、通用 Agent 实现 |
+| `story-runtime` | StoryBeat-v1 校验、滚动计划、分支、结局、历史与按存档持久化 | 模型调用、固定剧情内容、游戏事实权威 |
 | `adapter-conformance` | 可复用的 hello、observe、action/result 与 revision 一致性检查 | 真实存档验收、权限与签名信任 |
 | `game-learning-binding` | 把默认 DSH Session 接到现有记忆与已验证技能服务 | 第二套 Agent、剧情成长或绕过 Core 的动作执行 |
+| `dsh-story-generator` | 把同一个 DSH Session 接到动态 StoryBeat 上下文、提案和玩家选择 Tool | 第二套剧情 Agent、替代 Session、擅自宣布游戏目标完成 |
 
 ## 自学习的当前实现
 
@@ -50,12 +52,14 @@ Game Adapter Protocol（hello / observe / execute / events）
 - Desktop 每个正式游戏回合要求 DSH 先调用记忆召回 Tool；回合完成后再异步提取长期记忆，不阻塞当轮公开回答。
 - 技能候选只能引用当前 Adapter 声明的 action capability，所有步骤都通过 Harness Core 和 Adapter Protocol 真实执行。
 - 失败候选不会进入技能库；成功候选按版本保存，可以再次执行。产品“自学习”页只显示经过脱敏和限长的学习摘要。
-- 这一步不合并剧情骨架、角色升级、成长属性或 Bug 技能；这些将在自学习闭环稳定后分别设计。
+- 自学习不与剧情状态、角色升级、成长属性或 Bug 技能混成一个数据库；各系统通过公开上下文协作。
 
-## 剧情与玩法放哪里
+## 动态剧情与玩法放哪里
 
-- 可分发的剧情、角色、玩法数据、资源与本地化放进 Game Pack。
-- 需要知识、工具或算法的游戏能力优先做成标准 DSH 游戏插件。
+- 世界观、角色、主题、允许目标、禁止编造事项、玩法说明、资源与本地化放进 Game Pack；新 Pack 使用 `content.narrative`，不是写死完整剧情树。
+- 模型生成的 1–3 个近期 `StoryBeat-v1` 进入 `story-runtime`，按 `gameId + saveId` 保存并保留不可回写历史。
+- `dsh-story-generator` 是标准 DSH 插件，只给当前 DSH Session 提供上下文、提案和玩家选择 Tool，不启动第二个 Agent。
+- 需要其他知识、工具或算法的游戏能力仍优先做成标准 DSH 游戏插件。
 - 需要读取或改变权威游戏状态的代码放进该游戏 Adapter / Native Bridge。
 - 跨游戏的动作安全、revision、Adapter 路由与 Trace 放进 Harness Core。
 - DSH 与游戏内核之间的映射放进 `dsh-binding`。
@@ -68,6 +72,7 @@ Game Adapter Protocol（hello / observe / execute / events）
 - Standalone 切片：Mock Agent、Harness Core、WebSocket Adapter Host 和外置 Mock Adapter 已验证 `action → execute → action-result`、错误反馈、动作上限和重连。
 - Binding 切片：Adapter `inputSchema` 已注册成真实 DSH Agent 可见的标准 Tool；模型已通过 WebSocket 驱动 Mock Game 完成 `move → collect`，并收到金币 `1`、revision `2` 的权威结果。
 - 自学习切片：现有 `MemoryService` 与 `SkillService` 已作为单一服务暴露；`game-learning-binding` 将它们接入默认 DSH Session，并把学习摘要回传 Desktop 自学习页。
+- 动态剧情切片：`dsh-story-generator` 让同一个 DSH Session 滚动提出 StoryBeat；纯 Runtime 拒绝不存在的 Observation 路径和未声明 action，只有 Adapter 新状态能推进历史，Desktop 动态剧情页展示当前目标、选择、待续线索和证据。
 - 真实 Adapter 测试切片：《缺氧》通过假文件 Bridge 在不启动游戏时验证握手、观察、动作、revision 冲突、拒绝、超时、事件和重连；同一 DSH `callId` 会作为 Adapter `requestId` 原样进入 C# Bridge。
 
 Standalone 切片的存在是为了确定性测试公开游戏边界。它不是重新开发通用 AI Runtime 的授权，也不是目标产品默认。
@@ -87,7 +92,7 @@ DSH Agent
 
 Binding 已装入实际 DSH Agent 作用域并通过 Mock Game 真实模型冒烟。Desktop 产品页也已经共享 DSH Session 与 Core Trace：公开回答通过流式 IPC 到对话页，DSH Session 历史和官方 `sessionStats` 投影提供通用 Agent 事实与耗时，Core 只补充 action-result、Adapter 和游戏侧事实，Core Snapshot 驱动 Adapter 中心。DSH 原生事件里的 `SessionId`、`turn`、`step` 和 `callId` 会被保真投影；Binding 把同一个 `callId` 用作 Adapter `requestId`，因此分析页按 `Session → 回合 → 步骤 → Tool callId → 游戏 requestId` 精确关联，而不是按时间猜测。游戏动作 Trace 分开记录 `coreValidationMs`、`adapterRoundTripMs`、`bridgeRoundTripMs` 和 `gameExecutionMs`，动作后的 Observation 继续使用同一 `requestId`；语音诊断按 interactionId 记录 ASR、首字、Agent、TTS、总耗时和失败阶段。分析页可以筛选失败、超时、重连、语音与动作，并导出脱敏后的最近 500 条 Trace；聊天正文、语音转写和隐藏思维不进入诊断文件。游戏状态区不再假设金币、体力或坐标必然存在：未知 Adapter 自动获得受限额与敏感字段过滤的通用 observation 查看器，已知游戏可使用专属展示器。
 
-平台扩展入口也已从清单走到可执行的开发流程：`GamePackRegistry` 校验并事务安装 Pack，`examples/adapter-starter` 提供可复制 Adapter，`adapter-conformance` 提供 CI 体检。安装成功只代表 Pack 可发现；Desktop 在权限授权、可信启动和签名策略完成前不会自动执行未知第三方入口。产品页当前位于 DSH Web Client 组合之外，因此只保留薄传输、学习状态与展示 Bridge，不把它扩展成第二套 Session、日志或统计系统。当前剩余工作是对默认产品自学习做无游戏确定性测试与真实存档验收，再按 [真实游戏验收清单](REAL_GAME_ACCEPTANCE.md) 完成安装包内端到端验收。直接 OpenAI-compatible Driver 暂不进入路线，除非满足 ADR 0001 的替换门槛。
+平台扩展入口也已从清单走到可执行的开发流程：`GamePackRegistry` 校验并事务安装 Pack，`examples/adapter-starter` 提供可复制 Adapter 与动态叙事策略，`adapter-conformance` 提供 CI 体检。安装成功只代表 Pack 可发现；Desktop 在权限授权、可信启动和签名策略完成前不会自动执行未知第三方入口。产品页当前位于 DSH Web Client 组合之外，因此只保留薄传输、学习/剧情状态与展示 Bridge，不把它扩展成第二套 Session、日志或统计系统。Windows NSIS 本地产物已经完成无系统 Node/pnpm 的安装、内置 DSH 页面启动、媒体 Host 运行和短路径完整卸载验收；它仍是未签名、未上传 Release 的开发产物。当前剩余工作是先建立长剧情自动质量验收，再用真实模型与真实游戏存档验证完整产品闭环，并按 [真实游戏验收清单](REAL_GAME_ACCEPTANCE.md) 补齐实际语音分段耗时。直接 OpenAI-compatible Driver 暂不进入路线，除非满足 ADR 0001 的替换门槛。
 
 验证命令：
 
@@ -95,8 +100,9 @@ Binding 已装入实际 DSH Agent 作用域并通过 Mock Game 真实模型冒�
 pnpm check
 pnpm platform:test
 pnpm smoke:dsh-product
+pnpm smoke:dsh-story
 pnpm mock:start
 pnpm desktop:dsh
 ```
 
-`pnpm check` 覆盖工作区和确定性平台测试；`smoke:dsh-product`、`smoke:dsh-adapter` 属于额外的环境级验收，分别依赖完整 DSH Web Runtime，以及装好依赖、配置可用模型凭据的 headless Profile。冒烟必须看到命令定义的成功结果才算通过；DSH ready 前出现 `ERR_MODULE_NOT_FOUND` 应按 Profile/Runtime 装配问题处理，不能用 `pnpm check` 的结果代替。
+`pnpm check` 覆盖工作区和确定性平台测试；`smoke:dsh-product`、`smoke:dsh-adapter`、`smoke:dsh-story` 属于额外的环境级验收。剧情冒烟依赖配置了可用模型凭据的 headless Profile，会执行两次真实 DSH Agent：第一次生成并完成 StoryBeat，第二次验证持久历史恢复。冒烟必须看到命令定义的成功结果才算通过；DSH ready 前出现 `ERR_MODULE_NOT_FOUND` 应按 Profile/Runtime 装配问题处理，不能用 `pnpm check` 的结果代替。

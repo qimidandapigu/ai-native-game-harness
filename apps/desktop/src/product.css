@@ -116,6 +116,18 @@ input:focus, select:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 
 .primary { border: 0; background: var(--mint); color: #062019; font-weight: 650; }
 
 .learning-intro { align-items: center; }
+.story-intro { align-items: center; }
+.story-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+.story-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); gap: 18px; }
+.story-content { margin-top: 18px; }
+.story-content h3 { margin: 0 0 8px; font-size: 19px; }
+.story-content > p { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.story-goal { margin-top: 16px; padding: 15px; border: 1px solid rgba(101,230,196,.24); border-radius: 12px; background: var(--mint-dim); }
+.story-goal span, .story-goal strong { display: block; }
+.story-goal span { margin-bottom: 6px; color: var(--mint); font-size: 9px; letter-spacing: .12em; }
+.story-goal strong { color: #e5f4f0; font-size: 14px; line-height: 1.55; }
+.story-motivation { margin: 12px 0 0 !important; color: #bad0d0 !important; }
+.story-proof { margin-top: 12px; color: var(--muted); font: 9px/1.55 Consolas, monospace; overflow-wrap: anywhere; }
 .learning-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
 .learning-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .learning-card { background: linear-gradient(145deg, rgba(15, 31, 42, .9), rgba(8, 19, 27, .9)); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
@@ -206,7 +218,7 @@ input:focus, select:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 
   .chat-layout { height: auto; min-height: 100%; grid-template-columns: 1fr; }
   .conversation { min-height: 620px; }
   .analysis-grid, .runtime-card { grid-template-columns: repeat(2, 1fr); }
-  .learning-metrics, .learning-grid { grid-template-columns: 1fr; }
+  .learning-metrics, .learning-grid, .story-metrics, .story-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {

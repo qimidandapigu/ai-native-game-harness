@@ -11,6 +11,12 @@ const EMPTY_LEARNING_SNAPSHOT = Object.freeze({
   skills: [],
   skillAttempts: [],
 })
+const EMPTY_STORY_SNAPSHOT = Object.freeze({
+  schemaVersion: 1,
+  updatedAt: '',
+  states: [],
+  generationAttempts: [],
+})
 const PRODUCT_TURN_PREFIX = 'AI_GAME_HARNESS_PRODUCT_TURN_V1\n'
 const EMPTY_SESSION_STATS = Object.freeze({
   turns: 0,
@@ -42,6 +48,10 @@ export function productTurnContent(message) {
     'This is an AI Native Game Harness Desktop game turn.',
     'Before answering, call game_learning_memory_recall exactly once with the original PLAYER_MESSAGE as query when that tool is available.',
     'Use recalled memory only as possibly stale context. Current game observation and successful tool results are authoritative.',
+    'Call game_story_context exactly once when it is available. Treat its active beat as the current generated narrative goal.',
+    'When game_story_context returns needsGeneration=true, generate only 1 to 3 near-term StoryBeat-v1 objects and submit them with game_story_propose before narrating a new objective.',
+    'The story is dynamic, not a prewritten plot. Never claim a beat completed until Story Runtime has accepted Adapter Observation evidence.',
+    'Call game_story_choose only after the player explicitly selects one of the pending choices; never choose on their behalf.',
     'If the player asks you to learn a repeatable game procedure, call game_learning_skill_catalog before game_learning_skill_learn; only report it learned when learned=true.',
     'If the player asks to run a learned procedure, call game_learning_skill_catalog before game_learning_skill_run and only report success when success=true.',
     'PLAYER_MESSAGE:',
@@ -263,6 +273,7 @@ export class DshProductRuntime {
   #agentPreset
   #coreSnapshot = EMPTY_CORE_SNAPSHOT
   #learningSnapshot = EMPTY_LEARNING_SNAPSHOT
+  #storySnapshot = EMPTY_STORY_SNAPSHOT
   #sessionTraces = []
   #listeners = new Set()
   #streamTasks = []
@@ -333,6 +344,7 @@ export class DshProductRuntime {
     return structuredClone({
       ...this.#coreSnapshot,
       learning: this.#learningSnapshot,
+      story: this.#storySnapshot,
       traces,
       runtime: {
         kind: 'dsh',
@@ -367,6 +379,13 @@ export class DshProductRuntime {
       || !Array.isArray(snapshot.memories) || !Array.isArray(snapshot.skills)
       || !Array.isArray(snapshot.skillAttempts) || !Array.isArray(snapshot.playStatistics)) return
     this.#learningSnapshot = structuredClone(snapshot)
+    this.#publish()
+  }
+
+  attachStorySnapshot(snapshot) {
+    if (!snapshot || snapshot.schemaVersion !== 1
+      || !Array.isArray(snapshot.states) || !Array.isArray(snapshot.generationAttempts)) return
+    this.#storySnapshot = structuredClone(snapshot)
     this.#publish()
   }
 

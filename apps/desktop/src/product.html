@@ -16,6 +16,7 @@
       </div>
       <nav class="primary-nav" aria-label="主导航">
         <button class="nav-item active" data-page="chat" aria-current="page"><span class="nav-icon">◇</span><span>对话</span></button>
+        <button class="nav-item" data-page="story"><span class="nav-icon">✦</span><span>动态剧情</span></button>
         <button class="nav-item" data-page="learning"><span class="nav-icon">◉</span><span>自学习</span></button>
         <button class="nav-item" data-page="analysis"><span class="nav-icon">⌁</span><span>分析</span></button>
         <button class="nav-item" data-page="adapters"><span class="nav-icon">⌘</span><span>Adapter 中心</span></button>
@@ -68,6 +69,24 @@
             <button class="secondary" id="reset-game" disabled hidden>重置游戏</button>
           </aside>
         </div>
+      </section>
+
+      <section class="page" id="page-story" aria-labelledby="page-title">
+        <div class="section-intro story-intro">
+          <div><p class="eyebrow">GENERATED, VALIDATED, OBSERVED</p><h2>剧情不是写死的节点表</h2><p>同一个 AI Native Game Harness Session 根据世界观、角色、玩家选择和当前游戏事实滚动生成 1–3 个短剧情片段。Runtime 负责校验与存档，只有 Adapter Observation 能证明目标完成。</p></div>
+          <div class="section-actions"><button class="primary story-chat" data-story-prompt="请读取当前动态剧情上下文。如果需要新剧情，请根据当前游戏事实生成接下来的短剧情目标；如果已有目标，请告诉我现在该做什么。">生成或继续剧情</button></div>
+        </div>
+        <div class="story-metrics">
+          <article class="metric-card"><span>当前状态</span><strong id="story-status">等待</strong><small id="story-save-id">等待游戏存档</small></article>
+          <article class="metric-card"><span>已排队片段</span><strong id="story-queued-count">0</strong><small>一次最多滚动规划 3 个</small></article>
+          <article class="metric-card"><span>历史片段</span><strong id="story-history-count">0</strong><small>完成后不可回写篡改</small></article>
+          <article class="metric-card"><span>生成校验</span><strong id="story-attempt-count">0</strong><small id="story-rejected-count">0 次被拒绝</small></article>
+        </div>
+        <div class="story-grid">
+          <article class="learning-card story-current"><div class="panel-heading"><div><p class="eyebrow">CURRENT STORY BEAT</p><h2>当前动态目标</h2></div><span id="story-revision">REV 0</span></div><div id="story-active" class="story-content"></div></article>
+          <article class="learning-card"><div class="panel-heading"><div><p class="eyebrow">PLAYER AGENCY</p><h2>选择与待续线索</h2></div><span>玩家决定方向</span></div><div id="story-threads" class="learning-list"></div></article>
+        </div>
+        <article class="learning-card attempts-card"><div class="panel-heading"><div><p class="eyebrow">IMMUTABLE HISTORY</p><h2>已发生的剧情</h2></div><span>Adapter 证据</span></div><div id="story-history" class="learning-list compact-list"></div></article>
       </section>
 
       <section class="page" id="page-learning" aria-labelledby="page-title">
@@ -134,7 +153,7 @@
           <div><span>重连次数</span><strong id="runtime-reconnects">0</strong></div>
         </article>
         <div class="adapter-list" id="adapter-list"></div>
-        <div class="section-intro pack-heading"><div><p class="eyebrow">GAME PACKS</p><h2>已安装的游戏内容与入口</h2><p>Game Pack 保存剧情、角色、玩法、资源和 Adapter 入口。安装只校验并登记文件，不会自动执行第三方程序。</p></div><span id="game-pack-count">0 个</span></div>
+        <div class="section-intro pack-heading"><div><p class="eyebrow">GAME PACKS</p><h2>已安装的游戏内容与入口</h2><p>Game Pack 保存动态叙事边界、角色、玩法、资源和 Adapter 入口，不保存必须照着走的固定剧情。安装只校验并登记文件，不会自动执行第三方程序。</p></div><span id="game-pack-count">0 个</span></div>
         <div class="game-pack-list" id="game-pack-list"></div>
         <article class="architecture-note">
           <span>依赖方向</span>

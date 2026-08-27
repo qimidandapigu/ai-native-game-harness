@@ -3,6 +3,7 @@ import { buildDiagnosticBundle, diagnosticFilename, traceMatchesFilter } from '.
 
 const pages = {
   chat: { title: '与游戏一起思考' },
+  story: { title: '生成正在发生的故事' },
   learning: { title: '看见伙伴学会了什么' },
   analysis: { title: '看清每一步决策' },
   adapters: { title: '管理游戏连接' },
@@ -16,6 +17,10 @@ const fallback = {
     schemaVersion: 1,
     enabled: { memory: false, skills: false },
     memories: [], playStatistics: [], skills: [], skillAttempts: [],
+  },
+  story: {
+    schemaVersion: 1,
+    states: [], generationAttempts: [],
   },
   runtime: {
     kind: 'standalone',
@@ -88,6 +93,7 @@ function render() {
   $('#live-status').textContent = connected ? 'LIVE' : adapter ? 'OFFLINE' : 'WAIT'
   $('#revision-badge').textContent = adapter ? `REV ${current.revision}` : 'NO GAME'
   renderGameState(adapter, current)
+  renderStory(adapter, current)
   renderLearning(adapter, current)
   $('#metric-adapters').textContent = snapshot.adapters.filter((item) => item.status === 'connected').length
   $('#metric-revision').textContent = adapter ? current.revision : '—'
@@ -148,6 +154,87 @@ function learningRow(title, detail, meta, tone) {
   badge.textContent = meta
   row.append(body, badge)
   return row
+}
+
+function storyStatus(status) {
+  return ({
+    'needs-generation': '等待生成',
+    active: '进行中',
+    'awaiting-choice': '等待选择',
+    ended: '已结束',
+  })[status] ?? '等待'
+}
+
+function conditionText(condition) {
+  if (!condition) return '未提供'
+  return `${condition.path} ${condition.operator} ${JSON.stringify(condition.value)}`
+}
+
+function renderStory(adapter, current) {
+  const story = snapshot.story ?? fallback.story
+  const gameId = adapter?.gameId
+  const saveId = current?.saveId ?? 'default'
+  const state = (story.states ?? []).find(item => item.gameId === gameId && item.saveId === saveId)
+  const attempts = (story.generationAttempts ?? []).filter(item => !gameId || item.gameId === gameId)
+  const rejected = attempts.filter(item => !item.accepted)
+  $('#story-status').textContent = storyStatus(state?.status)
+  $('#story-save-id').textContent = gameId ? `${gameId} / ${saveId}` : '等待游戏存档'
+  $('#story-queued-count').textContent = state?.queuedBeats?.length ?? 0
+  $('#story-history-count').textContent = state?.history?.length ?? 0
+  $('#story-attempt-count').textContent = attempts.length
+  $('#story-rejected-count').textContent = `${rejected.length} 次被拒绝`
+  $('#story-revision').textContent = `REV ${state?.revision ?? 0}`
+
+  const activeRoot = $('#story-active')
+  activeRoot.replaceChildren()
+  if (!state?.activeBeat) {
+    activeRoot.append(learningEmpty(gameId
+      ? state?.status === 'ended' ? '这个存档的动态故事已经结束。' : '当前没有活动片段。点击“生成或继续剧情”，由 AI Native Game Harness Session 根据最新游戏事实生成。'
+      : '连接游戏后才会按 gameId + saveId 生成和保存剧情。'))
+  } else {
+    const beat = state.activeBeat
+    const title = document.createElement('h3')
+    title.textContent = beat.title
+    const premise = document.createElement('p')
+    premise.textContent = beat.premise
+    const goal = document.createElement('div')
+    goal.className = 'story-goal'
+    const goalLabel = document.createElement('span')
+    goalLabel.textContent = '当前目标'
+    const goalText = document.createElement('strong')
+    goalText.textContent = beat.goal
+    goal.append(goalLabel, goalText)
+    const proof = document.createElement('div')
+    proof.className = 'story-proof'
+    proof.textContent = `完成证据：${conditionText(beat.completion)}`
+    activeRoot.append(title, premise, goal)
+    if (beat.characterMotivation) {
+      const motivation = document.createElement('p')
+      motivation.className = 'story-motivation'
+      motivation.textContent = `角色动机：${beat.characterMotivation}`
+      activeRoot.append(motivation)
+    }
+    activeRoot.append(proof)
+  }
+
+  const threadRoot = $('#story-threads')
+  threadRoot.replaceChildren()
+  const choices = state?.pendingChoices ?? []
+  const threads = state?.openThreads ?? []
+  if (!choices.length && !threads.length) threadRoot.append(learningEmpty('当前没有等待玩家决定的分支，也没有待续线索。'))
+  for (const choice of choices) threadRoot.append(learningRow(choice.label, choice.direction, `选择 ${choice.id}`))
+  for (const [index, thread] of threads.entries()) threadRoot.append(learningRow(`待续线索 ${index + 1}`, thread, '下一次生成可继续'))
+
+  const historyRoot = $('#story-history')
+  historyRoot.replaceChildren()
+  const history = [...(state?.history ?? [])].reverse()
+  if (!history.length) historyRoot.append(learningEmpty('还没有被 Adapter 事实证明完成或失败的剧情片段。'))
+  for (const item of history) historyRoot.append(learningRow(
+    item.beat.title,
+    `${item.beat.goal} · 证据 REV ${item.evidence.observationRevision}：${conditionText(item.evidence.condition)}`,
+    item.outcome === 'completed' ? '已完成' : '已失败',
+    item.outcome === 'completed' ? 'success' : 'failure',
+  ))
 }
 
 function renderLearning(adapter, current) {
@@ -674,6 +761,11 @@ document.querySelectorAll('[data-prompt]').forEach((button) => button.addEventLi
 document.querySelectorAll('.learning-chat').forEach((button) => button.addEventListener('click', () => {
   setPage('chat')
   $('#message-input').value = button.dataset.learningPrompt ?? ''
+  $('#message-input').focus()
+}))
+document.querySelectorAll('.story-chat').forEach((button) => button.addEventListener('click', () => {
+  setPage('chat')
+  $('#message-input').value = button.dataset.storyPrompt ?? ''
   $('#message-input').focus()
 }))
 $('.mobile-menu').addEventListener('click', () => $('.sidebar').classList.toggle('open'))

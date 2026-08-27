@@ -11,6 +11,9 @@ export interface GamePackManifest {
     protocolVersion: string
   }
   content: {
+    /** Dynamic narrative generation policy. This is not a fixed plot. */
+    narrative?: string
+    /** Legacy authored story context; new packs should prefer narrative. */
     story?: string
     characters?: string
     gameplay?: string

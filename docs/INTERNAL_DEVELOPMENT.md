@@ -27,7 +27,7 @@ Desktop
 各层职责：
 
 - **DSH Runtime**：模型、Agent、Tool Calling、Session、配置、凭据、权限和插件生命周期。
-- **Desktop**：管理固定版本 DSH、产品窗口、对话、自学习、分析和 Adapter 中心。
+- **Desktop**：管理固定版本 DSH、产品窗口、对话、动态剧情、自学习、分析和 Adapter 中心。
 - **dsh-binding**：把 DSH Tool Call 交给 Harness Core，并把 ActionResult 与 Observation 返回 Agent。
 - **Harness Core**：Adapter 注册、动作校验、revision、路由和游戏侧 Trace，不重造通用 Agent Runtime。
 - **Game Adapter**：提供观察、动作、事件和权威结果。
@@ -46,6 +46,7 @@ packages/adapter-protocol/    Adapter 线协议和 Schema
 packages/adapter-websocket/   本机跨进程 Host 与参考客户端
 packages/dsh-binding/         DSH Agent 与 Harness Core 接线
 packages/game-pack/           Game Pack 校验和注册表
+packages/story-runtime/       StoryBeat 校验、推进与按存档持久化
 plugins/                      跨游戏 DSH 插件
 games/<game>/                 每游戏 Adapter、Bridge、内容和发行脚本
 examples/                     Mock Game 与第三方 Adapter Starter
@@ -88,13 +89,33 @@ DSH Session
   → Adapter Protocol
 ```
 
+## 动态剧情边界
+
+剧情生成复用默认 DSH Session，不建立“剧情 Agent”或第二套模型链：
+
+```text
+当前 DSH Session
+  → game_story_context 读取世界观、历史、玩家选择、Adapter 能力和 Observation
+  → 模型滚动提出 1–3 个 StoryBeat-v1
+  → game_story_propose
+  → story-runtime 校验并按 gameId + saveId 保存
+  → 新 Observation 证明完成或失败
+```
+
+- **Game Pack** 的 `content.narrative` 只保存世界观、主题、允许目标、禁止编造事项和节奏约束，不保存必须按顺序执行的固定剧情树。
+- **`story-runtime`** 是不依赖 DSH 的纯状态机：限制滚动计划规模、校验事实路径与 Adapter action、保存不可回写的历史，并处理选择与结局。
+- **`dsh-story-generator`** 是标准 DSH 插件：向同一个 Session 暴露 `game_story_context`、`game_story_propose`、`game_story_choose`。
+- **Adapter Observation** 是完成条件的唯一权威；模型只能提出叙事，不能自己宣布游戏事实已经发生。
+- 第一版不把角色等级、自学习技能或长期记忆合并进 Story State，它们通过清晰接口协作。
+
 ## 当前代码能力
 
 截至 `2026-08-27`：
 
 - 已实现 Harness Core、Adapter Protocol、WebSocket Host、dsh-binding 和 Game Pack 注册表。
 - 已提供 Mock Game、第三方 Adapter Starter 和 Adapter conformance 检查。
-- Desktop 已有对话页、自学习页、分析页和 Adapter 中心。
+- Desktop 已有对话页、动态剧情页、自学习页、分析页和 Adapter 中心。
+- 已实现 `StoryBeat-v1`、滚动生成校验、按 `gameId + saveId` 持久化、Adapter Observation 自动推进和 DSH 三个剧情 Tool；Mock Game 已覆盖虚构事实拒绝与“移动 → 拾取金币 → 剧情完成”。
 - Desktop 默认进入通用 Harness 页面，可通过按钮、菜单、快捷键和游戏页返回按钮在通用页与游戏专属页之间切换。
 - 桌面窗口、启动页和游戏页统一使用 AI Native Game Harness 品牌与小汤圆 Logo；上游 Runtime 名称不出现在玩家提示中。
 - 分析页可关联 `Session → turn → step → callId → requestId`，显示动作和语音分段耗时。
@@ -110,25 +131,42 @@ DSH Session
 - 桌面发行 Runtime 固定为 DSH `0.1.1-rc.2`。
 - 游戏版 Gateway 使用 `33145`；星露谷和饥荒按 `V`，缺氧按 `Q`。
 
+## 真实游戏开发截图
+
+以下画面来自项目开发验证记录，用于说明 AI 伙伴在《星露谷物语》中的角色呈现、环境回应和玩法参与方向。截图本身不代替当前 `main` 的真实存档端到端验收，也不表示与游戏官方存在合作关系；游戏名称、画面与原始素材权利归各自权利方所有。
+
+| 农场成长 | 玩法互动 | 环境回应 |
+| --- | --- | --- |
+| ![小汤圆与玩家观察巨大作物](../site/games/stardew-valley-giant-crop.jpg) | ![小汤圆在向日葵田参与互动玩法](../site/games/stardew-valley-sunflower-flight.jpg) | ![小汤圆在雨天场景回应玩家](../site/games/stardew-valley-rainy-companion.jpg) |
+
 ## 当前验证证据
 
 已通过：
 
 - `pnpm install --frozen-lockfile`
 - `pnpm check`
-- 28 项集成测试
+- 29 项集成测试
 - 20 项平台测试
 - `pnpm check:xiaotangyuan`：饥荒 25 项、反馈服务 4 项、ONI Adapter 14 项、小汤圆插件 84 项测试
 - `pnpm desktop:prepare`：构建媒体 Host、插件与 ONI Adapter，完成 Adapter、状态、两轮对话和同存档 Session 恢复冒烟，并准备桌面 Runtime
+- `pnpm desktop:dist`：已生成 284,176,643 字节的 Windows NSIS 安装包，包含 DSH `0.1.1-rc.2`、小汤圆插件 `0.7.7`、ONI Adapter `0.1.6` 和自包含媒体 Host
+- 安装器隔离验收：在不提供系统 Node/pnpm 的 PATH 下启动安装后应用，Electron Renderer、内置 DSH NodeService 与 `XtyMediaHost.exe` 正常运行，本地 DSH 页面返回 HTTP 200；短路径静默卸载返回 0 并完整删除安装目录
+- 安装包敏感信息检查：未命中本机用户路径、维护者邮箱、VibeCafé 浏览器标识和常见私密 Token 模式；已生成 SHA256 校验文件
 - 35 个 Markdown 文件的本地链接检查
 - HTML V8 浏览器检查：无控制台错误、横向溢出或失效页内链接
 
-未通过或未完成：
+环境级冒烟当前基线：
 
-- `pnpm smoke:dsh-product`：隔离 Web Runtime 在 ready 前缺少部分 `@deepseek-ai/dsh-client-ui-*` 和 `dsh-agent-presets` 包。
-- `pnpm smoke:dsh-adapter`：当前 headless 环境没有完成权威金币 `1`、revision `2` 的成功输出。
+- `pnpm smoke:dsh-product`：已通过隔离 Web Runtime 启动与产品 Session 验证。
+- `pnpm smoke:dsh-adapter`：已通过真实 DSH Tool → WebSocket Mock Adapter，并得到权威金币 `1`、revision `2`。
+- `pnpm smoke:dsh-story`：当前 headless DSH 模型会读取 narrative policy，自行生成 StoryBeat 文本，提交并通过 Runtime 校验，驱动 Mock Adapter 完成金币目标；第二次 DSH 启动能读回同一条 `completed` 历史和 revision `2` 证据。
+
+未完成：
+
+- 动态剧情已通过确定性 ToolRuntime 测试和单次真实 DSH 模型冒烟，但尚未用真实游戏存档、长时间多轮生成和多次模型样本验收剧情质量、连续性、重复率与玩家选择体验。
 - 最新代码拉取后尚未完成真实星露谷、饥荒或缺氧存档验收。
-- 主仓库已有 `v1.0.0` 稳定源码 Release，但仍没有正式签名的一键安装包。
+- 主仓库已有 `v1.0.0` 稳定源码 Release，`main` 已有经过本机安装—启动—卸载验收的未签名 NSIS 产物，但仍没有正式签名并上传 Release 的一键安装包。
+- 安装包当前约 271 MiB、解压约 684 MiB；完整 DSH 依赖树使首次安装偏慢。极长自定义安装目录还可能触发传统 Windows `MAX_PATH`，短路径安装与卸载已验证无残留。
 
 因此，自动测试通过只能证明代码和确定性契约，不代表桌面发行 Runtime 或真实游戏已经验收。
 
@@ -146,6 +184,7 @@ pnpm desktop:demo
 
 ```powershell
 pnpm smoke:dsh-adapter
+pnpm smoke:dsh-story
 pnpm smoke:dsh-product
 ```
 
@@ -172,11 +211,11 @@ pnpm desktop:dist
 
 ## 下一步
 
-1. 修复干净环境下的 DSH Product/Adapter Profile 初始化与 hoisted 依赖装配。
-2. 按 [真实游戏端到端验收清单](REAL_GAME_ACCEPTANCE.md) 完成至少一个真实存档闭环。
-3. 验证安装、状态、文字、语音、Action、失败、重连和诊断关联。
-4. 完成第三方 Game Pack 权限授权、可信启动和签名验证。
-5. 生成校验和与签名安装包，作为后续主仓库 Release 的可下载资产。
+1. 建立长剧情自动验收：连续运行 20–50 个 StoryBeat，量化 grounding、连续性、重复率、玩家选择、拒绝修复和重启恢复。
+2. 在方便真实测试时，用实际语音交互记录区分 ASR、模型首字、Agent、TTS、游戏动作和总耗时，不凭主观感受调优。
+3. 按 [真实游戏端到端验收清单](REAL_GAME_ACCEPTANCE.md) 完成至少一个真实存档闭环，覆盖状态、文字、语音、Action、剧情推进、失败、重连和诊断关联。
+4. 裁剪安装包中的非 Windows 平台依赖、类型声明和 Source Map，降低体积与首次安装时间，并对过长自定义安装路径给出限制或提示。
+5. 完成第三方 Game Pack 权限授权、可信启动和代码签名，之后再把带 SHA256 的签名安装包作为主仓库 Release 资产公开。
 
 ## 相关内部资料
 

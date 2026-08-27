@@ -24,6 +24,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "narrative": { "type": "string" },
         "story": { "type": "string" },
         "characters": { "type": "string" },
         "gameplay": { "type": "string" },
