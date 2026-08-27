@@ -14,7 +14,7 @@ AI Native Game Harness 想为玩家提供一个可以进入不同游戏的 AI �
 
 > `1.0` 分支和 `v1.0.0` 标签保存稳定源码；`main` 当前标记为 `1.1.0-dev.0` 开发线，后续改动不会反向进入 1.0 稳定版本。
 
-**[查看产品介绍](docs/AI_GAME_ENGINE_IDEOLOGY.html)** · **[接入一个新游戏](docs/INDEPENDENT_PLATFORM.md)** · **[查看版本发布](https://github.com/qimidandapigu/ai-native-game-harness/releases)**
+**[访问项目官网](https://qimidandapigu.github.io/ai-native-game-harness/)** · **[查看产品介绍](docs/AI_GAME_ENGINE_IDEOLOGY.html)** · **[接入一个新游戏](docs/INDEPENDENT_PLATFORM.md)** · **[查看版本发布](https://github.com/qimidandapigu/ai-native-game-harness/releases)**
 
 ## 关注小汤圆，加入交流群
 

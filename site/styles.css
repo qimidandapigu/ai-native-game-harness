@@ -31,6 +31,22 @@ a { color: inherit; text-decoration: none; }
 button { font: inherit; }
 img { display: block; }
 
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: -60px;
+  left: 18px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #042018;
+  background: var(--mint);
+  font-size: 12px;
+  font-weight: 750;
+  transition: top .2s ease;
+}
+.skip-link:focus { top: 14px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; }
+
 .site-header {
   position: sticky;
   top: 0;
@@ -70,6 +86,8 @@ img { display: block; }
 
 .eyebrow { margin: 0 0 21px; color: var(--mint); font-size: 10px; line-height: 1; letter-spacing: .19em; font-weight: 750; }
 .eyebrow span { display: inline-block; width: 22px; height: 1px; margin: 0 9px 3px 0; background: var(--mint); }
+.product-pill { width: max-content; max-width: 100%; margin: 0 0 20px; padding: 8px 12px; border: 1px solid rgba(100,228,189,.2); border-radius: 999px; color: #d6e6e3; background: rgba(100,228,189,.055); font-size: 11px; line-height: 1.35; }
+.product-pill span { margin-right: 8px; color: var(--mint); font-size: 8px; font-weight: 800; letter-spacing: .08em; }
 .hero h1 { margin: 0; font-size: clamp(54px, 6.1vw, 86px); line-height: .99; letter-spacing: -.065em; font-weight: 650; }
 .hero h1 em { color: var(--mint); font-style: normal; }
 .hero-lead { max-width: 600px; margin: 29px 0 0; color: #b7c8ca; font-size: 17px; line-height: 1.9; }
@@ -212,6 +230,18 @@ img { display: block; }
 .games { margin-top: 14px; padding: 19px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; border: 1px solid var(--line); border-radius: 13px; }
 .games span { color: #637b82; text-align: center; font: 8px/1 Consolas, monospace; letter-spacing: .08em; }
 
+.community { padding-top: 25px; }
+.community-panel { padding: 56px; display: grid; grid-template-columns: .85fr 1.15fr; gap: 70px; align-items: center; border: 1px solid rgba(100,228,189,.19); border-radius: 20px; background: radial-gradient(circle at 12% 18%, rgba(50,152,128,.16), transparent 44%), rgba(11,26,34,.76); }
+.community-copy h2 { margin: 0; font-size: clamp(34px, 4.1vw, 54px); line-height: 1.16; letter-spacing: -.045em; font-weight: 600; }
+.community-copy > p:last-child { margin: 24px 0 0; color: var(--muted); font-size: 13px; line-height: 1.85; }
+.community-actions { display: grid; gap: 12px; }
+.community-card { min-height: 122px; padding: 22px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 20px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.025); }
+.community-card.primary-card { border-color: rgba(100,228,189,.26); background: rgba(100,228,189,.065); transition: transform .2s ease, background .2s ease; }
+.community-card.primary-card:hover { transform: translateY(-2px); background: rgba(100,228,189,.095); }
+.community-card small { grid-column: 1 / -1; color: var(--muted); font-size: 8px; letter-spacing: .08em; }
+.community-card strong { font-size: 14px; }
+.community-card span { color: var(--mint); font-size: 9px; }
+
 .final-cta { width: var(--page); margin: 25px auto 90px; padding: 86px 30px; border: 1px solid rgba(100,228,189,.19); border-radius: 22px; background: radial-gradient(circle at 50% 10%, rgba(50, 152, 128, .18), transparent 55%), rgba(11,26,34,.72); text-align: center; }
 .final-cta > img { margin: 0 auto 28px; border-radius: 21px; }
 .final-cta .eyebrow { display: flex; justify-content: center; align-items: center; }
@@ -251,7 +281,7 @@ footer a:hover { color: var(--mint); }
   .runtime-strip { grid-template-columns: repeat(2, 1fr); }
   .trust-strip { padding: 20px; gap: 14px; flex-wrap: wrap; }
   .section { padding: 85px 0; }
-  .section-heading, .story-demo, .developer-layout { grid-template-columns: 1fr; gap: 35px; }
+  .section-heading, .story-demo, .developer-layout, .community-panel { grid-template-columns: 1fr; gap: 35px; }
   .section-heading { margin-bottom: 38px; }
   .feature-grid, .status-board { grid-template-columns: 1fr; }
   .real-game-grid { grid-template-columns: 1fr; }
@@ -278,6 +308,8 @@ footer a:hover { color: var(--mint); }
   .proof-flow article { grid-template-columns: 30px 1fr; }
   .proof-flow article > b { grid-column: 2; width: max-content; }
   .final-cta { padding: 60px 20px; }
+  .community-panel { padding: 34px 22px; }
+  .community-card { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
