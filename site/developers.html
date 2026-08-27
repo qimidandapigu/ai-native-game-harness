@@ -36,10 +36,10 @@
       <span><strong>AI Native</strong><small>Game Harness</small></span>
     </a>
     <nav aria-label="开发者导航">
-      <a href="#value">开发价值</a>
+      <a href="#principles">技术理念</a>
       <a href="#integration">接入方式</a>
       <a href="#architecture">架构边界</a>
-      <a href="#evidence">验证证据</a>
+      <a href="#protocols">协议与发行</a>
       <a href="#status">当前状态</a>
     </nav>
     <div class="audience-switch" aria-label="选择页面版本">
@@ -58,7 +58,7 @@
         <p class="hero-lead">不用为每款游戏重做模型、Agent、语音、视觉、记忆和工具系统。描述游戏世界，实现一个 Adapter，就能把统一的 AI 运行时接入自己的玩法。</p>
         <div class="hero-actions">
           <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness/tree/main/examples/adapter-starter" target="_blank" rel="noreferrer">从 Adapter Starter 开始 <span>↗</span></a>
-          <a class="button secondary" href="#integration">查看接入流程</a>
+          <a class="button secondary" href="#principles">阅读技术理念</a>
         </div>
         <div class="hero-points" aria-label="开发者特点">
           <span><i>✓</i> 不绑定单一模型厂商</span>
@@ -114,6 +114,23 @@
       </div>
     </section>
 
+    <section class="section doctrine" id="principles">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> PRODUCT DOCTRINE</p><h2>不是把聊天框塞进游戏，<br>而是建立可信的 AI 游戏边界</h2></div>
+        <p>Harness 负责通用 AI 运行时和游戏领域编排，Adapter / 薄 Mod 负责连接原生 API，游戏本体始终拥有事实与最终执行权。</p>
+      </div>
+      <div class="principle-grid">
+        <article class="principle-card featured"><span>P / 01</span><h3>复用 DSH 通用运行时</h3><p>模型、Agent、Tool、Session、配置、凭据、权限和插件生命周期沿用 DSH；项目集中解决游戏领域问题，不重复造一套 Agent Runtime。</p></article>
+        <article class="principle-card"><span>P / 02</span><h3>游戏能力首先插件化</h3><p>记忆、语音、视觉、UI、安装、Transport 和每游戏语义工具遵循插件生命周期，可以独立启停、替换和测试。</p></article>
+        <article class="principle-card"><span>P / 03</span><h3>游戏 Mod 必须薄</h3><p>Mod 只上报真实状态与事件并封装原生动作；不调用模型、不负责规划，也不保存 Harness 记忆。</p></article>
+        <article class="principle-card"><span>P / 04</span><h3>事实先于模型推测</h3><p>视觉用于理解，模型用于决策和表达；物品、任务、金钱、死亡和地图变化必须由游戏 API 返回确认。</p></article>
+        <article class="principle-card"><span>P / 05</span><h3>界面是一等产品能力</h3><p>对话、权限、记忆、动作结果和诊断共同构成可信体验，不能只在后台留下无法理解的日志。</p></article>
+        <article class="principle-card"><span>P / 06</span><h3>版本固定，升级可验证</h3><p>Runtime、插件、Game Pack 和 Bridge 协议都有明确兼容范围；升级先过 Fake Game、协议测试和真实存档验收。</p></article>
+        <article class="principle-card wide"><span>P / 07</span><h3>替换基础能力必须先举证</h3><p>接口可以替换，不代表应该重写。只有可复现测试证明 DSH 的具体能力无法满足游戏需求时，才建立最小替代，并继续保持模型与插件边界可换。</p></article>
+      </div>
+      <a class="doctrine-link" href="../docs/AI_GAME_ENGINE_IDEOLOGY.html">阅读完整产品理念与技术决策 <span>→</span></a>
+    </section>
+
     <section class="section developers" id="integration">
       <div class="section-heading">
         <div><p class="eyebrow"><span></span> THREE STEPS</p><h2>三步接入一款游戏</h2></div>
@@ -126,7 +143,7 @@
           <article><span>3</span><div><h3>打包并通过一致性检查</h3><p>组合 Game Pack，运行 Mock Game、Adapter conformance 和真实存档闭环。</p></div></article>
           <a class="button secondary" href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/docs/INDEPENDENT_PLATFORM.md" target="_blank" rel="noreferrer">阅读接入文档 <span>↗</span></a>
         </div>
-        <div class="architecture-card" id="architecture">
+        <div class="architecture-card">
           <div class="arch-title"><small>ONE RUNTIME · MANY GAMES</small><span>可替换 · 可审计 · 可扩展</span></div>
           <div class="arch-row primary-row"><b>DeepSeek Harness Runtime</b><p>模型 · Agent · Session · Tool</p></div>
           <i class="down">↓</i>
@@ -139,12 +156,65 @@
       </div>
     </section>
 
+    <section class="section architecture-deep" id="architecture">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> ARCHITECTURE &amp; OWNERSHIP</p><h2>四层职责，<br>一条可审计执行链</h2></div>
+        <p>分层不是为了多造服务，而是为了明确每一份状态、每一次决策和每一个动作到底由谁负责。</p>
+      </div>
+      <div class="layer-layout">
+        <div class="layer-stack" aria-label="AI 游戏运行时分层">
+          <article class="runtime-layer"><span>01 · SHARED RUNTIME</span><div><h3>DSH Runtime</h3><p>模型 · Agent · Tool Calling · Session · Credentials · 权限 · 流式回复</p></div><b>复用</b></article>
+          <i>↓ Tool Call / Public Events</i>
+          <article class="harness-layer"><span>02 · GAME DOMAIN</span><div><h3>Harness Core + 游戏插件</h3><p>能力校验 · 语义工具 · 游戏知识 · Story Runtime · Memory Binding · Trace</p></div><b>本项目</b></article>
+          <i>↓ Versioned Wire Contract</i>
+          <article class="bridge-layer"><span>03 · NATIVE BRIDGE</span><div><h3>Adapter / 薄 Mod</h3><p>Observation · Event · Action · ActionResult · revision · error</p></div><b>每游戏</b></article>
+          <i>↓ Native API</i>
+          <article class="game-layer"><span>04 · AUTHORITY</span><div><h3>游戏本体</h3><p>存档 · 规则 · 物品 · 任务 · 地图 · 最终状态与执行结果</p></div><b>权威</b></article>
+        </div>
+        <div class="ownership-panel">
+          <small>能力应该放在哪里？</small>
+          <dl>
+            <div><dt>通用模型、语音、视觉、记忆</dt><dd>DSH 与共享插件</dd></div>
+            <div><dt>游戏知识、语义工具、剧情边界</dt><dd>每游戏 Harness Plugin</dd></div>
+            <div><dt>原生状态、事件和细粒度动作</dt><dd>Adapter / Native Bridge</dd></div>
+            <div><dt>胜负、资源、任务和存档进度</dt><dd>游戏本体</dd></div>
+          </dl>
+          <div class="execution-path"><small>DEFAULT PRODUCT PATH</small><p>Desktop → DSH Agent → dsh-binding → Harness Core → Bridge Contract → Native Bridge → Game API</p></div>
+        </div>
+      </div>
+
+      <div class="gamepack-block">
+        <div><p class="eyebrow"><span></span> ONE GAME · ONE GAME PACK</p><h3>不同游戏按需加载，不塞进核心</h3><p>Game Pack 是一款游戏完整的 AI 接入与发行单元。用户只安装自己需要的游戏，开发者也能单独版本化、升级和卸载。</p></div>
+        <div class="gamepack-grid">
+          <article><b>PLUGIN</b><strong>Harness Plugin</strong><span>知识、Schema、语义工具与编排</span></article>
+          <article><b>CONTENT</b><strong>角色与剧情配置</strong><span>世界观、允许目标、禁写事实与节奏</span></article>
+          <article><b>BRIDGE</b><strong>Adapter / Mod</strong><span>状态、事件、原生动作和权威回执</span></article>
+          <article><b>MANIFEST</b><strong>安装与兼容信息</strong><span>版本、权限、校验和、路径与卸载记录</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section protocols" id="protocols">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> TWO PROTOCOLS</p><h2>插件协议与线协议，<br>解决不同的问题</h2></div>
+        <p>Harness 内部能力装配和跨进程调用不能混成同一个概念。游戏 Mod 不需要理解 TypeScript、Cordis 或模型厂商。</p>
+      </div>
+      <div class="protocol-grid">
+        <article class="protocol-card internal"><span>INSIDE HARNESS</span><h3>DSH / Cordis Plugin Protocol</h3><p>管理 Game Core、Memory、Media、UI、Installer、Transport 和每游戏 Harness Plugin 的依赖注入、事件和可逆生命周期。</p><ul><li>复用同一个 Agent Session</li><li>插件可独立装配和停用</li><li>凭据不进入游戏 Mod</li></ul></article>
+        <article class="protocol-card wire"><span>ACROSS PROCESSES</span><h3>Native Bridge Contract</h3><p>面向 C#、Lua、C++ 等不同游戏环境，只传递游戏身份、能力、Observation、Event、Action、Result、revision 和错误。</p><ul><li>稳定、版本化的 JSON 消息</li><li>WebSocket 只是默认 Transport</li><li>不传 Provider Key 和隐藏推理</li></ul></article>
+      </div>
+      <div class="boundary-grid" id="boundaries">
+        <article class="yes"><span>HARNESS OWNS</span><h3>我们负责</h3><ul><li>完整打包并复用通用 AI Runtime</li><li>标准游戏插件与可独立安装的 Game Pack</li><li>跨语言、可测试的 Native Bridge Contract</li><li>基于真实状态的动作回执和 Trace</li><li>本机优先的权限、记忆与隐私边界</li></ul></article>
+        <article class="no"><span>NON-GOALS</span><h3>我们不负责</h3><ul><li>不重写已有模型、Agent、Tool 与 Session</li><li>不要求游戏 Mod 使用 TypeScript 或 Cordis</li><li>不把规划、记忆和模型调用塞进 Mod</li><li>不取代 Unity、Godot 或游戏运行时</li><li>不让远程模型控制逐帧战斗和寻路</li></ul></article>
+      </div>
+    </section>
+
     <section class="section story-demo" id="evidence">
       <div class="story-copy">
         <p class="eyebrow"><span></span> AUTHORITATIVE LOOP</p>
         <h2>AI 负责决策，<br>游戏负责证明</h2>
         <p>Harness 不接受“模型说已经完成”。每次动作都要关联请求、结果、revision 和新的 Observation，失败也必须原样返回 Agent。</p>
-        <a class="text-link" href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/docs/AI_GAME_ENGINE_IDEOLOGY.html" target="_blank" rel="noreferrer">查看完整架构与边界 <span>→</span></a>
+        <a class="text-link" href="../docs/AI_GAME_ENGINE_IDEOLOGY.html">查看完整架构与边界 <span>→</span></a>
       </div>
       <div class="proof-flow">
         <article><span>01</span><div><small>OBSERVE</small><strong>读取当前权威状态</strong><p>位置、物品、任务、附近实体和游戏 revision。</p></div></article>
