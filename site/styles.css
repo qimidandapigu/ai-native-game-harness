@@ -436,6 +436,11 @@ footer a:hover { color: var(--mint); }
   .protocol-card, .boundary-grid article { min-height: 0; padding: 24px; }
 }
 
+@media (max-width: 360px) {
+  .site-header .brand span { display: none; }
+  .audience-switch a { padding-inline: 6px; font-size: 9px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: .01ms !important; }

@@ -45,6 +45,7 @@
     <div class="audience-switch" aria-label="选择页面版本">
       <a href="index.html">玩家版</a>
       <a class="active" href="developers.html" aria-current="page">开发者版</a>
+      <a href="ideology.html">技术理念</a>
     </div>
     <a class="header-link" href="https://github.com/qimidandapigu/ai-native-game-harness" target="_blank" rel="noreferrer">GitHub <span>↗</span></a>
   </header>
@@ -128,7 +129,7 @@
         <article class="principle-card"><span>P / 06</span><h3>版本固定，升级可验证</h3><p>Runtime、插件、Game Pack 和 Bridge 协议都有明确兼容范围；升级先过 Fake Game、协议测试和真实存档验收。</p></article>
         <article class="principle-card wide"><span>P / 07</span><h3>替换基础能力必须先举证</h3><p>接口可以替换，不代表应该重写。只有可复现测试证明 DSH 的具体能力无法满足游戏需求时，才建立最小替代，并继续保持模型与插件边界可换。</p></article>
       </div>
-      <a class="doctrine-link" href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/docs/AI_GAME_ENGINE_IDEOLOGY.html" target="_blank" rel="noreferrer">阅读完整产品理念与技术决策 <span>→</span></a>
+      <a class="doctrine-link" href="ideology.html">阅读完整产品理念与技术决策 <span>→</span></a>
     </section>
 
     <section class="section developers" id="integration">
@@ -214,7 +215,7 @@
         <p class="eyebrow"><span></span> AUTHORITATIVE LOOP</p>
         <h2>AI 负责决策，<br>游戏负责证明</h2>
         <p>Harness 不接受“模型说已经完成”。每次动作都要关联请求、结果、revision 和新的 Observation，失败也必须原样返回 Agent。</p>
-        <a class="text-link" href="https://github.com/qimidandapigu/ai-native-game-harness/blob/main/docs/AI_GAME_ENGINE_IDEOLOGY.html" target="_blank" rel="noreferrer">查看完整架构与边界 <span>→</span></a>
+        <a class="text-link" href="ideology.html">查看完整架构与边界 <span>→</span></a>
       </div>
       <div class="proof-flow">
         <article><span>01</span><div><small>OBSERVE</small><strong>读取当前权威状态</strong><p>位置、物品、任务、附近实体和游戏 revision。</p></div></article>
