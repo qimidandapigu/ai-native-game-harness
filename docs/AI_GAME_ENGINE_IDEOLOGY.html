@@ -3,27 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="AI-Native Game Harness 的 DSH-first 产品定位、复用门槛、协议边界、Game Pack、可视化界面与演进路线。">
-  <title>AI-Native Game Harness · 定位与思想体系</title>
+  <meta name="theme-color" content="#071119">
+  <meta name="description" content="AI Native Game Harness 完整技术理念：DSH-first、Harness Core、Game Pack、Native Bridge、权威游戏状态与可审计执行闭环。">
+  <meta property="og:title" content="AI Native Game Harness｜完整技术理念">
+  <meta property="og:description" content="从产品原则到运行时、游戏插件、跨语言协议和发行边界的完整设计。">
+  <meta property="og:type" content="website">
+  <title>AI Native Game Harness｜完整技术理念</title>
   <link rel="icon" href="assets/ai-native-game-harness-logo.png">
   <style>
     :root {
       color-scheme: dark;
-      --bg: #080b12;
-      --bg-soft: #0d121d;
-      --panel: rgba(19, 26, 40, .78);
-      --panel-strong: #151d2c;
+      --bg: #071119;
+      --bg-soft: #0a1821;
+      --panel: rgba(15, 31, 41, .82);
+      --panel-strong: #10232e;
       --line: rgba(172, 192, 224, .16);
       --line-strong: rgba(172, 192, 224, .28);
       --text: #f3f6fb;
       --muted: #a7b2c5;
       --faint: #748198;
       --blue: #75a7ff;
-      --cyan: #5fe1da;
+      --cyan: #65e5bd;
       --amber: #f4c768;
       --rose: #ff8299;
       --green: #79dfa5;
-      --shadow: 0 24px 80px rgba(0, 0, 0, .32);
+      --shadow: 0 30px 90px rgba(0, 0, 0, .38);
       --radius: 22px;
       --max: 1180px;
     }
@@ -35,8 +39,8 @@
       min-width: 320px;
       color: var(--text);
       background:
-        radial-gradient(circle at 12% -8%, rgba(58, 105, 202, .23), transparent 34rem),
-        radial-gradient(circle at 95% 12%, rgba(44, 176, 162, .14), transparent 32rem),
+        radial-gradient(circle at 11% -6%, rgba(55, 94, 145, .2), transparent 34rem),
+        radial-gradient(circle at 90% 5%, rgba(46, 167, 139, .2), transparent 31rem),
         var(--bg);
       font-family: Inter, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       line-height: 1.65;
@@ -56,7 +60,7 @@
 
     .nav {
       width: min(calc(100% - 36px), var(--max));
-      min-height: 64px;
+      min-height: 72px;
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -67,51 +71,63 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 11px;
-      font-weight: 760;
-      letter-spacing: -.02em;
+      gap: 12px;
       text-decoration: none;
       white-space: nowrap;
     }
 
     .brand-mark {
-      width: 38px;
-      height: 38px;
+      width: 42px;
+      height: 42px;
       object-fit: contain;
       image-rendering: pixelated;
+      border-radius: 12px;
     }
+
+    .brand-copy strong, .brand-copy small { display: block; }
+    .brand-copy strong { font-size: 14px; letter-spacing: .035em; }
+    .brand-copy small { margin-top: 2px; color: var(--faint); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; }
 
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 24px;
       color: var(--muted);
       font-size: 13px;
     }
 
     .nav-links a { text-decoration: none; }
     .nav-links a:hover { color: var(--text); }
+    .nav-links .nav-cta {
+      padding: 9px 13px;
+      border: 1px solid rgba(101, 229, 189, .28);
+      border-radius: 9px;
+      color: var(--text);
+      background: rgba(101, 229, 189, .065);
+    }
+
+    .mobile-cta { display: none; }
 
     main {
       width: min(calc(100% - 36px), var(--max));
       margin: 0 auto;
-      padding: 70px 0 96px;
+      padding: 48px 0 104px;
     }
 
     .hero {
-      min-height: 580px;
+      min-height: 690px;
       display: grid;
-      grid-template-columns: minmax(0, 1.12fr) minmax(330px, .88fr);
+      grid-template-columns: minmax(360px, .9fr) minmax(500px, 1.1fr);
       align-items: center;
-      gap: 54px;
-      padding: 28px 0 80px;
+      gap: 66px;
+      padding: 46px 0 82px;
     }
 
     .eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 9px;
-      margin-bottom: 20px;
+      margin-bottom: 22px;
       color: var(--cyan);
       font-size: 12px;
       font-weight: 800;
@@ -121,47 +137,66 @@
 
     .eyebrow::before {
       content: "";
-      width: 30px;
+      width: 24px;
       height: 1px;
       background: var(--cyan);
     }
 
     h1, h2, h3, p { margin-top: 0; }
     h1 {
-      max-width: 760px;
-      margin-bottom: 24px;
-      font-size: clamp(44px, 6.4vw, 82px);
-      line-height: 1.02;
-      letter-spacing: -.055em;
+      max-width: 680px;
+      margin-bottom: 26px;
+      font-size: clamp(48px, 6.2vw, 82px);
+      line-height: 1.04;
+      letter-spacing: -.06em;
+      font-weight: 680;
     }
 
     .gradient-text {
       color: transparent;
-      background: linear-gradient(108deg, #f5f8ff 6%, #8fb5ff 52%, #61e0d4 100%);
+      background: linear-gradient(108deg, #f5f8ff 5%, #9fc0ff 46%, #65e5bd 100%);
       background-clip: text;
       -webkit-background-clip: text;
     }
 
     .hero-copy {
-      max-width: 680px;
-      margin-bottom: 30px;
-      color: var(--muted);
-      font-size: clamp(17px, 2vw, 21px);
-      line-height: 1.8;
+      max-width: 610px;
+      margin-bottom: 28px;
+      color: #b8c9cc;
+      font-size: clamp(16px, 1.65vw, 19px);
+      line-height: 1.85;
     }
 
     .hero-copy strong { color: var(--text); font-weight: 720; }
 
+    .hero-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin: 25px 0 0;
+    }
+
+    .hero-status span {
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .025);
+      font-size: 10px;
+    }
+
+    .hero-status .live { color: var(--cyan); border-color: rgba(101, 229, 189, .25); background: rgba(101, 229, 189, .065); }
+
     .actions { display: flex; flex-wrap: wrap; gap: 12px; }
     .button {
-      min-height: 44px;
-      padding: 0 18px;
+      min-height: 48px;
+      padding: 0 19px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       border: 1px solid var(--line-strong);
-      border-radius: 12px;
+      border-radius: 10px;
       color: var(--text);
       background: rgba(255, 255, 255, .035);
       font-size: 14px;
@@ -171,82 +206,96 @@
 
     .button.primary {
       border-color: rgba(117, 167, 255, .62);
-      background: var(--blue);
-      color: #07101f;
+      border-color: var(--cyan);
+      background: var(--cyan);
+      color: #052019;
+      box-shadow: 0 14px 34px rgba(101, 229, 189, .12);
     }
 
     .button:hover { transform: translateY(-1px); }
 
-    .hero-map {
+    .product-demo {
       position: relative;
-      padding: 24px;
-      border: 1px solid var(--line);
-      border-radius: 28px;
-      background: linear-gradient(150deg, rgba(25, 35, 53, .9), rgba(13, 18, 29, .72));
-      box-shadow: var(--shadow);
+      border: 1px solid rgba(155, 209, 207, .2);
+      border-radius: 20px;
+      background: #08151d;
+      box-shadow: 0 36px 100px rgba(0, 0, 0, .46), 0 0 90px rgba(101, 229, 189, .06);
       overflow: hidden;
+      transform: perspective(1200px) rotateY(-2deg) rotateX(1deg);
     }
 
-    .hero-map::before {
+    .product-demo::after {
       content: "";
       position: absolute;
-      inset: -40% 34% 55% -20%;
-      background: radial-gradient(circle, rgba(117, 167, 255, .25), transparent 68%);
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: inset 0 1px rgba(255, 255, 255, .045);
       pointer-events: none;
     }
 
-    .map-label {
-      position: relative;
-      margin-bottom: 20px;
+    .demo-bar {
+      min-height: 48px;
+      padding: 0 15px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-bottom: 1px solid var(--line);
       color: var(--faint);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .14em;
-      text-transform: uppercase;
+      font-size: 9px;
+      letter-spacing: .06em;
     }
 
-    .stack { position: relative; display: grid; gap: 12px; }
-    .stack-card {
-      padding: 16px 17px;
+    .demo-dots { display: flex; gap: 5px; }
+    .demo-dots i { width: 7px; height: 7px; border-radius: 50%; background: #2a3d47; }
+    .demo-connected { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; color: var(--cyan); font-size: 8px; font-weight: 800; letter-spacing: .11em; }
+    .demo-connected i { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+
+    .demo-shell { min-height: 454px; display: grid; grid-template-columns: 62px 1fr; }
+    .demo-sidebar { padding: 16px 10px; display: flex; flex-direction: column; align-items: center; gap: 19px; border-right: 1px solid var(--line); background: rgba(4, 12, 18, .5); }
+    .demo-sidebar img { width: 36px; height: 36px; margin-bottom: 9px; border-radius: 10px; }
+    .demo-sidebar span { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; color: #59717b; font-size: 13px; }
+    .demo-sidebar span.active { color: var(--cyan); background: rgba(101, 229, 189, .095); }
+    .demo-main { min-width: 0; padding: 24px; }
+    .demo-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .demo-heading small, .demo-heading strong { display: block; }
+    .demo-heading small { color: var(--cyan); font-size: 7px; font-weight: 800; letter-spacing: .16em; }
+    .demo-heading strong { margin-top: 7px; font-size: 18px; font-weight: 620; }
+    .demo-heading > span { padding: 5px 7px; border-radius: 5px; color: var(--cyan); background: rgba(101, 229, 189, .08); font-size: 7px; }
+
+    .scene-card { margin-top: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: linear-gradient(145deg, rgba(16, 39, 49, .96), rgba(8, 22, 30, .94)); }
+    .scene-card > small { color: var(--cyan); font-size: 7px; font-weight: 800; letter-spacing: .14em; }
+    .scene-card h3 { margin: 9px 0 7px; font-size: 19px; }
+    .scene-card > p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
+    .companion-line { margin-top: 14px; padding: 12px; display: grid; grid-template-columns: 32px 1fr; gap: 10px; border-radius: 10px; background: rgba(101, 229, 189, .065); }
+    .companion-avatar { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid rgba(101, 229, 189, .22); border-radius: 9px; color: var(--cyan); font-size: 10px; font-weight: 800; }
+    .companion-line strong { display: block; color: var(--cyan); font-size: 8px; }
+    .companion-line p { margin: 4px 0 0; color: #d0dfde; font-size: 9px; line-height: 1.6; }
+
+    .proof-result { margin-top: 12px; padding: 10px 11px; display: flex; justify-content: space-between; gap: 12px; border: 1px solid rgba(101, 229, 189, .2); border-radius: 8px; color: var(--muted); font-size: 8px; }
+    .proof-result b { color: var(--cyan); }
+    .demo-runtime { margin-top: 12px; display: grid; grid-template-columns: 1.25fr repeat(3, 1fr); gap: 7px; }
+    .demo-runtime span { padding: 8px 6px; border: 1px solid var(--line); border-radius: 7px; color: #789098; background: rgba(255, 255, 255, .018); text-align: center; font-size: 7px; }
+    .demo-runtime span:first-child { color: var(--cyan); }
+
+    .capability-rail {
+      margin-top: -6px;
+      padding: 19px 24px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
       border: 1px solid var(--line);
       border-radius: 15px;
-      background: rgba(8, 12, 20, .58);
+      background: var(--line);
+      overflow: hidden;
     }
 
-    .stack-card strong { display: block; margin-bottom: 3px; font-size: 15px; }
-    .stack-card span { color: var(--muted); font-size: 12px; }
-    .stack-card.engine { border-color: rgba(117, 167, 255, .5); }
-    .stack-card.protocol { border-color: rgba(95, 225, 218, .4); }
-    .stack-card.games {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      border: 0;
-      padding: 0;
-      background: transparent;
-    }
+    .capability-rail div { padding: 12px 14px; background: rgba(8, 20, 28, .97); }
+    .capability-rail strong { display: block; font-size: 12px; }
+    .capability-rail span { display: block; margin-top: 4px; color: var(--faint); font-size: 9px; }
 
-    .game-chip {
-      min-height: 58px;
-      padding: 10px 8px;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--line);
-      border-radius: 13px;
-      color: var(--muted);
-      background: rgba(8, 12, 20, .5);
-      text-align: center;
-      font-size: 12px;
-    }
-
-    .connector {
-      width: 1px;
-      height: 14px;
-      margin: -6px auto;
-      background: linear-gradient(var(--blue), var(--cyan));
-    }
-
-    section { scroll-margin-top: 120px; margin-top: 105px; }
+    section[id] { scroll-margin-top: 120px; }
+    section { margin-top: 105px; }
+    .hero { margin-top: 0; }
     .section-head {
       display: grid;
       grid-template-columns: minmax(0, .68fr) minmax(0, 1fr);
@@ -658,7 +707,8 @@
 
     @media (max-width: 920px) {
       .hero { grid-template-columns: 1fr; min-height: auto; }
-      .hero-map { max-width: 650px; }
+      .product-demo { width: min(720px, 100%); margin-left: auto; }
+      .capability-rail { grid-template-columns: repeat(3, 1fr); }
       .section-head { grid-template-columns: 1fr; gap: 16px; }
       .principles, .position-grid, .surface-grid, .evidence-gallery { grid-template-columns: 1fr 1fr; }
       .architecture { grid-template-columns: 1fr; }
@@ -671,8 +721,11 @@
 
     @media (max-width: 650px) {
       .nav-links { display: none; }
+      .mobile-cta { margin-left: auto; padding: 9px 12px; display: inline-flex; border: 1px solid rgba(101, 229, 189, .26); border-radius: 9px; color: var(--text); font-size: 11px; text-decoration: none; }
       main { padding-top: 38px; }
       .hero { padding-bottom: 30px; gap: 34px; }
+      .product-demo { transform: none; }
+      .capability-rail { grid-template-columns: 1fr 1fr; padding: 1px; }
       .principles, .position-grid, .protocol-grid, .surface-grid, .evidence-gallery, .role-grid, .timeline, .boundary { grid-template-columns: 1fr; }
       .definition { grid-template-columns: 1fr; padding: 25px; }
       .boundary > div + div { border-left: 0; border-top: 1px solid var(--line); }
@@ -684,6 +737,21 @@
       .pack-lane.authority { grid-column: auto; }
       .pack-manifest { grid-template-columns: 1fr; margin: 0; }
       .state-law { align-items: flex-start; flex-direction: column; gap: 8px; }
+      .demo-shell { grid-template-columns: 48px 1fr; }
+      .demo-sidebar { padding-inline: 7px; }
+      .demo-sidebar img { width: 31px; height: 31px; }
+      .demo-main { padding: 18px 14px; }
+      .demo-runtime { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 420px) {
+      .brand-copy small { display: none; }
+      .actions .button { width: 100%; }
+      .capability-rail { grid-template-columns: 1fr; }
+      .demo-bar > span:not(.demo-connected) { display: none; }
+      .scene-card { padding: 15px; }
+      .companion-line { grid-template-columns: 1fr; }
+      .companion-avatar { display: none; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -699,7 +767,7 @@
       .nav-links, .actions { display: none; }
       main { padding-top: 30px; }
       .hero { min-height: auto; }
-      .hero-map, .card, .stack-card, .arch-column, .game-chip, .protocol-sample { box-shadow: none; background: #fff; }
+      .product-demo, .card, .arch-column, .protocol-sample { box-shadow: none; background: #fff; }
       .gradient-text { color: #111827; background: none; }
       .reveal { opacity: 1; transform: none; }
       section { break-inside: avoid; }
@@ -709,71 +777,89 @@
 <body>
   <header class="site-header">
     <nav class="nav" aria-label="页面导航">
-      <a class="brand" href="#top">
+      <a class="brand" href="https://qimidandapigu.github.io/ai-native-game-harness/">
         <img class="brand-mark" src="assets/ai-native-game-harness-logo.png" alt="">
-        <span>AI-Native Game Harness</span>
+        <span class="brand-copy"><strong>AI Native</strong><small>Game Harness</small></span>
       </a>
       <div class="nav-links">
-        <a href="#positioning">定位</a>
-        <a href="#game-evidence">画面</a>
-        <a href="#principles">原则</a>
-        <a href="#reuse-policy">复用门槛</a>
-        <a href="#architecture">架构</a>
+        <a href="#principles">核心原则</a>
+        <a href="#architecture">技术架构</a>
         <a href="#gamepack">Game Pack</a>
-        <a href="#protocols">协议</a>
-        <a href="#baseline">基线</a>
-        <a href="#structure">目录</a>
-        <a href="#surfaces">界面</a>
-        <a href="#roadmap">路线</a>
+        <a href="#protocols">双协议</a>
+        <a href="#baseline">当前进展</a>
+        <a class="nav-cta" href="https://qimidandapigu.github.io/ai-native-game-harness/developers.html">开发者版 ↗</a>
       </div>
+      <a class="mobile-cta" href="https://qimidandapigu.github.io/ai-native-game-harness/developers.html">开发者版 ↗</a>
     </nav>
   </header>
 
   <main id="top">
     <section class="hero reveal" aria-labelledby="hero-title">
       <div>
-        <div class="eyebrow">Product doctrine · v11 · 2026-08-27</div>
-        <h1 id="hero-title"><span class="gradient-text">AI-Native</span><br>Game Harness</h1>
+        <div class="eyebrow">完整技术理念 · Product doctrine v12</div>
+        <h1 id="hero-title">让 AI<br><span class="gradient-text">真正进入游戏</span></h1>
         <p class="hero-copy">
-          一套面向 <strong>AI 原生与 AI 连接型游戏</strong> 的可视化承载与编排系统：复用 DeepSeek Harness 的模型、Agent、工具、会话和插件能力，再补上游戏连接、安装、记忆、视觉、语音与安全边界。
-          当前源码已统一到一个仓库：AI Runtime Session 是默认 Agent 主链，Game Harness Core 与 Adapter Protocol 承载游戏边界；同一游戏存档可在重连后恢复会话，技能可以通过受限源码表达条件、有限循环和失败回退。桌面应用默认进入通用 Harness，并可明确切换到游戏专属页面；Windows NSIS 开发包已完成本地安装、无系统 Node/pnpm 启动、内置 DSH 页面和卸载验收。源码开发版与公开 Release 严格区分，真实游戏最终验收、第三方可信启动与正式签名仍在推进。
+          给游戏装上一个<strong>会观察、会行动、会记忆、会成长</strong>的 AI 伙伴。它不只在聊天窗口回答问题，而是在游戏规则允许的范围里理解此刻、参与行动，并和玩家一起把故事继续下去。
         </p>
         <div class="actions">
-          <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看新项目 ↗</a>
-          <a class="button" href="#definition">阅读核心定义</a>
-          <a class="button" href="decisions/0001-dsh-first-reuse-policy.md">DSH-first 决策</a>
-          <a class="button" href="https://github.com/qimidandapigu/dsh-xiaotangyuan-game">历史原型 ↗</a>
+          <a class="button primary" href="https://github.com/qimidandapigu/ai-native-game-harness">查看 GitHub 项目 ↗</a>
+          <a class="button" href="https://qimidandapigu.github.io/ai-native-game-harness/">玩家版官网</a>
+          <a class="button" href="https://qimidandapigu.github.io/ai-native-game-harness/developers.html">开发者版官网</a>
+        </div>
+        <div class="hero-status" aria-label="当前产品状态">
+          <span class="live">● 开源开发中</span>
+          <span>main · 1.1.0-dev.0</span>
+          <span>Windows 本地安装已验证</span>
         </div>
       </div>
 
-      <div class="hero-map" aria-label="引擎结构概览">
-        <div class="map-label">One engine · Many games</div>
-        <div class="stack">
-          <div class="stack-card engine">
-            <strong>AI-Native Game Harness</strong>
-            <span>DSH Runtime（默认）· Game Harness Core · 桌面 UI</span>
-          </div>
-          <div class="connector"></div>
-          <div class="stack-card protocol">
-            <strong>DSH Binding + Game Adapter Protocol</strong>
-            <span>Tool Call · action-result · 内容包 · 状态 · 跨语言</span>
-          </div>
-          <div class="connector"></div>
-          <div class="stack-card games">
-            <div class="game-chip">星露谷<br>C#</div>
-            <div class="game-chip">饥荒<br>Lua</div>
-            <div class="game-chip">缺氧<br>C# + TS</div>
+      <div class="product-demo" aria-label="AI Native Game Harness 产品界面示意">
+        <div class="demo-bar">
+          <div class="demo-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <span>AI Native Game Harness</span>
+          <b class="demo-connected"><i></i> GAME CONNECTED</b>
+        </div>
+        <div class="demo-shell">
+          <aside class="demo-sidebar" aria-hidden="true">
+            <img src="assets/ai-native-game-harness-logo.png" alt="">
+            <span class="active">◇</span><span>✦</span><span>◉</span><span>⌁</span><span>⌘</span>
+          </aside>
+          <div class="demo-main">
+            <div class="demo-heading">
+              <div><small>STARDEW VALLEY · RAINY DAY</small><strong>一起经历今天的农场</strong></div>
+              <span>REV 12</span>
+            </div>
+            <div class="scene-card">
+              <small>CURRENT GAME CONTEXT</small>
+              <h3>雨落在农场，也带来新的选择</h3>
+              <p>第 2 年春 14 日 · 农场 · 下雨 · 背包中有 12 颗草莓种子</p>
+              <div class="companion-line">
+                <div class="companion-avatar">汤</div>
+                <div><strong>小汤圆</strong><p>今天不用浇水。要不要一起把草莓种下去？游戏会告诉我土地和种子是否真的准备好了。</p></div>
+              </div>
+              <div class="proof-result"><span>种植动作由游戏确认</span><b>READY TO VERIFY</b></div>
+            </div>
+            <div class="demo-runtime">
+              <span>● Adapter 在线</span><span>记忆 18</span><span>技能 4</span><span>Trace 可审计</span>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
+    <div class="capability-rail reveal" aria-label="核心产品能力">
+      <div><strong>看见游戏</strong><span>真实状态进入上下文</span></div>
+      <div><strong>听懂玩家</strong><span>文字与语音统一交互</span></div>
+      <div><strong>参与行动</strong><span>结果必须由游戏确认</span></div>
+      <div><strong>记住经历</strong><span>按游戏与存档隔离</span></div>
+      <div><strong>推动故事</strong><span>剧情随选择和事实生长</span></div>
+    </div>
+
     <section id="definition" class="reveal">
       <div class="definition card">
-        <div class="tag">一句话定义</div>
+        <div class="tag">产品承诺</div>
         <blockquote>
-          这是一个位于<strong>模型 / Agent 与真实游戏之间</strong>、同时拥有对话页和分析页的 AI 游戏 Harness；
-          它默认复用 DSH 的通用 Agent 能力，通过 dsh-binding 接入游戏 Harness Core，把跨游戏能力做成标准 DSH 插件，并把必须进入游戏进程的部分压缩成薄 Native Bridge / Adapter。
+          AI 可以提出想法、生成剧情和请求行动；但<strong>游戏事实决定结果</strong>。玩家始终知道它看见了什么、调用了什么，以及事情是否真的发生。
         </blockquote>
       </div>
     </section>
@@ -1190,7 +1276,7 @@
   </main>
 
   <footer>
-    <span>AI-Native Game Harness Doctrine v10 · DSH-first · evolved from dsh-xiaotangyuan-game</span>
+    <span>AI Native Game Harness · Product doctrine v12 · DSH-first</span>
     <span>本页为产品与架构思想说明，不代表所有目标均已实现。</span>
   </footer>
 
