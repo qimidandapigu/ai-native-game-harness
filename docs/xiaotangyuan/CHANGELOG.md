@@ -2,9 +2,9 @@
 
 本项目分别发布 Harness 插件和游戏适配器；两条版本线独立递增。
 
-## Harness 0.7.7 / 星露谷 0.6.1 / 饥荒 0.2.23 / 缺氧 0.6.7 + Adapter 0.1.6 - 未发布
+## 主仓库 v1.1.0 源码快照（Harness 0.7.7 / 星露谷 0.6.1 / 饥荒 0.2.23 / 缺氧 0.6.7 + Adapter 0.1.6）- 2026-08-28
 
-- 主仓库已经保存 `1.0` 稳定分支、`v1.0.0` 标签和源码 Release；`main` 根工作区标记为 `1.1.0-dev.0`，本节记录的后续开发内容不会反向修改 1.0 稳定代码。
+- 主仓库已经创建 `1.1` 稳定分支、`v1.1.0` 标签和源码 Release；`1.0` / `v1.0.0` 继续保留第一份稳定快照，两条稳定线都不会被后续开发覆盖。
 - 技能运行时升级为受限源码 `xiaotangyuan-skill-v2`：支持变量、条件、有限循环、失败回退和断言；源码由自有解析器编译，不使用 `eval`，并兼容迁移 v1 技能文件。
 - 游戏 Agent Session 改为按 `gameId + saveId` 生成脱敏稳定 ID，同一存档在 Adapter 重连或重新进入游戏后恢复原会话，不同存档继续隔离。
 - Desktop 默认打开通用 Harness 页面，并提供按钮、菜单、快捷键和返回按钮在通用页与游戏专属页之间切换；窗口、启动页和产品页统一使用小汤圆品牌图标。
@@ -13,7 +13,7 @@
 - 桌面产品将 ONI Adapter 接入动态 Adapter Protocol Host；缺氧动作现在统一经过 `dsh-binding → Harness Core → Adapter Protocol`，同时保留旧独立 Profile 的直接工具兼容模式。
 - 增加无游戏生产接线测试：真实 Cordis ToolRuntime、Harness Core、WebSocket Host 和 ONI 假文件 Bridge 共同验证动态工具、requestId 与分段 Trace。
 - 桌面游戏状态区改为可注册展示层：未知 Adapter 默认显示受限额、敏感字段过滤的标准 observation；缺氧显示殖民地、复制人与光标摘要；Mock Game 保留专属地图。
-- 主仓库 `v1.0.0` 当前只提供稳定源码归档；公开安装入口继续使用旧仓库的 Harness Plugin `0.5.1` 和 ONI Adapter `0.1.3`，不把本地构建产物写成已发布安装包。
+- 主仓库 `v1.1.0` 只提供稳定源码归档；公开安装入口继续使用旧仓库已经发布的历史插件包，不把本地构建产物写成已发布安装包。
 - 游戏版 Gateway 默认端口统一为 `33145`，并增加跨桌面配置、星露谷、饥荒和缺氧 Adapter 的一致性测试。
 - `integration:xiaotangyuan` 现在安装小汤圆和 ONI Adapter，启动桌面同版本 DSH，以本地模拟多模态模型完成 Adapter、状态和对话冒烟闭环后自动清理。
 - 桌面发行 Runtime 内置独立 ONI Adapter；通用小汤圆插件与游戏专属 Adapter 的代码和 Bundle 边界保持分离。

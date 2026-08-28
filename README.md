@@ -10,9 +10,9 @@ AI Native Game Harness 想为玩家提供一个可以进入不同游戏的 AI �
 
 对于游戏开发者和 MOD 作者，它提供一套可复用的 AI 游戏底座。你只需要描述自己的游戏世界、状态和可执行动作，不必为每款游戏重新开发模型接入、语音、记忆、工具调用和桌面应用。
 
-> `v1.0.0` 源码版本已经发布。`main` 已能生成并完成本地安装、启动、内置 DSH Runtime 和卸载验证的 Windows NSIS 安装包；当前产物尚未数字签名，也还没有作为正式 Release 对外发布。
+> `v1.1.0` 稳定源码版本已经发布，保存当前玩家版、开发者版、完整技术理念、游戏 Harness 与多游戏接入代码。Windows NSIS 安装包已完成本地安装、启动、内置 DSH Runtime 和卸载验证，但尚未数字签名，也没有作为正式 Release 资产对外发布。
 
-> `1.0` 分支和 `v1.0.0` 标签保存稳定源码；`main` 当前标记为 `1.1.0-dev.0` 开发线，后续改动不会反向进入 1.0 稳定版本。
+> `1.0` / `v1.0.0` 保留第一份稳定快照；`1.1` 分支、`v1.1.0` 标签与 GitHub Release 保存本次稳定源码。封版时 `main` 与 `v1.1.0` 一致，后续开发不会反向修改这两个稳定版本。
 
 **[玩家版官网](https://qimidandapigu.github.io/ai-native-game-harness/)** · **[开发者版官网](https://qimidandapigu.github.io/ai-native-game-harness/developers.html)** · **[完整技术理念](docs/AI_GAME_ENGINE_IDEOLOGY.html)** · **[接入一个新游戏](docs/INDEPENDENT_PLATFORM.md)** · **[查看版本发布](https://github.com/qimidandapigu/ai-native-game-harness/releases)**
 
@@ -112,7 +112,7 @@ AI 理解当前状态，生成或延续短剧情，并回答或请求执行动�
 
 | 使用者 | 当前建议 |
 | --- | --- |
-| 普通玩家 | 可以查看 `v1.0.0` 稳定源码；`main` 的本地一键安装包已验证，但尚未签名或公开发布 |
+| 普通玩家 | 可以查看 `v1.1.0` 稳定源码；本地一键安装包已验证，但尚未签名或作为 Release 资产公开发布 |
 | 游戏开发者 / MOD 作者 | 可以使用 Adapter Starter 和 Mock Game 评估接入方式 |
 | 项目贡献者 | 可以运行源码、自动测试和桌面演示 |
 
