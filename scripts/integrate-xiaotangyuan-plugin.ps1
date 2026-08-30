@@ -12,10 +12,13 @@ if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $SourceRoot = Join-Path $repoRoot 'plugins/xiaotangyuan-game'
 }
 $pluginRoot = [IO.Path]::GetFullPath($SourceRoot)
+$workRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot $manifest.workOrchestrator.source))
 $oniRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot $manifest.oniAdapter.source))
 $packagePath = Join-Path $pluginRoot 'package.json'
+$workPackagePath = Join-Path $workRoot 'package.json'
 $oniPackagePath = Join-Path $oniRoot 'package.json'
 $entryPath = Join-Path $pluginRoot 'dist/index.js'
+$workEntryPath = Join-Path $workRoot 'dist/index.js'
 $mediaProject = Join-Path $repoRoot 'apps/windows-media-host/XtyMediaHost.csproj'
 $mediaOutput = Join-Path $pluginRoot 'media/windows-x64'
 $mediaEntry = Join-Path $mediaOutput 'XtyMediaHost.exe'
@@ -29,6 +32,13 @@ if ($pluginPackage.name -ne $manifest.packageName) {
 }
 if ($pluginPackage.version -ne $manifest.development.expectedVersion) {
   throw "Expected source version $($manifest.development.expectedVersion), found $($pluginPackage.version)"
+}
+$workPackage = Get-Content -Raw -LiteralPath $workPackagePath | ConvertFrom-Json
+if ($workPackage.name -ne $manifest.workOrchestrator.packageName) {
+  throw "Unexpected Work Orchestrator package name: $($workPackage.name)"
+}
+if ($workPackage.version -ne $manifest.workOrchestrator.expectedVersion) {
+  throw "Expected Work Orchestrator version $($manifest.workOrchestrator.expectedVersion), found $($workPackage.version)"
 }
 $oniPackage = Get-Content -Raw -LiteralPath $oniPackagePath | ConvertFrom-Json
 if ($oniPackage.name -ne $manifest.oniAdapter.packageName) {
@@ -46,6 +56,16 @@ New-Item -ItemType Directory -Force -Path $mediaOutput | Out-Null
 dotnet publish $mediaProject -c Release -r win-x64 --self-contained true -o $mediaOutput | Out-Host
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $mediaEntry -PathType Leaf)) {
   throw "XiaoTangYuan media host build failed: $mediaEntry"
+}
+
+Push-Location $workRoot
+try {
+  pnpm run build | Out-Host
+} finally {
+  Pop-Location
+}
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $workEntryPath -PathType Leaf)) {
+  throw "Work Orchestrator plugin build failed: $workEntryPath"
 }
 
 Push-Location $pluginRoot
@@ -68,6 +88,19 @@ try {
   pnpm pack --pack-destination $artifactRoot | Out-Host
 } finally {
   Pop-Location
+}
+
+Push-Location $workRoot
+try {
+  pnpm pack --pack-destination $artifactRoot | Out-Host
+} finally {
+  Pop-Location
+}
+
+$workArchiveName = "qimidandapigu-dsh-work-orchestrator-$($workPackage.version).tgz"
+$workArchivePath = Join-Path $artifactRoot $workArchiveName
+if (-not (Test-Path -LiteralPath $workArchivePath -PathType Leaf)) {
+  throw "Work Orchestrator archive was not produced: $workArchivePath"
 }
 
 $archiveName = "qimidandapigu-dsh-xiaotangyuan-game-$($pluginPackage.version).tgz"
@@ -141,6 +174,8 @@ try {
   $env:DSH_HOME = $profileHome
   Push-Location $repoRoot
   try {
+    node $dshBin plugin --profile $ProfileName add $workArchivePath | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "Work Orchestrator installation failed with exit code $LASTEXITCODE" }
     node $dshBin plugin --profile $ProfileName add $archivePath | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "Plugin installation failed with exit code $LASTEXITCODE" }
     node $dshBin plugin --profile $ProfileName add $oniArchivePath | Out-Host
@@ -170,6 +205,7 @@ try {
   package = $pluginPackage.name
   version = $pluginPackage.version
   archive = $archivePath
+  workOrchestrator = $workArchivePath
   oniAdapter = $oniArchivePath
   profile = $ProfileName
   profileHome = $profileHome

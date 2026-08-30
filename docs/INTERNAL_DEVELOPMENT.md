@@ -27,6 +27,7 @@ Desktop
 各层职责：
 
 - **DSH Runtime**：模型、Agent、Tool Calling、Session、配置、凭据、权限和插件生命周期。
+- **Work Orchestrator**：回答结束后识别通用工作，关联独立 Worker DSH Session，并把公开更新交回原陪伴 Session；它不属于小汤圆、游戏 Adapter 或 Desktop UI。
 - **Desktop**：管理固定版本 DSH、产品窗口、对话、动态剧情、自学习、分析和 Adapter 中心。
 - **dsh-binding**：把 DSH Tool Call 交给 Harness Core，并把 ActionResult 与 Observation 返回 Agent。
 - **Harness Core**：Adapter 注册、动作校验、revision、路由和游戏侧 Trace，不重造通用 Agent Runtime。
@@ -48,6 +49,7 @@ packages/dsh-binding/         DSH Agent 与 Harness Core 接线
 packages/game-pack/           Game Pack 校验和注册表
 packages/story-runtime/       StoryBeat 校验、推进与按存档持久化
 plugins/                      跨游戏 DSH 插件
+  dsh-work-orchestrator/      通用回答后工作识别与 Worker DSH Session 编排
 games/<game>/                 每游戏 Adapter、Bridge、内容和发行脚本
 examples/                     Mock Game 与第三方 Adapter Starter
 tests/                        集成、平台和协议验证
@@ -89,6 +91,24 @@ DSH Session
   → Adapter Protocol
 ```
 
+## 通用工作编排边界
+
+`@qimidandapigu/dsh-work-orchestrator` 是独立标准 DSH 插件，不是小汤圆内部模块：
+
+```text
+陪伴角色 DSH Session 完成本轮回答
+  → Work Orchestrator 后台识别 start / continue / inspect
+  → 创建或恢复独立 Worker DSH Session
+  → Worker 复用当前 DSH 插件、技能和工具执行
+  → 公开更新回到原陪伴 Session 自然转述
+```
+
+- 不增加 `work_task_create` 工具，不要求玩家操作任务中心。
+- 调用者只提供角色名称、Worker 补充规则、汇报规则和可选通知出口。
+- Worker 对话内容由 DSH Session 持久化；插件只保存来源 Session 到 Worker Session 的稳定关联。
+- 新关联使用 `dsh-work-*`，并迁移已有 `xiaotangyuan-work-*` 关联。
+- 小汤圆与 Desktop Learning Binding 都只注入 `workOrchestrator` 服务，不反向拥有其生命周期。
+
 ## 动态剧情边界
 
 剧情生成复用默认 DSH Session，不建立“剧情 Agent”或第二套模型链：
@@ -110,9 +130,10 @@ DSH Session
 
 ## 当前代码能力
 
-截至 `2026-08-27`：
+截至 `2026-08-29`：
 
 - 已实现 Harness Core、Adapter Protocol、WebSocket Host、dsh-binding 和 Game Pack 注册表。
+- 已将回答后的通用工作能力拆为独立 Work Orchestrator DSH 插件；小汤圆和 Desktop Binding 通过服务注入复用。
 - 已提供 Mock Game、第三方 Adapter Starter 和 Adapter conformance 检查。
 - Desktop 已有对话页、动态剧情页、自学习页、分析页和 Adapter 中心。
 - 已实现 `StoryBeat-v1`、滚动生成校验、按 `gameId + saveId` 持久化、Adapter Observation 自动推进和 DSH 三个剧情 Tool；Mock Game 已覆盖虚构事实拒绝与“移动 → 拾取金币 → 剧情完成”。
@@ -127,17 +148,21 @@ DSH Session
 - 流式 TTS 在已经播放部分音频后失败时不再整段重播；首个音频分片前失败仍允许完整回复兼容回退。
 - ONI Adapter 使用 Bridge heartbeat 排除 Windows PID 复用产生的陈旧目录，并验证吸水、喷水动作使用当前光标格。
 - ONI Adapter 已接入动态 Adapter Protocol Host，源码版本为 `0.1.6`。
-- 小汤圆 Harness Plugin 源码版本为 `0.7.7`；缺氧 Bridge 源码版本为 `0.6.7`。
+- Work Orchestrator 插件源码版本为 `0.1.2`；小汤圆 Harness Plugin 源码版本为 `0.7.9`；缺氧 Bridge 源码版本为 `0.6.7`。
 - 桌面发行 Runtime 固定为 DSH `0.1.1-rc.2`。
 - 游戏版 Gateway 使用 `33145`；星露谷和饥荒按 `V`，缺氧按 `Q`。
 
 ## 真实游戏开发截图
 
-以下画面来自项目开发验证记录，用于说明 AI 伙伴在《星露谷物语》中的角色呈现、环境回应和玩法参与方向。截图本身不代替当前 `main` 的真实存档端到端验收，也不表示与游戏官方存在合作关系；游戏名称、画面与原始素材权利归各自权利方所有。
+以下画面来自项目开发验证记录，用于说明 AI 伙伴在《星露谷物语》《缺氧》和《饥荒联机版》中的角色呈现、环境回应、能力成长和玩法参与方向。截图本身不代替当前 `main` 的真实存档端到端验收，也不表示与游戏官方存在合作关系；游戏名称、画面与原始素材权利归各自权利方所有。
 
 | 农场成长 | 玩法互动 | 环境回应 |
 | --- | --- | --- |
 | ![小汤圆与玩家观察巨大作物](../site/games/stardew-valley-giant-crop.jpg) | ![小汤圆在向日葵田参与互动玩法](../site/games/stardew-valley-sunflower-flight.jpg) | ![小汤圆在雨天场景回应玩家](../site/games/stardew-valley-rainy-companion.jpg) |
+
+| 缺氧角色陪伴 | 缺氧环境技能 | 饥荒行动学习 |
+| --- | --- | --- |
+| ![缺氧殖民地中小汤圆陪伴复制人](../site/games/oxygen-not-included-companion.png) | ![缺氧中小汤圆解锁吸水与喷水能力](../site/games/oxygen-not-included-water-skill.png) | ![饥荒联机版中小汤圆回应捕捉蝴蝶目标](../site/games/dont-starve-together-skill-learning.png) |
 
 ## 当前验证证据
 
@@ -145,9 +170,11 @@ DSH Session
 
 - `pnpm install --frozen-lockfile`
 - `pnpm check`
-- 29 项集成测试
-- 20 项平台测试
-- `pnpm check:xiaotangyuan`：饥荒 25 项、反馈服务 4 项、ONI Adapter 14 项、小汤圆插件 84 项测试
+- 30 项集成测试
+- 21 项平台测试
+- 独立 Work Orchestrator：5 项测试
+- 小汤圆插件：103 项测试
+- 饥荒、反馈服务和 ONI Adapter 另有各自的自动检查
 - `pnpm desktop:prepare`：构建媒体 Host、插件与 ONI Adapter，完成 Adapter、状态、两轮对话和同存档 Session 恢复冒烟，并准备桌面 Runtime
 - `pnpm desktop:dist`：已生成 284,176,643 字节的 Windows NSIS 安装包，包含 DSH `0.1.1-rc.2`、小汤圆插件 `0.7.7`、ONI Adapter `0.1.6` 和自包含媒体 Host
 - 安装器隔离验收：在不提供系统 Node/pnpm 的 PATH 下启动安装后应用，Electron Renderer、内置 DSH NodeService 与 `XtyMediaHost.exe` 正常运行，本地 DSH 页面返回 HTTP 200；短路径静默卸载返回 0 并完整删除安装目录
@@ -206,7 +233,7 @@ pnpm desktop:dist
 - `main` 根工作区版本为 `1.1.0-dev.0`，用来明确区分稳定源码快照和后续开发线；各插件、Adapter 与 Bridge 继续独立版本。
 - 主仓库 `v1.0.0` Release 目前只提供 GitHub 自动生成的源码归档，不包含签名安装包。
 - 旧仓库公开稳定包仍为 Harness Plugin `0.5.1`、ONI Adapter `0.1.3`。
-- `main` 中的 Harness Plugin `0.7.7`、ONI Adapter `0.1.6` 与 Bridge `0.6.7` 仍属于后续开发内容，不能写成 `v1.0.0` 已包含的独立公开安装包。
+- `main` 中的 Work Orchestrator `0.1.2`、Harness Plugin `0.7.9`、ONI Adapter `0.1.6` 与 Bridge `0.6.7` 仍属于后续开发内容，不能写成 `v1.0.0` 已包含的独立公开安装包。
 - 本地构建、代码提交、Git 推送、Git 标签和 GitHub Release 是五个不同状态，必须分别报告。
 
 ## 下一步

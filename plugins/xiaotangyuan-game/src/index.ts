@@ -3,6 +3,9 @@ import type {} from '@deepseek-ai/dsh-agent-default-model'
 import type {} from '@deepseek-ai/dsh-attachment'
 import type {} from '@deepseek-ai/dsh-credentials'
 import type {} from '@deepseek-ai/dsh-llm'
+import type {} from '@deepseek-ai/dsh-session-title'
+import type {} from '@deepseek-ai/dsh-system-prompt'
+import type {} from '@qimidandapigu/dsh-work-orchestrator'
 import { resolveConfig, type Config } from './config.js'
 import { GameGateway } from './gateway/game-gateway.js'
 import { WindowsMediaHost } from './runtime/media/windows-media-host.js'
@@ -20,7 +23,7 @@ import { XiaoTangYuanLearningService } from './runtime/learning-service.js'
 
 export const name = 'dsh-xiaotangyuan-game'
 export const provide = 'xiaotangyuanLearning'
-export const inject = ['agentDefaultModel', 'agents', 'attachments', 'credentials', 'llm', 'sessions', 'tools']
+export const inject = ['agentDefaultModel', 'agents', 'attachments', 'credentials', 'llm', 'sessions', 'sessionTitle', 'systemPrompt', 'tools', 'workOrchestrator']
 
 export function apply(ctx: Context, config: Config = {}): void {
   const resolved = resolveConfig(config)
@@ -42,6 +45,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       multimodal,
       memory,
       skills,
+      ctx.workOrchestrator,
       resolved.proactiveChat,
       processIds => speech?.updateTargets(processIds),
       feedback !== undefined,

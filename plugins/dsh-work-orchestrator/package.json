@@ -1,0 +1,71 @@
+{
+  "name": "@qimidandapigu/dsh-work-orchestrator",
+  "version": "0.1.2",
+  "description": "Post-turn work recognition and native Worker DSH Session orchestration for DeepSeek Harness companions.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "pnpm run clean && tsc -p tsconfig.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "test": "vitest run",
+    "check": "pnpm run build && pnpm run test"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "work-orchestrator",
+    "worker-session",
+    "companion"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qimidandapigu/ai-native-game-harness.git",
+    "directory": "plugins/dsh-work-orchestrator"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-agent": ">=0.1.1-rc.2 <0.2.0",
+    "@deepseek-ai/dsh-llm": ">=0.1.1-rc.2 <0.2.0",
+    "@deepseek-ai/dsh-permission-presets": ">=0.1.1-rc.2 <0.2.0",
+    "@deepseek-ai/dsh-session": ">=0.1.1-rc.2 <0.2.0",
+    "@deepseek-ai/dsh-session-title": ">=0.1.1-rc.2 <0.2.0",
+    "@deepseek-ai/dsh-tools": ">=0.1.1-rc.2 <0.2.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/dsh-agent": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-llm": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-permission-presets": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-session": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-session-title": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-tools": "0.1.1-rc.2",
+    "@types/node": "^24.10.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

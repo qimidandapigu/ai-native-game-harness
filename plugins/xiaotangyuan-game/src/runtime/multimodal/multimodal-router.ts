@@ -75,11 +75,17 @@ export class MultimodalRouter {
     return selection
   }
 
+  async selectModel(signal: AbortSignal): Promise<ModelSelection> {
+    if (!this.config.enabled) throw new Error('当前游戏会话需要启用视觉输入')
+    const selection = await this.findImageModel(signal)
+    if (selection === undefined) throw new Error('没有可用的图片输入模型')
+    return selection
+  }
+
   async prepareProcess(processId: number | undefined, signal: AbortSignal): Promise<MultimodalInput> {
     if (!this.config.enabled) throw new Error('当前游戏会话需要启用视觉输入')
     const selectionStarted = performance.now()
-    const selection = await this.findImageModel(signal)
-    if (selection === undefined) throw new Error('没有可用的图片输入模型')
+    const selection = await this.selectModel(signal)
     const captureStarted = performance.now()
     const image: BinaryAsset = processId === undefined
       ? { bytes: new Uint8Array(await screenshot({ format: 'png' })), mediaType: 'image/png' }

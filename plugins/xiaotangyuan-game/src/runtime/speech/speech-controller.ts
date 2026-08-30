@@ -11,6 +11,9 @@ import { publishProductDiagnostic } from '../diagnostics.js'
 export interface VoiceInteractionHandler {
   recordingStarted(processId: number): void
   recordingStopped(processId: number): void
+  speechStarted(processId: number, interactionId: string): void
+  speechPhraseStarted(processId: number, interactionId: string, phrase: string, text: string): void
+  speechFinished(processId: number, interactionId: string): void
   respond(processId: number, transcript: string, signal: AbortSignal): Promise<{
     reply: string
     speechPlayed: boolean
@@ -29,6 +32,7 @@ interface LiveRecording {
 }
 
 interface SpeechOutput {
+  processId: number
   interactionId: string
   controller: AbortController
   buffer: string
@@ -38,6 +42,10 @@ interface SpeechOutput {
   provider: SpeechSynthesisProvider
   started: boolean
   audioAppended: boolean
+  queuedAudioBytes: number
+  captionText: string
+  captionChain: Promise<void>
+  speechAnnounced: boolean
 }
 
 export class SpeechController {
@@ -99,7 +107,7 @@ export class SpeechController {
         for await (const chunk of provider.synthesizeStream({ text }, signal)) {
           this.media.appendPcmPlayback(playbackId, chunk)
         }
-        this.media.finishPcmPlayback(playbackId)
+        await this.media.finishPcmPlayback(playbackId, signal)
         return
       } catch (error) {
         this.media.cancelPlayback(playbackId)
@@ -109,7 +117,7 @@ export class SpeechController {
       }
     }
     const audio = await provider.synthesize({ text }, signal)
-    this.media.play(audio)
+    await this.media.play(audio, signal)
   }
 
   async appendSpeechDelta(processId: number, interactionId: string, delta: string): Promise<void> {
@@ -120,6 +128,7 @@ export class SpeechController {
       const provider = await this.selectSynthesisProvider()
       if (provider === undefined || provider.synthesizeStream === undefined) return
       output = {
+        processId,
         interactionId,
         controller: new AbortController(),
         buffer: '',
@@ -129,6 +138,10 @@ export class SpeechController {
         provider,
         started: false,
         audioAppended: false,
+        queuedAudioBytes: 0,
+        captionText: '',
+        captionChain: Promise.resolve(),
+        speechAnnounced: false,
       }
       this.speechOutputs.set(processId, output)
     }
@@ -146,7 +159,8 @@ export class SpeechController {
     this.queueReadyPhrases(output, true)
     try {
       await output.chain
-      if (output.started) this.media.finishPcmPlayback(output.playbackId)
+      await output.captionChain
+      if (output.started) await this.media.finishPcmPlayback(output.playbackId, output.controller.signal)
       return output.started
     } catch (error) {
       this.media.cancelPlayback(output.playbackId)
@@ -184,13 +198,29 @@ export class SpeechController {
       output.spokenText += phrase
       output.chain = output.chain.then(async () => {
         output.controller.signal.throwIfAborted()
-        if (!output.started) {
-          this.media.startPcmPlayback(output.playbackId)
-          output.started = true
-        }
+        let captionScheduled = false
         for await (const chunk of output.provider.synthesizeStream!({ text: phrase }, output.controller.signal)) {
+          if (chunk.byteLength === 0) continue
+          if (!output.started) {
+            this.media.startPcmPlayback(output.playbackId)
+            output.started = true
+          }
+          if (!captionScheduled) {
+            captionScheduled = true
+            const phraseStartByte = output.queuedAudioBytes
+            output.captionChain = output.captionChain.then(async () => {
+              await this.media.waitForPcmPosition(output.playbackId, phraseStartByte, output.controller.signal)
+              if (!output.speechAnnounced) {
+                output.speechAnnounced = true
+                this.handler.speechStarted(output.processId, output.interactionId)
+              }
+              output.captionText += phrase
+              this.handler.speechPhraseStarted(output.processId, output.interactionId, phrase, output.captionText)
+            })
+          }
           if (chunk.byteLength > 0) output.audioAppended = true
           this.media.appendPcmPlayback(output.playbackId, chunk)
+          output.queuedAudioBytes += chunk.byteLength
         }
       })
     }
@@ -283,7 +313,14 @@ export class SpeechController {
       const response = await this.handler.respond(event.processId, transcript, controller.signal)
       diagnosticIdentity = response
       const agentFinished = performance.now()
-      if (!response.speechPlayed) await this.speak(response.reply, controller.signal)
+      if (!response.speechPlayed) {
+        this.handler.speechStarted(event.processId, response.interactionId)
+        try {
+          await this.speak(response.reply, controller.signal)
+        } finally {
+          this.handler.speechFinished(event.processId, response.interactionId)
+        }
+      }
       const ttsFinished = performance.now()
       this.ctx.logger.info(
         `xiaotangyuan voice latency processId=${event.processId} asrMs=${Math.round(asrFinished - asrStarted)} agentMs=${Math.round(agentFinished - asrFinished)} ttsMs=${Math.round(ttsFinished - agentFinished)} totalMs=${Math.round(ttsFinished - interactionStarted)}`,
@@ -305,6 +342,20 @@ export class SpeechController {
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      if (controller.signal.aborted && controller.signal.reason instanceof Error
+        && controller.signal.reason.message === '玩家开始了新的语音输入') {
+        publishProductDiagnostic({
+          kind: 'voice.cancelled',
+          ...(diagnosticIdentity ?? {}),
+          detail: {
+            source: 'voice',
+            processId: event.processId,
+            reason: 'barge-in',
+            elapsedMs: Math.round(performance.now() - interactionStarted),
+          },
+        })
+        return
+      }
       publishProductDiagnostic({
         kind: 'voice.failed',
         ...(diagnosticIdentity ?? {}),

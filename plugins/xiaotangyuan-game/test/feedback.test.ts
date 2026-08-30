@@ -114,6 +114,13 @@ describe('model-led feedback routing', () => {
     expect(prompt).not.toContain('game_feedback_submit')
   })
 
+  it('does not duplicate or expose internal work routing in the per-turn prompt', () => {
+    const prompt = formatGamePrompt(undefined, { text: '帮我做一个 HTML' }, undefined, false, 'normal', true)
+    expect(prompt).not.toContain('Worker DSH Session')
+    expect(prompt).not.toContain('post-turn work skill')
+    expect(prompt.match(/substantial non-game work/g)).toBeNull()
+  })
+
   it('forbids duplicate feedback submission while retrying', () => {
     const prompt = formatGamePrompt(undefined, { text: '如果能钓鱼就好了' }, undefined, false, 'retry')
     expect(prompt).toContain('Do not call game_feedback_submit')

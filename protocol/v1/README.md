@@ -55,6 +55,12 @@ Harness 通过 `assistant.status` 发送：
 
 Adapter 应使用 `text` 替换正在显示的临时气泡，而不是自行拼接；模型进入工具调用后的新步骤时，累计正文可能从头开始。只有 RPC 最终结果或 `assistant.present` 才表示完整回复。`reasoning-delta`、工具参数和内部思考不会通过该通知发送。
 
+语音回复可以额外声明 `assistant.speech-sync`，让字幕跟随实际 PCM 播放位置按句更新，而不是领先于声音显示：
+
+- `assistant.speech.start`：本轮语音开始，Adapter 应固定当前气泡。
+- `assistant.speech.phrase`：播放进入新句，`phrase` 是当前句，`text` 是截至当前句的累计正文。
+- `assistant.speech.done`：音频缓冲区已播放完毕，Adapter 可从此刻开始计算气泡的保留和淡出时间。
+
 ## 后续扩展
 
 当前统一状态格式见 [AI-Native Game Context v1](../../docs/xiaotangyuan/AI_NATIVE_GAME_CONTEXT_V1.md)。Harness 会兼容转换三个游戏的旧 observation，新 Adapter 必须直接发送 `ai-native.game-context.v1`。后续协议将增加：

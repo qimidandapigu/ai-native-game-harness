@@ -1,4 +1,18 @@
+- id: web
+  config:
+    searchProvider: zhipu-official
+
+- id: web-search-deepseek
+  disabled: true
+
 - insert:
+    - id: web-search-zhipu
+      name: '@qimidandapigu/dsh-xiaotangyuan-game/web-search-zhipu'
+      config:
+        apiKeyEnv: ZHIPU_API_KEY
+        baseURL: https://open.bigmodel.cn/api/paas/v4
+        searchEngine: search_pro_sogou
+
     - id: xiaotangyuan-game
       name: '@qimidandapigu/dsh-xiaotangyuan-game'
       config:

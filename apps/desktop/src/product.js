@@ -29,6 +29,7 @@ const fallback = {
     reconnectCount: 0,
     hiddenReasoning: 'not-exposed',
     directActions: true,
+    notifications: [],
   },
 }
 
@@ -40,6 +41,7 @@ let selectedGameId
 let gamePacks = []
 let traceFilter = 'all'
 let traceSearch = ''
+const seenRuntimeNotifications = new Set()
 const $ = (selector) => document.querySelector(selector)
 
 function setPage(name) {
@@ -686,7 +688,7 @@ async function refreshGamePacks() {
   gamePacks = desktop?.listGamePacks ? await desktop.listGamePacks() : []
 }
 
-function addMessage(role, text = '') {
+function addMessage(role, text = '', work = undefined) {
   const message = document.createElement('article')
   message.className = `message ${role}`
   const avatar = document.createElement('div')
@@ -700,10 +702,41 @@ function addMessage(role, text = '') {
   const content = document.createElement('p')
   content.textContent = text
   bubble.append(label, content)
+  if (work?.workSessionId) {
+    const details = document.createElement('div')
+    details.className = 'work-session-details'
+    const heading = document.createElement('strong')
+    heading.textContent = work.title || '后台工作'
+    const route = document.createElement('span')
+    const executor = work.executor === 'codex-app-server' ? '工作 → Codex' : 'NPC 工作会话'
+    route.textContent = `${executor} · ${work.status || '等待反馈'}`
+    const session = document.createElement('code')
+    session.textContent = `Session: ${work.workSessionId}`
+    details.append(heading, route, session)
+    if (work.codexThreadId) {
+      const codex = document.createElement('code')
+      codex.textContent = `Codex Thread: ${work.codexThreadId}`
+      details.append(codex)
+    }
+    const open = document.createElement('button')
+    open.type = 'button'
+    open.textContent = '在内置 Harness 查看'
+    open.addEventListener('click', () => { window.location.href = 'ai-native-game-harness://harness' })
+    details.append(open)
+    bubble.append(details)
+  }
   message.append(avatar, bubble)
   $('#messages').append(message)
   $('#messages').scrollTop = $('#messages').scrollHeight
   return { message, bubble, content }
+}
+
+function appendRuntimeNotifications(fresh) {
+  for (const notification of fresh?.runtime?.notifications ?? []) {
+    if (!notification?.id || seenRuntimeNotifications.has(notification.id) || !notification.text) continue
+    seenRuntimeNotifications.add(notification.id)
+    addMessage('assistant', notification.text, notification)
+  }
 }
 
 async function submitMessage(text) {
@@ -741,6 +774,7 @@ async function submitMessage(text) {
     if (!streamedEvents) result.events.forEach(handleEvent)
     thinking.remove()
     if (!assistant.content.textContent) assistant.content.textContent = 'AI Native Game Harness Session 已完成；本轮没有公开文本输出。'
+    appendRuntimeNotifications(result.snapshot)
     snapshot = result.snapshot
     render()
   } catch (error) {
@@ -851,9 +885,13 @@ $('#export-diagnostics').addEventListener('click', async () => {
 })
 
 window.harnessDesktop?.platform?.onSnapshot((fresh) => {
+  appendRuntimeNotifications(fresh)
   snapshot = fresh
   render()
 })
 const [initial] = await Promise.all([api('/api/snapshot'), refreshGamePacks()])
-if (initial) snapshot = initial
+if (initial) {
+  appendRuntimeNotifications(initial)
+  snapshot = initial
+}
 render()

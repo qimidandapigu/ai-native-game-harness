@@ -8,9 +8,93 @@ import * as gameCorePlugin from '@ai-native-game-harness/game-core'
 import * as gameLearningPlugin from '@ai-native-game-harness/game-learning-binding'
 import { MockGameAdapter } from '@ai-native-game-harness/mock-game/adapter'
 import { SkillService, SkillStore, type SkillProgram, type SkillSourceStatement } from '@qimidandapigu/dsh-xiaotangyuan-game'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 describe('default DSH self-learning binding', () => {
+  it('schedules completed Desktop product turns for the shared Worker service', async () => {
+    const ctx = new Context()
+    const scheduleTurn = vi.fn()
+    const releaseSystemPrompt = ctx.provide('systemPrompt', { tools: () => undefined, section: () => undefined } as never)
+    const releaseDefaultModel = ctx.provide('agentDefaultModel', {
+      currentSelection: () => ({ provider: 'test-provider', model: 'test-model' }),
+    } as never)
+    const releaseSessions = ctx.provide('sessions', {} as never)
+    const releaseWork = ctx.provide('workOrchestrator', { scheduleTurn } as never)
+    const releaseLearning = ctx.provide('xiaotangyuanLearning', {
+      memory: undefined,
+      skills: undefined,
+      snapshot: () => ({
+        schemaVersion: 1,
+        updatedAt: new Date().toISOString(),
+        enabled: { memory: false, skills: false },
+        memories: [],
+        playStatistics: [],
+        skills: [],
+        skillAttempts: [],
+      }),
+    } as never)
+    const toolsFiber = await ctx.plugin(ToolRuntime, { mode: 'native' })
+    const coreFiber = await ctx.plugin(gameCorePlugin)
+    const bindingFiber = await ctx.plugin(gameLearningPlugin)
+    const session = { id: 'desktop-main-session' }
+    const emitSessionEvent = (type: string, data: unknown) => {
+      ctx.emit('session/event', session as never, { type, data } as never)
+    }
+
+    try {
+      emitSessionEvent('user/message', {
+        source: { kind: 'user' },
+        content: [{
+          type: 'text',
+          text: `${gameLearningPlugin.PRODUCT_TURN_PREFIX}Desktop instructions\nPLAYER_MESSAGE:\n帮我做一份 HTML`,
+        }],
+      })
+      emitSessionEvent('turn/start', { turn: 3 })
+      emitSessionEvent('assistant/message', {
+        turn: 3,
+        message: { content: [{ type: 'text', text: '可以，我先确认需求并交给后台处理。' }] },
+      })
+      emitSessionEvent('turn/end', { turn: 3, reason: { kind: 'completed' } })
+
+      await vi.waitFor(() => expect(scheduleTurn).toHaveBeenCalledTimes(1))
+      expect(scheduleTurn).toHaveBeenCalledWith({
+        companionSessionId: 'desktop-main-session',
+        playerText: '帮我做一份 HTML',
+        companionReply: '可以，我先确认需求并交给后台处理。',
+        selection: { provider: 'test-provider', model: 'test-model' },
+        source: 'desktop',
+        companion: {
+          id: 'xiaotangyuan',
+          name: '小汤圆',
+          workerInstructions: '玩家通过 AI Native Game Harness Desktop 交付工作；优先复用 DSH 已安装能力。',
+          relayInstructions: '用简短自然的中文说明工作思路、进度或结果，并邀请玩家继续语音反馈。',
+        },
+      })
+
+      emitSessionEvent('user/message', {
+        source: { kind: 'plugin', plugin: 'dsh-work-orchestrator', form: 'relay' },
+        content: [{ type: 'text', text: 'DSH_WORK_RELAY_V1\n后台更新' }],
+      })
+      emitSessionEvent('turn/start', { turn: 4 })
+      emitSessionEvent('assistant/message', {
+        turn: 4,
+        message: { content: [{ type: 'text', text: 'Worker 已给出工作思路。' }] },
+      })
+      emitSessionEvent('turn/end', { turn: 4, reason: { kind: 'completed' } })
+      await Promise.resolve()
+      expect(scheduleTurn).toHaveBeenCalledTimes(1)
+    } finally {
+      await bindingFiber.dispose()
+      await coreFiber.dispose()
+      await toolsFiber.dispose()
+      await releaseLearning()
+      await releaseWork()
+      await releaseSessions()
+      await releaseDefaultModel()
+      await releaseSystemPrompt()
+    }
+  })
+
   it('keeps failed skills out of the library and saves a fully successful real trial', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'ai-game-learning-'))
     const ctx = new Context()
@@ -41,6 +125,7 @@ describe('default DSH self-learning binding', () => {
       }),
     }
     const releaseLearning = ctx.provide('xiaotangyuanLearning', learning as never)
+    const releaseWork = ctx.provide('workOrchestrator', { scheduleTurn: () => undefined } as never)
     const toolsFiber = await ctx.plugin(ToolRuntime, { mode: 'native' })
     const coreFiber = await ctx.plugin(gameCorePlugin)
     await ctx.gameCore.harness.connectAdapter(new MockGameAdapter())
@@ -83,6 +168,7 @@ describe('default DSH self-learning binding', () => {
       await coreFiber.dispose()
       await toolsFiber.dispose()
       await releaseLearning()
+      await releaseWork()
       await releaseSessions()
       await releaseDefaultModel()
       await releaseSystemPrompt()

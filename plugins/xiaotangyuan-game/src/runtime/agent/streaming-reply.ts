@@ -67,6 +67,10 @@ export class StreamingReplyAccumulator {
     return this.firstTextAt === undefined ? undefined : this.firstTextAt - this.startedAt
   }
 
+  currentText(): string {
+    return this.text.trim()
+  }
+
   private flush(at = this.now()): void {
     if (this.pending === '') return
     if (this.timer !== undefined) clearTimeout(this.timer)

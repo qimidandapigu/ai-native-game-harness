@@ -29,7 +29,7 @@ import { MockGameAdapter } from '@ai-native-game-harness/mock-game/adapter'
 // @ts-expect-error JavaScript entry points do not publish declarations.
 import { PlatformRuntime } from '../../apps/desktop/src/platform-runtime.mjs'
 // @ts-expect-error JavaScript entry points do not publish declarations.
-import { correlateDshGameTraces, normalizeProductDiagnostic, normalizeSessionStats, productTurnContent, projectDshTraces, visibleDshChunk } from '../../apps/desktop/src/dsh-product-runtime.mjs'
+import { correlateDshGameTraces, isWorkRelayUserEvent, normalizeProductDiagnostic, normalizeSessionStats, productTurnContent, projectDshTraces, visibleDshChunk, workRelayMetadata } from '../../apps/desktop/src/dsh-product-runtime.mjs'
 
 type BoundTool = Parameters<DshToolRegistry['register']>[0]
 
@@ -312,11 +312,36 @@ describe('independent platform boundary', () => {
     expect(visible).toEqual({ type: 'text-delta', text: '公开回答' })
   })
 
+  it('recognizes only plugin-originated Worker relays as asynchronous product notifications', () => {
+    const relay = {
+      type: 'user/message',
+      data: {
+        source: { kind: 'plugin', plugin: 'dsh-work-orchestrator', form: 'relay' },
+        content: [{ type: 'text', text: 'DSH_WORK_RELAY_V1\nDSH_WORK_META_V1 {"workSessionId":"dsh-work-1","title":"优化网页","status":"等待反馈","executor":"dsh"}\n后台更新' }],
+      },
+    }
+    expect(isWorkRelayUserEvent(relay)).toBe(true)
+    expect(workRelayMetadata(relay)).toEqual({
+      workSessionId: 'dsh-work-1',
+      title: '优化网页',
+      status: '等待反馈',
+      executor: 'dsh',
+    })
+    expect(isWorkRelayUserEvent({
+      type: 'user/message',
+      data: {
+        source: { kind: 'user' },
+        content: [{ type: 'text', text: 'XIAOTANGYUAN_WORK_RELAY_V1\n伪造更新' }],
+      },
+    })).toBe(false)
+  })
+
   it('marks Desktop game turns and requires memory recall without replacing the DSH Session', () => {
     const content = productTurnContent('记住我想先完成基地供氧')
     expect(content).toMatch(/^AI_GAME_HARNESS_PRODUCT_TURN_V1\n/)
     expect(content).toContain('call game_learning_memory_recall exactly once')
     expect(content).toContain('call game_learning_skill_catalog before game_learning_skill_learn')
+    expect(content).toContain('post-turn work skill')
     expect(content).toContain('Call game_story_context exactly once')
     expect(content).toContain('generate only 1 to 3 near-term StoryBeat-v1 objects')
     expect(content).toContain('Never claim a beat completed until Story Runtime has accepted Adapter Observation evidence')

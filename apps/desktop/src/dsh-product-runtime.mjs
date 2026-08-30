@@ -18,6 +18,8 @@ const EMPTY_STORY_SNAPSHOT = Object.freeze({
   generationAttempts: [],
 })
 const PRODUCT_TURN_PREFIX = 'AI_GAME_HARNESS_PRODUCT_TURN_V1\n'
+const WORK_RELAY_PREFIX = 'DSH_WORK_RELAY_V1'
+const WORK_RELAY_META_PREFIX = 'DSH_WORK_META_V1'
 const EMPTY_SESSION_STATS = Object.freeze({
   turns: 0,
   steps: 0,
@@ -54,6 +56,7 @@ export function productTurnContent(message) {
     'Call game_story_choose only after the player explicitly selects one of the pending choices; never choose on their behalf.',
     'If the player asks you to learn a repeatable game procedure, call game_learning_skill_catalog before game_learning_skill_learn; only report it learned when learned=true.',
     'If the player asks to run a learned procedure, call game_learning_skill_catalog before game_learning_skill_run and only report success when success=true.',
+    'If the player requests substantial non-game work such as research, a presentation, HTML, a document, code, or an artifact revision, acknowledge it briefly but do not perform that work or call work tools in this turn. A post-turn work skill will decide whether to hand it to a separate Worker DSH Session. Do not claim that Worker has started or finished yet.',
     'PLAYER_MESSAGE:',
     message,
   ].join('\n')
@@ -78,6 +81,30 @@ export function visibleDshChunk(event) {
   const chunk = event.data?.chunk
   if (chunk?.type !== 'text-delta' || typeof chunk.text !== 'string' || !chunk.text) return undefined
   return { type: 'text-delta', text: chunk.text }
+}
+
+export function isWorkRelayUserEvent(event) {
+  if (event?.type !== 'user/message'
+    || event.data?.source?.kind !== 'plugin'
+    || event.data.source.plugin !== 'dsh-work-orchestrator'
+    || event.data.source.form !== 'relay') return false
+  return contentText(event.data?.content).startsWith(WORK_RELAY_PREFIX)
+}
+
+export function workRelayMetadata(event) {
+  if (!isWorkRelayUserEvent(event)) return undefined
+  const line = contentText(event.data?.content)
+    .split('\n')
+    .find(candidate => candidate.startsWith(`${WORK_RELAY_META_PREFIX} `))
+  if (!line) return undefined
+  const value = safeJson(line.slice(WORK_RELAY_META_PREFIX.length + 1))
+  if (!value || typeof value !== 'object') return undefined
+  const workSessionId = typeof value.workSessionId === 'string' ? value.workSessionId.slice(0, 240) : ''
+  const title = typeof value.title === 'string' ? value.title.slice(0, 120) : '后台工作'
+  const status = typeof value.status === 'string' ? value.status.slice(0, 80) : '状态未知'
+  const executor = value.executor === 'codex-app-server' ? 'codex-app-server' : 'dsh'
+  const codexThreadId = typeof value.codexThreadId === 'string' ? value.codexThreadId.slice(0, 240) : undefined
+  return { workSessionId, title, status, executor, ...(codexThreadId ? { codexThreadId } : {}) }
 }
 
 /** Validate the official DSH sessionStats projection before it reaches product IPC. */
@@ -290,6 +317,10 @@ export class DshProductRuntime {
   #lastSessionSeq = -1
   #refreshTask
   #callContexts = new Map()
+  #pendingWorkRelay = false
+  #pendingWorkRelayMetadata
+  #workRelayTurns = new Map()
+  #notifications = []
 
   constructor({ baseUrl, cwd, adapterUrl, fetchImpl = fetch, WebSocketImpl = WebSocket }) {
     this.#baseUrl = baseUrl.replace(/\/$/, '')
@@ -359,6 +390,7 @@ export class DshProductRuntime {
         sessionStatsSource: this.#sessionStatsSource,
         hiddenReasoning: 'not-exposed',
         directActions: false,
+        notifications: structuredClone(this.#notifications),
       },
     })
   }
@@ -587,8 +619,20 @@ export class DshProductRuntime {
   }
 
   #handlePendingSessionEvent(event) {
+    if (isWorkRelayUserEvent(event)) {
+      this.#pendingWorkRelay = true
+      this.#pendingWorkRelayMetadata = workRelayMetadata(event)
+      return
+    }
+    if (event?.type === 'turn/start' && this.#pendingWorkRelay) {
+      this.#pendingWorkRelay = false
+      this.#workRelayTurns.set(event.data.turn, this.#pendingWorkRelayMetadata)
+      this.#pendingWorkRelayMetadata = undefined
+    }
+    const workRelay = this.#workRelayTurns.has(event?.data?.turn)
+    const workMetadata = this.#workRelayTurns.get(event?.data?.turn)
     const visible = visibleDshChunk(event)
-    if (visible && this.#pendingChat) {
+    if (visible && this.#pendingChat && !workRelay) {
       this.#pendingChat.publicText += visible.text
       this.#pendingChat.emit(visible)
     }
@@ -604,7 +648,20 @@ export class DshProductRuntime {
         break
       }
       case 'assistant/message': {
-        if (this.#pendingChat && !this.#pendingChat.publicText) {
+        if (workRelay) {
+          const text = contentText(event.data.message?.content)
+          const id = `work-relay:${this.#sessionId ?? 'unknown'}:${event.seq ?? randomUUID()}`
+          if (text && !this.#notifications.some(item => item.id === id)) {
+            this.#notifications.push({
+              id,
+              text,
+              createdAt: new Date(event.time ?? Date.now()).toISOString(),
+              ...(workMetadata ?? {}),
+            })
+            if (this.#notifications.length > 30) this.#notifications.shift()
+            this.#publish()
+          }
+        } else if (this.#pendingChat && !this.#pendingChat.publicText) {
           const text = contentText(event.data.message?.content)
           if (text) {
             this.#pendingChat.publicText = text
@@ -614,8 +671,12 @@ export class DshProductRuntime {
         break
       }
       case 'turn/end': {
-        this.#pendingChat?.emit({ type: 'done', text: '' })
-        this.#pendingChat?.resolve()
+        if (workRelay) {
+          this.#workRelayTurns.delete(event.data.turn)
+        } else {
+          this.#pendingChat?.emit({ type: 'done', text: '' })
+          this.#pendingChat?.resolve()
+        }
         break
       }
     }

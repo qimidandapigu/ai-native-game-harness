@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
+import type { WorkOrchestratorService } from '@qimidandapigu/dsh-work-orchestrator'
 import WebSocket, { WebSocketServer, type RawData } from 'ws'
 import {
   readAdapterHello,
@@ -22,6 +23,32 @@ import { normalizeGameContext } from '../runtime/context/game-context.js'
 
 function normalizeContextObservation(context: GameChatContext | undefined, adapter: AdapterHello | undefined): void {
   if (context?.observation !== undefined) context.observation = normalizeGameContext(context.observation, adapter).value
+}
+
+export async function playPresentedSpeech(
+  speak: () => Promise<void>,
+  speechStarted: () => void,
+  speechFinished: () => void,
+): Promise<void> {
+  speechStarted()
+  try {
+    await speak()
+  } finally {
+    speechFinished()
+  }
+}
+
+export function playerFacingVoiceFailure(message: string): string {
+  if (/fetch failed|network|socket|econn|enotfound|connection/i.test(message)) {
+    return '网络刚才有点不稳，我没能回答出来。请再问我一次吧。'
+  }
+  if (/timeout|timed out|超时/i.test(message)) {
+    return '这次等得太久了，我先停下来。请再问我一次吧。'
+  }
+  if (/credential|api key|凭据|密钥/i.test(message)) {
+    return '我的模型配置暂时不可用，请到桌面设置里检查一下。'
+  }
+  return '我这次没能回答出来，请再问我一次吧。'
 }
 
 interface PendingAdapterRequest {
@@ -63,6 +90,7 @@ export class GameGateway implements VoiceInteractionHandler {
     private readonly multimodal: MultimodalRouter,
     private readonly memory: MemoryService | undefined,
     private readonly skills: SkillService | undefined,
+    private readonly work: WorkOrchestratorService,
     private readonly proactiveChat: ResolvedConfig['proactiveChat'],
     private readonly processTargetsChanged: (processIds: readonly number[]) => void,
     private readonly feedbackEnabled: boolean,
@@ -169,20 +197,23 @@ export class GameGateway implements VoiceInteractionHandler {
           this.multimodal,
           this.memory,
           this.skills,
+          this.work,
           (atom, args, signal) => this.callAdapterAtom(state, atom, args, signal),
           state.memorySessionKey,
           this.feedbackEnabled,
           update => {
-            if (!state.streamingInteractions.has(update.interactionId)) {
-              state.streamingInteractions.add(update.interactionId)
-              this.notify(state, 'assistant.text.start', {
-                interactionId: update.interactionId,
-                source: update.source,
-              })
-            }
-            this.notify(state, 'assistant.text.delta', update)
-            if (state.adapter?.capabilities?.includes('assistant.text-stream') !== true) {
-              this.notify(state, 'assistant.delta', update)
+            if (update.source !== 'voice') {
+              if (!state.streamingInteractions.has(update.interactionId)) {
+                state.streamingInteractions.add(update.interactionId)
+                this.notify(state, 'assistant.text.start', {
+                  interactionId: update.interactionId,
+                  source: update.source,
+                })
+              }
+              this.notify(state, 'assistant.text.delta', update)
+              if (state.adapter?.capabilities?.includes('assistant.text-stream') !== true) {
+                this.notify(state, 'assistant.delta', update)
+              }
             }
             if (update.source === 'voice' && state.adapter?.processId !== undefined) {
               state.speechQueue = state.speechQueue.then(() => this.appendSpeechDelta(state.adapter!.processId!, update.interactionId, update.delta)).catch(error => {
@@ -191,7 +222,36 @@ export class GameGateway implements VoiceInteractionHandler {
               })
             }
           },
+          update => {
+            if (!this.connections.has(state) || state.socket.readyState !== WebSocket.OPEN) return
+            const interactionId = randomUUID()
+            this.notify(state, 'assistant.present', {
+              text: update.text,
+              source: 'work',
+              workSessionId: update.workSessionId,
+              title: update.title,
+              executor: update.executor,
+              status: update.status,
+              ...(update.codexThreadId === undefined ? {} : { codexThreadId: update.codexThreadId }),
+            })
+            this.finishTextStream(state, interactionId, update.text, 'work')
+            if (update.source === 'voice' && state.adapter?.processId !== undefined) {
+              const processId = state.adapter.processId
+              state.speechQueue = state.speechQueue.then(() => playPresentedSpeech(
+                () => this.speak(update.text, AbortSignal.timeout(120_000)),
+                () => this.speechStarted(processId, interactionId),
+                () => this.speechFinished(processId, interactionId),
+              )).catch(error => {
+                  this.ctx.logger.warn('xiaotangyuan-game: 后台工作更新已显示，但语音播放失败')
+                  this.ctx.logger.warn(error)
+                })
+            }
+          },
         )
+        void state.session.warmup(state.latestSaveId).catch(error => {
+          this.ctx.logger.warn('xiaotangyuan-game: 陪聊 Session 预热失败；首次对话时会自动重试')
+          this.ctx.logger.warn(error)
+        })
         this.publishProcessTargets()
         return { accepted: true, protocolVersion: '1.1' }
       }
@@ -218,7 +278,14 @@ export class GameGateway implements VoiceInteractionHandler {
         const result = await state.session.retry(retry.context)
         this.finishTextStream(state, result.interactionId, result.reply, 'retry')
         this.notify(state, 'assistant.present', { text: result.reply, source: 'retry' })
-        void this.speak(result.reply, AbortSignal.timeout(120_000)).catch(error => {
+        const processId = state.adapter?.processId
+        state.speechQueue = state.speechQueue.then(() => processId === undefined
+          ? this.speak(result.reply, AbortSignal.timeout(120_000))
+          : playPresentedSpeech(
+              () => this.speak(result.reply, AbortSignal.timeout(120_000)),
+              () => this.speechStarted(processId, result.interactionId),
+              () => this.speechFinished(processId, result.interactionId),
+            )).catch(error => {
           const message = error instanceof Error ? error.message : String(error)
           this.notify(state, 'assistant.error', { message: `重试回复已生成，但语音播放失败：${message}` })
         })
@@ -368,7 +435,16 @@ export class GameGateway implements VoiceInteractionHandler {
       this.notify(state, 'assistant.present', { text: result.reply, source: 'proactive' })
       this.finishTextStream(state, result.interactionId, result.reply, 'proactive')
       try {
-        await this.speak(result.reply, AbortSignal.timeout(120_000))
+        const processId = state.adapter?.processId
+        if (processId === undefined) {
+          await this.speak(result.reply, AbortSignal.timeout(120_000))
+        } else {
+          await playPresentedSpeech(
+            () => this.speak(result.reply, AbortSignal.timeout(120_000)),
+            () => this.speechStarted(processId, result.interactionId),
+            () => this.speechFinished(processId, result.interactionId),
+          )
+        }
       } catch (error) {
         this.ctx.logger.warn(`xiaotangyuan-game: ${state.adapter?.gameId ?? 'unknown'} 主动回复已显示，但语音播放失败`)
         this.ctx.logger.warn(error)
@@ -405,7 +481,7 @@ export class GameGateway implements VoiceInteractionHandler {
     }
   }
 
-  async respond(processId: number, transcript: string, _signal: AbortSignal): Promise<{
+  async respond(processId: number, transcript: string, signal: AbortSignal): Promise<{
     reply: string
     speechPlayed: boolean
     sessionId: string
@@ -414,28 +490,43 @@ export class GameGateway implements VoiceInteractionHandler {
   }> {
     const connection = this.connectionForProcess(processId)
     if (connection?.session === undefined) throw new Error('前台游戏没有连接到小汤圆 Gateway')
+    signal.throwIfAborted()
     this.markInteraction(connection)
     const context: GameChatContext = {
       ...(connection.latestSaveId === undefined ? {} : { saveId: connection.latestSaveId }),
       ...(connection.latestObservation === undefined ? {} : { observation: connection.latestObservation }),
     }
-    const result = await connection.session.ask({ text: transcript, context }, 'voice')
-    await connection.speechQueue
-    const speechPlayed = await this.finishSpeechReply(processId, result.interactionId, result.reply)
-    this.notify(connection, 'assistant.present', { text: result.reply, source: 'voice' })
-    this.finishTextStream(connection, result.interactionId, result.reply, 'voice')
-    return {
-      reply: result.reply,
-      speechPlayed,
-      sessionId: result.sessionId,
-      interactionId: result.interactionId,
-      gameId: connection.adapter?.gameId ?? 'unknown',
+    const cancelAgent = (): void => connection.session?.cancel()
+    signal.addEventListener('abort', cancelAgent, { once: true })
+    try {
+      const result = await connection.session.ask({ text: transcript, context }, 'voice')
+      signal.throwIfAborted()
+      // The in-game caption is a primary response channel, not a side effect of
+      // TTS playback. Publish the complete answer as soon as the model turn
+      // finishes so a slow or missing speech-sync event cannot leave players
+      // with audio only.
+      this.notify(connection, 'assistant.present', { text: result.reply, source: 'voice' })
+      this.finishTextStream(connection, result.interactionId, result.reply, 'voice')
+      await connection.speechQueue
+      signal.throwIfAborted()
+      const speechPlayed = await this.finishSpeechReply(processId, result.interactionId, result.reply)
+      signal.throwIfAborted()
+      if (speechPlayed) this.speechFinished(processId, result.interactionId)
+      return {
+        reply: result.reply,
+        speechPlayed,
+        sessionId: result.sessionId,
+        interactionId: result.interactionId,
+        gameId: connection.adapter?.gameId ?? 'unknown',
+      }
+    } finally {
+      signal.removeEventListener('abort', cancelAgent)
     }
   }
 
   failed(processId: number, message: string): void {
     const connection = this.connectionForProcess(processId)
-    if (connection !== undefined) this.notify(connection, 'assistant.error', { message })
+    if (connection !== undefined) this.notify(connection, 'assistant.error', { message: playerFacingVoiceFailure(message) })
   }
 
   private send(socket: WebSocket, payload: unknown): void {
@@ -445,6 +536,29 @@ export class GameGateway implements VoiceInteractionHandler {
   recordingStopped(processId: number): void {
     const connection = this.connectionForProcess(processId)
     if (connection !== undefined) this.notify(connection, 'assistant.status', { status: 'thinking' })
+  }
+
+  speechStarted(processId: number, interactionId: string): void {
+    const connection = this.connectionForProcess(processId)
+    if (connection !== undefined) this.notify(connection, 'assistant.speech.start', { interactionId })
+  }
+
+  speechPhraseStarted(processId: number, interactionId: string, phrase: string, text: string): void {
+    const connection = this.connectionForProcess(processId)
+    if (connection === undefined) return
+    if (!connection.streamingInteractions.has(interactionId)) {
+      connection.streamingInteractions.add(interactionId)
+      this.notify(connection, 'assistant.text.start', { interactionId, source: 'voice' })
+    }
+    this.notify(connection, 'assistant.speech.phrase', { interactionId, phrase, text })
+    if (connection.adapter?.capabilities?.includes('assistant.speech-sync') !== true) {
+      this.notify(connection, 'assistant.present', { interactionId, text, source: 'voice', streaming: true })
+    }
+  }
+
+  speechFinished(processId: number, interactionId: string): void {
+    const connection = this.connectionForProcess(processId)
+    if (connection !== undefined) this.notify(connection, 'assistant.speech.done', { interactionId })
   }
 
   private finishTextStream(connection: ConnectionState, interactionId: string, text: string, source: string): void {

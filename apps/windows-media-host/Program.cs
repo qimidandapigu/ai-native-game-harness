@@ -577,10 +577,13 @@ internal static class Program
                     }
                     case "play":
                     {
+                        string playbackId = parameters.TryGetProperty("playbackId", out JsonElement id)
+                            ? id.GetString() ?? "" : "";
                         byte[] wav = Convert.FromBase64String(parameters.GetProperty("audioBase64").GetString() ?? "");
                         _ = audio.PlayAsync(wav).ContinueWith(task =>
                         {
                             if (task.Exception is not null) Protocol.Error($"音频播放失败：{task.Exception.GetBaseException().Message}");
+                            else if (playbackId.Length > 0) Protocol.Send(new { type = "playback.finished", playbackId });
                         }, TaskScheduler.Default);
                         break;
                     }
@@ -606,6 +609,7 @@ internal static class Program
                         _ = audio.FinishPcmPlaybackAsync(playbackId).ContinueWith(task =>
                         {
                             if (task.Exception is not null) Protocol.Error($"流式音频结束失败：{task.Exception.GetBaseException().Message}");
+                            else Protocol.Send(new { type = "playback.finished", playbackId });
                         }, TaskScheduler.Default);
                         break;
                     }

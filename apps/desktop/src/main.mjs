@@ -164,6 +164,11 @@ function runtimePaths() {
     .sort()
     .at(-1)
   if (!pluginArchive) throw new Error(`未找到小汤圆插件包：${pluginRoot}`)
+  const workArchive = readdirSync(pluginRoot)
+    .filter((name) => /^qimidandapigu-dsh-work-orchestrator-.+\.tgz$/.test(name))
+    .sort()
+    .at(-1)
+  if (!workArchive) throw new Error(`未找到 Work Orchestrator 插件包：${pluginRoot}`)
   const oniArchive = app.isPackaged ? undefined : readdirSync(pluginRoot)
     .filter((name) => /^qimidandapigu-oni-adapter-.+\.tgz$/.test(name))
     .sort()
@@ -185,6 +190,8 @@ function runtimePaths() {
     patchPath,
     pluginPath: join(pluginRoot, pluginArchive),
     pluginVersion: pluginArchive.replace(/^.*-game-/, '').replace(/\.tgz$/, ''),
+    workPluginPath: join(pluginRoot, workArchive),
+    workPluginVersion: workArchive.replace(/^.*-orchestrator-/, '').replace(/\.tgz$/, ''),
     corePluginPath: packaged
       ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-core', 'dist', 'index.js')
       : join(repoRoot, 'plugins', 'game-core', 'dist', 'index.js'),
@@ -252,7 +259,7 @@ function runDshOnce(args, paths) {
 async function ensurePlugin(paths) {
   const stateRoot = join(app.getPath('userData'), 'runtime-state')
   const markerPath = join(stateRoot, 'xiaotangyuan.version')
-  const expectedVersion = `${paths.pluginVersion};oni=${paths.oniVersion}`
+  const expectedVersion = `${paths.pluginVersion};work=${paths.workPluginVersion};oni=${paths.oniVersion}`
   const installedVersion = existsSync(markerPath) ? readFileSync(markerPath, 'utf8').trim() : ''
 
   if (app.isPackaged) {
@@ -262,12 +269,21 @@ async function ensurePlugin(paths) {
       ? JSON.parse(readFileSync(profilePath, 'utf8'))
       : { name: 'dsh-profile-web', private: true, dependencies: {}, dsh: { profile: { bundles: [] } } }
     const bundles = profile.dsh?.profile?.bundles ?? []
-    for (const name of ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@qimidandapigu/dsh-xiaotangyuan-game', '@qimidandapigu/oni-adapter']) {
+    for (const name of ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@qimidandapigu/dsh-work-orchestrator', '@qimidandapigu/dsh-xiaotangyuan-game', '@qimidandapigu/oni-adapter']) {
       if (!bundles.includes(name)) bundles.push(name)
     }
     profile.dsh = { ...profile.dsh, profile: { ...profile.dsh?.profile, bundles } }
     mkdirSync(profileRoot, { recursive: true })
     writeFileSync(profilePath, `${JSON.stringify(profile, null, 2)}\n`)
+    const pluginDependency = profile.dependencies?.['@qimidandapigu/dsh-xiaotangyuan-game']
+    const workDependency = profile.dependencies?.['@qimidandapigu/dsh-work-orchestrator']
+    const dependenciesCurrent = pluginDependency === `file:${paths.pluginPath}`
+      && workDependency === `file:${paths.workPluginPath}`
+    if (installedVersion !== expectedVersion || !dependenciesCurrent) {
+      sendStatus('正在更新游戏插件', `Work ${paths.workPluginVersion} / 小汤圆 ${paths.pluginVersion}`)
+      await runDshOnce(['plugin', '--profile', 'web', 'add', paths.workPluginPath], paths)
+      await runDshOnce(['plugin', '--profile', 'web', 'add', paths.pluginPath], paths)
+    }
     mkdirSync(stateRoot, { recursive: true })
     writeFileSync(markerPath, `${expectedVersion}\n`)
     return
@@ -275,7 +291,8 @@ async function ensurePlugin(paths) {
 
   if (installedVersion === expectedVersion) return
 
-  sendStatus('正在安装游戏插件', `小汤圆 ${paths.pluginVersion} / 缺氧 Adapter ${paths.oniVersion}`)
+  sendStatus('正在安装游戏插件', `Work ${paths.workPluginVersion} / 小汤圆 ${paths.pluginVersion} / 缺氧 Adapter ${paths.oniVersion}`)
+  await runDshOnce(['plugin', '--profile', 'web', 'add', paths.workPluginPath], paths)
   await runDshOnce(['plugin', '--profile', 'web', 'add', paths.pluginPath], paths)
   await runDshOnce(['plugin', '--profile', 'web', 'add', paths.oniPath], paths)
   mkdirSync(stateRoot, { recursive: true })
@@ -321,7 +338,7 @@ function writeProductPatch(paths, adapterPort) {
   const yamlString = (value) => String(value).replaceAll("'", "''")
   const storyDataRoot = yamlString(join(app.getPath('userData'), 'story'))
   const gamePackRoot = yamlString(join(app.getPath('userData'), 'game-packs'))
-  writeFileSync(productPatchPath, `- id: xiaotangyuan-oni-adapter\n  config:\n    adapterProtocolUrl: 'ws://127.0.0.1:${adapterPort}/adapter'\n- insert:\n    - id: ai-native-game-core-product\n      name: '${coreUrl}'\n      config:\n        productSnapshotOutput: true\n    - id: ai-native-game-transport-product\n      name: '${transportUrl}'\n      config:\n        enabled: true\n        host: 127.0.0.1\n        port: ${adapterPort}\n        path: /adapter\n        requestTimeoutMs: 10000\n    - id: ai-native-game-learning-product\n      name: '${learningUrl}'\n    - id: ai-native-game-story-product\n      name: '${storyUrl}'\n      config:\n        dataRoot: '${storyDataRoot}'\n        gamePackRoot: '${gamePackRoot}'\n        productSnapshotOutput: true\n`)
+  writeFileSync(productPatchPath, `- id: xiaotangyuan-game\n  config:\n    media:\n      enabled: true\n      pushToTalkVirtualKey: 86\n- id: xiaotangyuan-oni-adapter\n  config:\n    adapterProtocolUrl: 'ws://127.0.0.1:${adapterPort}/adapter'\n- insert:\n    - id: ai-native-game-core-product\n      name: '${coreUrl}'\n      config:\n        productSnapshotOutput: true\n    - id: ai-native-game-transport-product\n      name: '${transportUrl}'\n      config:\n        enabled: true\n        host: 127.0.0.1\n        port: ${adapterPort}\n        path: /adapter\n        requestTimeoutMs: 10000\n    - id: ai-native-game-learning-product\n      name: '${learningUrl}'\n    - id: ai-native-game-story-product\n      name: '${storyUrl}'\n      config:\n        dataRoot: '${storyDataRoot}'\n        gamePackRoot: '${gamePackRoot}'\n        productSnapshotOutput: true\n`)
   return productPatchPath
 }
 
@@ -358,14 +375,21 @@ function collectProductRecords(data) {
 }
 
 async function startRuntime() {
+  sendStatus('正在检查本地运行环境', '读取插件包和版本信息…')
+  appendRuntimeLog('[desktop] resolving Runtime paths\n')
   const paths = runtimePaths()
+  appendRuntimeLog(`[desktop] Runtime paths ready: work=${paths.workPluginVersion}; plugin=${paths.pluginVersion}; oni=${paths.oniVersion}\n`)
+  sendStatus('正在检查内置游戏插件', `Work ${paths.workPluginVersion} / 小汤圆 ${paths.pluginVersion} / 缺氧 Adapter ${paths.oniVersion}`)
   await ensurePlugin(paths)
+  appendRuntimeLog('[desktop] built-in plugins ready\n')
+  sendStatus('正在分配本地端口', '准备 AI Runtime 和游戏 Adapter 通道…')
   const port = await getFreePort()
   const adapterPort = await getFreePort()
   const url = `http://127.0.0.1:${port}`
   const adapterUrl = `ws://127.0.0.1:${adapterPort}/adapter`
   const productPatchPath = writeProductPatch(paths, adapterPort)
   sendStatus('正在启动 AI Runtime', url)
+  appendRuntimeLog(`[desktop] starting DSH Runtime at ${url}\n`)
 
   dshExitCode = null
   dshProcess = forkDsh([
@@ -397,6 +421,7 @@ async function startRuntime() {
   })
 
   await waitForWeb(url, dshProcess)
+  appendRuntimeLog('[desktop] DSH Web Runtime ready\n')
   runtimeWebUrl = url
   dshProductRuntime = new DshProductRuntime({
     baseUrl: url,
@@ -407,6 +432,7 @@ async function startRuntime() {
   if (lastDshLearningSnapshot) dshProductRuntime.attachLearningSnapshot(lastDshLearningSnapshot)
   if (lastDshStorySnapshot) dshProductRuntime.attachStorySnapshot(lastDshStorySnapshot)
   await dshProductRuntime.start()
+  appendRuntimeLog('[desktop] DSH product bridge ready\n')
   for (const record of pendingDshDiagnostics.splice(0)) dshProductRuntime.attachDiagnosticRecord(record)
   dshProductUnsubscribe = dshProductRuntime.subscribe((snapshot) => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('platform-snapshot', snapshot)

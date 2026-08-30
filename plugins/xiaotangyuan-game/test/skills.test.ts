@@ -213,7 +213,7 @@ describe('shared executable skill runtime', () => {
       sourceCode: 'await atom("dst.try", {});',
     }, new Set(['dst.try']), async () => ({ ok: true }), new AbortController().signal)
     expect(learned.result.success).toBe(true)
-    const snapshot = new XiaoTangYuanLearningService(new Context(), undefined, skills).snapshot('dont-starve-together')
+    const snapshot = new XiaoTangYuanLearningService(new Context(), undefined, skills, undefined).snapshot('dont-starve-together')
     expect(snapshot.skills).toMatchObject([{ id: 'dst.v2-summary', stepCount: 1 }])
     expect(snapshot.skillAttempts).toMatchObject([{ success: true, stepCount: 1 }])
   })

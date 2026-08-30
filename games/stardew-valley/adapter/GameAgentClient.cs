@@ -22,6 +22,8 @@ internal sealed class GameAgentClient : IAsyncDisposable
     public event Action<string>? AssistantPresented;
     public event Action<string>? AssistantStreaming;
     public event Action<string, string?>? AssistantStatusChanged;
+    public event Action? AssistantSpeechStarted;
+    public event Action? AssistantSpeechFinished;
     public event Action<string>? AssistantFailed;
 
     public GameAgentClient(string gatewayUrl)
@@ -98,7 +100,7 @@ internal sealed class GameAgentClient : IAsyncDisposable
                     gameId = "stardew-valley",
                     version = "0.6.1",
                     protocolVersion = "1.1",
-                    capabilities = new[] { "assistant.text-stream" },
+                    capabilities = new[] { "assistant.text-stream", "assistant.speech-sync" },
                     processId = Environment.ProcessId,
                     saveId = this.saveId
                 },
@@ -235,6 +237,8 @@ internal sealed class GameAgentClient : IAsyncDisposable
             case "assistant.text.delta":
                 if (parameters.TryGetProperty("text", out JsonElement partialText))
                     this.AssistantStreaming?.Invoke(partialText.GetString() ?? "");
+                else if (parameters.TryGetProperty("delta", out JsonElement deltaText))
+                    this.AssistantStreaming?.Invoke(deltaText.GetString() ?? "");
                 break;
             case "assistant.present":
                 if (parameters.TryGetProperty("text", out JsonElement text))
@@ -246,6 +250,16 @@ internal sealed class GameAgentClient : IAsyncDisposable
                 string? transcript = parameters.TryGetProperty("transcript", out JsonElement transcriptValue)
                     ? transcriptValue.GetString() : null;
                 this.AssistantStatusChanged?.Invoke(status, transcript);
+                break;
+            case "assistant.speech.start":
+                this.AssistantSpeechStarted?.Invoke();
+                break;
+            case "assistant.speech.phrase":
+                if (parameters.TryGetProperty("text", out JsonElement speechText))
+                    this.AssistantStreaming?.Invoke(speechText.GetString() ?? "");
+                break;
+            case "assistant.speech.done":
+                this.AssistantSpeechFinished?.Invoke();
                 break;
             case "assistant.error":
                 string message = parameters.TryGetProperty("message", out JsonElement errorValue)

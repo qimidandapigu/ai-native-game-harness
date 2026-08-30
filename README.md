@@ -49,6 +49,10 @@ AI 不只读取聊天内容。游戏可以把角色状态、背包、附近目�
 
 AI 可以把多步操作写成受限的技能流程，处理条件判断、有限重复和失败回退。只有在真实游戏中完整试跑成功，技能才会保存；失败尝试只用于改进和排错。
 
+### 边玩边把工作交给 Harness
+
+玩家可以先和游戏里的小汤圆正常交流，再用语音让它查资料、准备 HTML、写文档或继续修改成果。独立的 `@qimidandapigu/dsh-work-orchestrator` 会在小汤圆回答结束后识别工作意图，创建或恢复一个原生 Worker DSH Session；小汤圆插件只负责角色表达与结果转述，因此同一套工作能力以后也能被其他 NPC、桌面宠物或陪伴角色复用。
+
 ### 一个应用连接多款游戏
 
 桌面应用可以在通用 Harness 页面和游戏专属页面之间切换；不同游戏包继续按需安装，不需要把所有适配器和 MOD 一次性下载下来。
@@ -98,6 +102,11 @@ AI 理解当前状态，生成或延续短剧情，并回答或请求执行动�
     <td width="33%"><img src="site/games/stardew-valley-sunflower-flight.jpg" alt="星露谷物语向日葵田中的小汤圆互动玩法"><br><strong>不只聊天，也能参与玩法</strong><br>角色表达、游戏事件和动作能力可以组成真实的 AI 游戏体验。</td>
     <td width="33%"><img src="site/games/stardew-valley-rainy-companion.jpg" alt="星露谷物语雨天场景中小汤圆回应环境"><br><strong>对当前环境作出回应</strong><br>天气、地点和附近事件都可以成为对话与动态剧情的事实上下文。</td>
   </tr>
+  <tr>
+    <td width="33%"><img src="site/games/oxygen-not-included-companion.png" alt="缺氧殖民地中小汤圆陪伴复制人"><br><strong>成为殖民地的一员</strong><br>小汤圆以游戏内角色存在，能围绕复制人与殖民地的真实状态继续陪伴。</td>
+    <td width="33%"><img src="site/games/oxygen-not-included-water-skill.png" alt="缺氧中小汤圆根据水环境解锁吸水与喷水能力"><br><strong>从环境中获得新能力</strong><br>能力由真实游戏事件触发，并通过游戏规则确认是否已经学会和生效。</td>
+    <td width="33%"><img src="site/games/dont-starve-together-skill-learning.png" alt="饥荒联机版中小汤圆回应玩家捕捉蝴蝶的行动目标"><br><strong>把玩家目标转成行动</strong><br>AI 结合当前世界与可用能力理解请求，形成可继续执行和验证的行动方向。</td>
+  </tr>
 </table>
 
 ## 产品原则
@@ -106,6 +115,7 @@ AI 理解当前状态，生成或延续短剧情，并回答或请求执行动�
 - **玩家保持控制权**：游戏只开放明确允许的动作，敏感能力需要授权。
 - **本机连接优先**：游戏与桌面应用默认通过本机通信，不向局域网公开端口。
 - **按需安装**：不同游戏的能力独立管理，不强迫用户下载无关内容。
+- **工作能力独立**：Work Orchestrator 是通用 DSH 插件，不与小汤圆角色、某个游戏或 Desktop UI 绑定。
 - **过程可解释**：可以查看 AI 调用了什么、游戏返回了什么，以及失败发生在哪一步。
 
 ## 现在可以使用吗？
@@ -116,7 +126,7 @@ AI 理解当前状态，生成或延续短剧情，并回答或请求执行动�
 | 游戏开发者 / MOD 作者 | 可以使用 Adapter Starter 和 Mock Game 评估接入方式 |
 | 项目贡献者 | 可以运行源码、自动测试和桌面演示 |
 
-当前 `main` 已通过 29 项集成测试和 20 项平台测试，并通过饥荒、反馈服务、缺氧 Adapter 与小汤圆插件的专项检查。`smoke:dsh-story` 还会让当前 DSH 模型真实生成一段 Mock Game 剧情、完成金币目标，并在第二次启动后读回历史。Windows 安装器已完成不依赖系统 Node/pnpm 的安装、内置 DSH 页面 HTTP 200、媒体宿主启动和完整卸载验证；一次剧情冒烟和一次本机安装验收仍不等于长期剧情质量、真实游戏或正式签名 Release 已经完成。
+当前 `main` 已通过 30 项集成测试和 21 项平台测试，并通过独立 Work Orchestrator 5 项与小汤圆插件 103 项专项测试；饥荒、反馈服务和缺氧 Adapter 也有各自的自动检查。`smoke:dsh-story` 还会让当前 DSH 模型真实生成一段 Mock Game 剧情、完成金币目标，并在第二次启动后读回历史。Windows 安装器已完成不依赖系统 Node/pnpm 的安装、内置 DSH 页面 HTTP 200、媒体宿主启动和完整卸载验证；一次剧情冒烟和一次本机安装验收仍不等于长期剧情质量、真实游戏或正式签名 Release 已经完成。
 
 ## 开发者体验
 

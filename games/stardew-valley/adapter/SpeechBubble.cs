@@ -8,11 +8,14 @@ namespace StardewAgentMod;
 
 internal sealed class SpeechBubble
 {
-    private const long DurationMilliseconds = 6500;
+    private const long DefaultDurationMilliseconds = 6500;
+    private const long PostSpeechDurationMilliseconds = 5000;
     private readonly Func<Vector2?> anchorProvider;
     private string? text;
     private long startedAt;
     private bool persistent;
+    private bool speechActive;
+    private long durationMilliseconds = DefaultDurationMilliseconds;
 
     public SpeechBubble(Func<Vector2?> anchorProvider)
     {
@@ -23,19 +26,37 @@ internal sealed class SpeechBubble
     {
         this.text = nextText;
         this.startedAt = (Game1.currentGameTime?.TotalGameTime.Ticks ?? 0) / 10000;
-        this.persistent = false;
+        this.durationMilliseconds = DefaultDurationMilliseconds;
+        this.persistent = this.speechActive;
     }
 
     public void ShowStatus(string nextText)
     {
         this.text = nextText;
         this.startedAt = (Game1.currentGameTime?.TotalGameTime.Ticks ?? 0) / 10000;
+        this.durationMilliseconds = DefaultDurationMilliseconds;
         this.persistent = true;
     }
 
     public void Clear()
     {
         this.text = null;
+        this.persistent = false;
+        this.speechActive = false;
+    }
+
+    public void HoldForSpeech()
+    {
+        this.speechActive = true;
+        if (!string.IsNullOrWhiteSpace(this.text)) this.persistent = true;
+    }
+
+    public void ReleaseAfterSpeech()
+    {
+        this.speechActive = false;
+        if (string.IsNullOrWhiteSpace(this.text)) return;
+        this.startedAt = (Game1.currentGameTime?.TotalGameTime.Ticks ?? 0) / 10000;
+        this.durationMilliseconds = PostSpeechDurationMilliseconds;
         this.persistent = false;
     }
 
@@ -44,15 +65,15 @@ internal sealed class SpeechBubble
         if (string.IsNullOrWhiteSpace(this.text) || Game1.player is null) return;
         long now = (Game1.currentGameTime?.TotalGameTime.Ticks ?? 0) / 10000;
         long elapsed = now - this.startedAt;
-        if (!this.persistent && elapsed >= DurationMilliseconds)
+        if (!this.persistent && elapsed >= this.durationMilliseconds)
         {
             this.text = null;
             return;
         }
 
         float alpha = elapsed < 250 ? elapsed / 250f
-            : !this.persistent && elapsed > DurationMilliseconds - 600
-                ? (DurationMilliseconds - elapsed) / 600f
+            : !this.persistent && elapsed > this.durationMilliseconds - 600
+                ? (this.durationMilliseconds - elapsed) / 600f
                 : 1f;
         alpha = Math.Clamp(alpha, 0f, 1f);
 

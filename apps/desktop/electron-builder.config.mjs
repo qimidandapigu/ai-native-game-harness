@@ -6,6 +6,7 @@ const desktopRoot = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(desktopRoot, '../..')
 const manifest = JSON.parse(readFileSync(resolve(repoRoot, 'integrations/xiaotangyuan/manifest.json'), 'utf8'))
 const archiveName = `qimidandapigu-dsh-xiaotangyuan-game-${manifest.development.expectedVersion}.tgz`
+const workArchiveName = `qimidandapigu-dsh-work-orchestrator-${manifest.workOrchestrator.expectedVersion}.tgz`
 
 export default {
   appId: 'com.qimidandapigu.ai-native-game-harness',
@@ -33,6 +34,10 @@ export default {
     {
       from: resolve(repoRoot, `.artifacts/xiaotangyuan/${archiveName}`),
       to: `plugins/${archiveName}`,
+    },
+    {
+      from: resolve(repoRoot, `.artifacts/xiaotangyuan/${workArchiveName}`),
+      to: `plugins/${workArchiveName}`,
     },
     {
       from: resolve(repoRoot, 'integrations/xiaotangyuan/desktop.patch.yml'),

@@ -6,6 +6,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GameCoreService } from '@ai-native-game-harness/game-core'
 import type { AdapterSummary } from '@ai-native-game-harness/harness-core'
 import type { JsonObject, JsonValue } from '@ai-native-game-harness/adapter-protocol'
+import type { WorkOrchestratorService } from '@qimidandapigu/dsh-work-orchestrator'
 import type {
   GameAtomExecutor,
   ProductLearningSnapshot,
@@ -35,6 +36,7 @@ declare module '@deepseek-ai/cordis' {
   interface Context {
     gameCore: GameCoreService
     xiaotangyuanLearning: XiaoTangYuanLearningService
+    workOrchestrator: WorkOrchestratorService
   }
 }
 
@@ -151,13 +153,26 @@ class ProductLearningBinding {
     if (event.type !== 'turn/end' || event.data.turn !== turn.turn) return
     this.turns.delete(sessionId)
     if (event.data.reason.kind !== 'completed' || turn.reply === '') return
-    this.learningQueue = this.learningQueue.then(async () => this.learnTurn(sessionId, turn)).catch(error => {
-      this.ctx.logger.warn('ai-native-game-learning: background memory learning failed')
+    this.learningQueue = this.learningQueue.then(async () => this.processTurn(sessionId, turn)).catch(error => {
+      this.ctx.logger.warn('ai-native-game-learning: background post-turn processing failed')
       this.ctx.logger.warn(error)
     })
   }
 
-  private async learnTurn(sessionId: string, turn: ProductTurn): Promise<void> {
+  private async processTurn(sessionId: string, turn: ProductTurn): Promise<void> {
+    this.ctx.workOrchestrator.scheduleTurn({
+      companionSessionId: sessionId,
+      playerText: turn.playerText,
+      companionReply: turn.reply,
+      selection: this.ctx.agentDefaultModel.currentSelection(),
+      source: 'desktop',
+      companion: {
+        id: 'xiaotangyuan',
+        name: '小汤圆',
+        workerInstructions: '玩家通过 AI Native Game Harness Desktop 交付工作；优先复用 DSH 已安装能力。',
+        relayInstructions: '用简短自然的中文说明工作思路、进度或结果，并邀请玩家继续语音反馈。',
+      },
+    })
     const memory = this.ctx.xiaotangyuanLearning.memory
     const current = this.adapterContext()
     if (memory === undefined || current === undefined) return
@@ -386,7 +401,7 @@ class ProductLearningBinding {
 }
 
 export const name = 'ai-native-game-learning-binding'
-export const inject = ['agentDefaultModel', 'gameCore', 'sessions', 'tools', 'xiaotangyuanLearning']
+export const inject = ['agentDefaultModel', 'gameCore', 'sessions', 'tools', 'workOrchestrator', 'xiaotangyuanLearning']
 
 export function apply(ctx: Context): void {
   const binding = new ProductLearningBinding(ctx)

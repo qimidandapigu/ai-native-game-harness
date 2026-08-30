@@ -1,0 +1,22 @@
+# 合并管理
+
+- Task ID: `01a04c6a-e9a8-7b03-a1e3-7997378e0e71`
+- 状态：运行版修复和真实链路验证完成，最终安装包封装中
+- 分支与 worktree：`main` / `C:\game\ai-native-game-harness`（共享目录）
+- 目标：建立统一协作规则、检查冲突，并在其他任务交接后完成只读审计与最终集成。
+- 当前允许修改：
+  - `AGENTS.md`
+  - `docs/coordination/**`
+- 用户已授权本任务统一收口以下共享链路：
+  - `plugins/xiaotangyuan-game/**`
+  - `plugins/dsh-work-orchestrator/**`
+  - `runtime/dsh-profile/xiaotangyuan.patch.yml`
+  - 本机 Desktop Runtime 热部署与重启（不关闭游戏）
+- 已完成但待集成的功能改动：语音键修复、语音回答先显示气泡、相关测试。
+- 当前不修改：其他游戏功能源文件、版本号、锁文件和远端分支。
+- 本轮统一语义：小汤圆始终是兼具陪玩与办公能力的同一角色；公开回答先展示一次，随后才运行 Work 分类。普通工作进入真实 Work DSH Session；进度/反馈复用原 Session；只有玩家明确点名 Codex 才允许该 Work Session 委派 Codex。全局配置不得默认把所有工作送给 Codex。
+- 实际改动文件：`plugins/xiaotangyuan-game/src/runtime/agent/game-agent-session.ts`、`plugins/xiaotangyuan-game/test/game-session.test.ts`、`plugins/dsh-work-orchestrator/src/{config,index,work-orchestrator-service}.ts`、对应 Work 测试、两个插件 patch/README、`runtime/dsh-profile/xiaotangyuan.patch.yml`，以及本 claim/状态文档。未修改其他游戏功能源文件。
+- 已验证：Work Orchestrator `5/5`、小汤圆 `100/100`、平台 `21/21`，`git diff --check` 仅有既存 CRLF 提示。真实链路验证覆盖了“先回复后分类”、明确办公漏判兜底、同 Session 进度查询、无默认 Codex、无重复首句和玩家文本 Markdown 清理。
+- 真实结果：带实际星露谷进程 ID 的“明天汇报，帮我写 AI 改变游戏网页”在 `2ms` 内先回复“好的，我收到啦，先让我看看。”；随后创建 `dsh-work-b13f22e8-4a5c-4de9-8d53-c919353fc17c`，标题“AI改变游戏网页”，执行器 `dsh`。进度回归复用了既有 `dsh-work-6727f680-d4f8-4ca0-ad8d-7b055bf90080`，未创建新任务。
+- 本机部署：源码 `dist` 已覆盖 Desktop profile 的真实 pnpm 目标和已安装资源目录，哈希一致；只重启 Desktop/媒体宿主，未关闭星露谷。
+- 待完成：记录最终 NSIS 安装包哈希；等待其他活跃任务填写自己的 claim，再做全仓库差异审计。没有 commit、pull、merge、rebase 或 push。

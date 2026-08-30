@@ -28,6 +28,11 @@ public sealed class ModEntry : Mod
     public override void Entry(IModHelper helper)
     {
         this.config = helper.ReadConfig<ModConfig>();
+        if (this.config.BubbleYOffset == ModConfig.LegacyBubbleYOffset)
+        {
+            this.config.BubbleYOffset = ModConfig.DefaultBubbleYOffset;
+            helper.WriteConfig(this.config);
+        }
         this.companion = new CompanionLocator(helper, this.Monitor);
         this.growth = new CompanionGrowthSystem(this.companion, this.Monitor);
         this.speechBubble = new SpeechBubble(this.companion.TryGetWorldPosition);
@@ -37,6 +42,8 @@ public sealed class ModEntry : Mod
             if (!string.IsNullOrWhiteSpace(text)) this.speechBubble.ShowStatus(text);
         });
         this.client.AssistantPresented += text => this.mainThreadActions.Enqueue(() => this.speechBubble.Show(text));
+        this.client.AssistantSpeechStarted += () => this.mainThreadActions.Enqueue(this.speechBubble.HoldForSpeech);
+        this.client.AssistantSpeechFinished += () => this.mainThreadActions.Enqueue(this.speechBubble.ReleaseAfterSpeech);
         this.client.AssistantStatusChanged += (status, _) => this.mainThreadActions.Enqueue(() =>
         {
             if (string.Equals(this.assistantStatus, status, StringComparison.Ordinal)) return;

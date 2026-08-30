@@ -870,7 +870,7 @@
           <div class="section-kicker">00A · In-game evidence</div>
           <h2>AI 已经进入真实游戏画面</h2>
         </div>
-        <p class="section-summary">这些《星露谷物语》开发验证截图展示角色呈现、玩法互动和环境回应方向。图片用于说明已经做过的真实游戏探索，不替代当前版本的长期存档端到端验收。</p>
+        <p class="section-summary">这些《星露谷物语》《缺氧》和《饥荒联机版》开发验证截图展示角色呈现、玩法互动、环境回应和能力成长方向。图片用于说明已经做过的真实游戏探索，不替代当前版本的长期存档端到端验收。</p>
       </div>
       <div class="evidence-gallery">
         <figure class="evidence-shot">
@@ -884,6 +884,18 @@
         <figure class="evidence-shot">
           <img src="../site/games/stardew-valley-rainy-companion.jpg" alt="星露谷物语雨天场景中小汤圆回应环境">
           <figcaption><strong>对当前环境作出回应</strong><span>天气、地点与附近事件成为对话和动态剧情的事实依据。</span></figcaption>
+        </figure>
+        <figure class="evidence-shot">
+          <img src="../site/games/oxygen-not-included-companion.png" alt="缺氧殖民地中小汤圆陪伴复制人">
+          <figcaption><strong>成为殖民地的一员</strong><span>小汤圆以游戏内角色存在，围绕复制人与殖民地的真实状态继续陪伴。</span></figcaption>
+        </figure>
+        <figure class="evidence-shot">
+          <img src="../site/games/oxygen-not-included-water-skill.png" alt="缺氧中小汤圆根据水环境解锁吸水与喷水能力">
+          <figcaption><strong>从环境中获得新能力</strong><span>能力由真实事件触发，并由游戏规则确认是否已经学会和生效。</span></figcaption>
+        </figure>
+        <figure class="evidence-shot">
+          <img src="../site/games/dont-starve-together-skill-learning.png" alt="饥荒联机版中小汤圆回应玩家捕捉蝴蝶的行动目标">
+          <figcaption><strong>把玩家目标转成行动</strong><span>AI 结合当前世界与可用能力理解请求，形成可以继续执行和验证的行动方向。</span></figcaption>
         </figure>
       </div>
       <p class="evidence-note">画面来自本项目开发验证记录，非对应游戏官方宣传或合作声明；游戏名称、画面与原始素材权利归各自权利方所有。</p>
@@ -1147,12 +1159,12 @@
         <article class="feature card">
           <div class="feature-icon">LOOP</div>
           <h3>两级可运行闭环</h3>
-          <p>Fake Game 验证工具、状态、回执与 Trace；小汤圆集成流程会启动桌面同版本 Runtime，装入通用插件和 ONI Adapter，用本地模拟模型完成 Adapter 握手、状态更新、两轮真实流式对话，并验证同一存档重连后恢复原 Session。</p>
+          <p>Fake Game 验证工具、状态、回执与 Trace；小汤圆集成流程会启动桌面同版本 Runtime，装入独立 Work Orchestrator、小汤圆插件和 ONI Adapter，用本地模拟模型完成 Adapter 握手、状态更新、两轮真实流式对话，并验证同一存档重连后恢复原 Session。</p>
         </article>
         <article class="feature card">
           <div class="feature-icon">APP</div>
           <h3>Windows 桌面开发包</h3>
-          <p>Electron 已能启动内置 Runtime、隔离用户 Profile、装配小汤圆 <span class="mono">0.7.7</span> 和独立 ONI Adapter <span class="mono">0.1.6</span>，并生成约 <span class="mono">271 MiB</span> 的 NSIS <span class="mono">.exe</span>。实际安装后在不提供系统 Node/pnpm 的 PATH 下启动了 Renderer、DSH NodeService 与媒体 Host，本地 DSH 页面返回 HTTP 200，短路径静默卸载无残留；目前仍是未签名、未上传 Release 的本地开发产物。</p>
+          <p>Electron 已能启动内置 Runtime、隔离用户 Profile、装配 Work Orchestrator <span class="mono">0.1.0</span>、小汤圆 <span class="mono">0.7.7</span> 和独立 ONI Adapter <span class="mono">0.1.6</span>，并生成约 <span class="mono">271 MiB</span> 的 NSIS <span class="mono">.exe</span>。实际安装后在不提供系统 Node/pnpm 的 PATH 下启动了 Renderer、DSH NodeService 与媒体 Host，本地 DSH 页面返回 HTTP 200，短路径静默卸载无残留；目前仍是未签名、未上传 Release 的本地开发产物。</p>
         </article>
         <article class="feature card">
           <div class="feature-icon">WIRE</div>
@@ -1174,7 +1186,7 @@
       </div>
       <div class="state-law card">
         <strong>验证边界</strong>
-        <span><span class="mono">pnpm check</span> 已覆盖工作区构建、29 项集成测试和 20 项平台测试；<span class="mono">pnpm check:xiaotangyuan</span> 又通过饥荒 25 项、反馈服务 4 项、ONI Adapter 14 项和小汤圆插件 84 项测试。<span class="mono">smoke:dsh-product</span>、<span class="mono">smoke:dsh-adapter</span> 与 <span class="mono">smoke:dsh-story</span> 当前均通过：剧情冒烟让当前 headless DSH 模型生成并完成金币 StoryBeat，第二次启动后读回同一条 completed 历史和 revision 2 证据。安装包还完成了敏感标识扫描、SHA256、隔离安装、产品主链启动和完整卸载验证。一次 Mock Game 冒烟和一次本机安装不能替代真实游戏存档、长时间连续剧情、多样本质量验收或公开签名。</span>
+        <span>当前已通过 30 项集成测试、21 项平台测试、独立 Work Orchestrator 5 项和小汤圆插件 103 项测试；饥荒、反馈服务和 ONI Adapter 另有各自的自动检查。<span class="mono">smoke:dsh-product</span>、<span class="mono">smoke:dsh-adapter</span> 与 <span class="mono">smoke:dsh-story</span> 的既有验证记录还覆盖了产品接线、Adapter 与剧情持久化。自动测试和一次本机安装不能替代真实游戏存档、真实语音、长时间连续剧情、多样本质量验收或公开签名。</span>
       </div>
     </section>
 
@@ -1189,7 +1201,7 @@
       <div class="surface-grid">
         <article class="feature card"><div class="feature-icon">APP</div><h3>apps / runtime</h3><p><span class="mono">apps/desktop</span> 管理窗口、产品 IPC 与内置 DSH 子进程；<span class="mono">runtime/dsh-profile</span> 固定上游版本、默认配置与插件装配，不自研另一套通用 Runtime。</p></article>
         <article class="feature card"><div class="feature-icon">BIND</div><h3>packages / dsh-binding</h3><p>默认产品接线：把 DSH Agent 的游戏 Tool Call 映射为 Harness Core action，并把 ActionResult 与新 Observation 返回 DSH Agent。</p></article>
-        <article class="feature card"><div class="feature-icon">PLUG</div><h3>plugins</h3><p>Game Core、Transport、Learning Binding、Story Generator 与小汤圆现有 Memory、Skill、Media、Installer 能力遵循 DSH 的注入、事件和可逆生命周期；学习与剧情接线都不拥有第二套 Session。</p></article>
+        <article class="feature card"><div class="feature-icon">PLUG</div><h3>plugins</h3><p>Work Orchestrator、Game Core、Transport、Learning Binding、Story Generator 与小汤圆现有 Memory、Skill、Media、Installer 能力遵循 DSH 的注入、事件和可逆生命周期。Work Orchestrator 独立管理通用 Worker DSH Session；小汤圆只是调用者，游戏自学习与剧情仍复用原产品 Session。</p></article>
         <article class="feature card"><div class="feature-icon">WIRE</div><h3>contracts</h3><p>独立定义 Harness 与 C#、Lua、C++ Mod 共同使用的 Bridge 消息和 Schema，避免线协议反向依赖某个 TypeScript 插件。</p></article>
         <article class="feature card"><div class="feature-icon">GAME</div><h3>games / &lt;game&gt;</h3><p>同一游戏的 Harness Plugin、薄 Native Bridge 与 Pack 放在一起，确保它们共同测试、固定兼容范围并作为一个 Game Pack 发行。</p></article>
         <article class="feature card"><div class="feature-icon">TEST</div><h3>tests</h3><p>分别验证协议兼容、DSH 插件装配、持久 Session 事件与游戏 Trace 关联、最终游戏状态，明确区分“能够构建”和“真的执行成功”。</p></article>

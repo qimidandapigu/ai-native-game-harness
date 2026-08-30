@@ -1,6 +1,6 @@
 # @qimidandapigu/dsh-xiaotangyuan-game
 
-AI Native Game Harness 的“小汤圆游戏 AI”通用运行时，底层运行在内置 DSH Runtime 中。当前插件版本为 `0.7.7`，源码由 AI Native Game Harness 主仓库统一维护。
+AI Native Game Harness 的“小汤圆游戏 AI”通用运行时，底层运行在内置 DSH Runtime 中。当前插件版本为 `0.7.9`，源码由 AI Native Game Harness 主仓库统一维护。
 
 ## 职责
 
@@ -11,12 +11,14 @@ AI Native Game Harness 的“小汤圆游戏 AI”通用运行时，底层运行
 - 本地 WebSocket Gateway。
 - 游戏适配器检测、下载、校验、备份、安装和回滚。
 - 暴露星露谷和饥荒的 Mod 检测/安装工具给 Harness Agent。
+- 通过注入的 Work Orchestrator 把已完成回答交给独立 Worker DSH Session；本插件只提供小汤圆角色规则和展示出口。
+- 为后台 Worker 提供智谱原生 `web_search` 实现；Worker 模型与生命周期由独立 Work Orchestrator 配置。
 
 游戏专属 DLL 不打进本插件。编译后的适配器通过同仓库独立 Release 按需下载。
 
 ## 安装
 
-`0.7.7` 是当前源码版本，尚未公开发布。公开稳定版仍为 `0.5.1`；开发测试请先在仓库根目录构建：
+`0.7.9` 是当前源码版本，尚未公开发布。公开稳定版仍为 `0.5.1`；开发测试请先在仓库根目录构建：
 
 ```powershell
 pnpm install
@@ -24,10 +26,11 @@ pnpm check:xiaotangyuan
 pnpm integration:xiaotangyuan
 ```
 
-`integration:xiaotangyuan` 会同时构建 Windows 媒体 Host、插件和隔离 DSH Profile。然后安装 `.artifacts/xiaotangyuan/` 中生成的本地包：
+`integration:xiaotangyuan` 会同时构建 Windows 媒体 Host、Work Orchestrator、小汤圆插件和隔离 DSH Profile。然后按顺序安装 `.artifacts/xiaotangyuan/` 中生成的本地包：
 
 ```powershell
-dsh plugin --profile web add ".\qimidandapigu-dsh-xiaotangyuan-game-0.7.7.tgz"
+dsh plugin --profile web add ".\qimidandapigu-dsh-work-orchestrator-0.1.0.tgz"
+dsh plugin --profile web add ".\qimidandapigu-dsh-xiaotangyuan-game-0.7.9.tgz"
 ```
 
 只有在对应 Release 实际创建后，才应使用新的 GitHub 下载地址。
@@ -69,6 +72,8 @@ Gateway 只允许 `127.0.0.1`、`localhost` 或 `::1`，不会暴露到局域网
 | `memory.autoLearn` | `true` | 回答后自动提取记忆，并在会话结束时形成阶段总结 |
 | `memory.profileId` | `default` | 同一台电脑上区分不同玩家的本地记忆 Profile |
 | `memory.maxGameEntries` | `300` | 每个游戏存档保留的游戏记忆软上限 |
+| `web-search-zhipu.apiKeyEnv` | `ZHIPU_API_KEY` | 智谱联网搜索凭据引用，不保存 Key 内容 |
+| `web-search-zhipu.searchEngine` | `search_pro_sogou` | 智谱结构化联网搜索引擎；当前默认返回可引用 URL |
 | `installers.dontStarve.manifestUrl` | 官方 v1 清单 | 饥荒安装包发布清单 |
 | `installers.dontStarve.archivePath` | 无 | 仅供本地开发的绝对 ZIP 路径；必须同时配置版本和 SHA-256 |
 
@@ -111,6 +116,16 @@ Provider 接口是厂商无关的，但 `0.7.6` 实际内置的语音实现只�
 游戏 Agent 直接使用支持图片输入的模型，不先生成视觉描述，也不再串接第二个对话模型；同一请求会携带游戏窗口截图和经过校验、限长的 `AI-Native Game Context v1`。通用插件默认 `F8`，桌面游戏版默认 `V`，都只在已连接的游戏窗口位于前台时触发录音。流式 ASR 的中间转写和最终转写只在 Harness 内部交给 Agent，不再把玩家原话重复回显到游戏气泡。再次按下语音键会中止当前回复和音频播放。一个 profile 当前只有一个全局键，可用 Virtual-Key `81` 配置 Q、`86` 配置 V。Gateway 还提供 `chat.retry`（保留会话但禁止重复反馈）和 `assistant.compose`（一次性生成，不污染对话记忆）。
 
 主动聊天由 Harness 统一调度，默认在玩家连续 3 分钟没有文字或语音交互后触发。Harness 会截取对应游戏窗口，把画面交给该游戏 Agent，并通过 Adapter 显示回复；语音可用时同时播放 TTS。星露谷、饥荒和缺氧共用这一设置，Adapter 不再分别维护聊天计时器。
+
+## 回答后的工作技能
+
+工作能力已经拆为独立的 `@qimidandapigu/dsh-work-orchestrator` DSH 插件；小汤圆通过 Cordis 的 `workOrchestrator` 服务使用它，不再拥有工作识别、Worker 生命周期或关联存储。
+
+玩家可以在游戏中用语音提出“帮我查资料”“做一个汇报 HTML”或“让 Codex 再优化一下”等通用工作请求。小汤圆原 DSH Session 先用不超过三句的自然语言完成本轮回答；只有回答结束后，Work Orchestrator 才判断是否需要工作能力，因此识别和执行不会阻塞本轮首字与语音回复。
+
+确认是新工作后，Work Orchestrator 通过 DSH 原生 `ctx.agents.create()` 创建独立 Worker DSH Session；后续修改、确认和进度询问继续关联同一个 Session。Worker 优先使用 DSH 已安装的插件、技能与工具，不引入 `work_task_create`，也不建立任务中心。Worker 的思路、进度或结果会回传给小汤圆 Session，由小汤圆在游戏内展示；语音连接存在时同时播报。普通聊天和游戏操作不会创建 Worker。旧 `xiaotangyuan-work-*` Session 关联会自动迁移。
+
+游戏版 Bundle 会把 DSH 的 `web.searchProvider` 固定为 `zhipu-official`，并禁用内置 `deepseek-official` 搜索行。每次搜索都通过 DSH 凭据服务动态解析 `ZHIPU_API_KEY`，调用智谱结构化 Web Search API，把网页来源交回使用 `GLM-5.2` 的 Worker；响应缺少结构化结果时会明确失败，不把模型自由文本伪装成搜索结果。
 
 ## 隔离长期记忆
 

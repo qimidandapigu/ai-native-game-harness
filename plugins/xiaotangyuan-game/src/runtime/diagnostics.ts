@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 export const PRODUCT_DIAGNOSTIC_PREFIX = 'AI_GAME_HARNESS_DIAGNOSTIC '
 
-export type ProductDiagnosticKind = 'game-agent.latency' | 'voice.latency' | 'voice.failed'
+export type ProductDiagnosticKind = 'game-agent.latency' | 'voice.latency' | 'voice.failed' | 'voice.cancelled'
 
 export interface ProductDiagnosticRecord {
   schemaVersion: 1

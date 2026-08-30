@@ -1,0 +1,11 @@
+- insert:
+    - id: work-orchestrator
+      name: '@qimidandapigu/dsh-work-orchestrator'
+      config:
+        enabled: true
+        provider: zai
+        model: glm-5.2
+        reasoningEffort: off
+        codex:
+          executable: codex
+          reasoningEffort: high

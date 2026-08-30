@@ -114,6 +114,12 @@ input:focus, select:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 
 .secondary { width: 100%; margin-top: 14px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 11px; }
 .secondary:disabled { cursor: not-allowed; opacity: .42; }
 .primary { border: 0; background: var(--mint); color: #062019; font-weight: 650; }
+.work-session-details { display: grid; gap: 5px; margin-top: 11px; padding: 10px 11px; border: 1px solid rgba(101,230,196,.24); border-radius: 9px; background: rgba(101,230,196,.07); }
+.work-session-details strong { color: #dcf4ee; font-size: 11px; }
+.work-session-details span { color: var(--mint); font-size: 9px; }
+.work-session-details code { color: #93abad; font: 8px/1.45 Consolas, monospace; overflow-wrap: anywhere; }
+.work-session-details button { justify-self: start; margin-top: 3px; border: 1px solid rgba(101,230,196,.28); border-radius: 7px; padding: 6px 9px; background: rgba(101,230,196,.1); color: var(--mint); font-size: 9px; cursor: pointer; }
+.work-session-details button:hover { background: rgba(101,230,196,.18); }
 
 .learning-intro { align-items: center; }
 .story-intro { align-items: center; }

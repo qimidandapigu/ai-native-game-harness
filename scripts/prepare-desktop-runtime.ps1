@@ -6,6 +6,8 @@ $manifestPath = Join-Path $repoRoot 'integrations/xiaotangyuan/manifest.json'
 $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
 $archiveName = "qimidandapigu-dsh-xiaotangyuan-game-$($manifest.development.expectedVersion).tgz"
 $archivePath = Join-Path $repoRoot ".artifacts/xiaotangyuan/$archiveName"
+$workArchiveName = "qimidandapigu-dsh-work-orchestrator-$($manifest.workOrchestrator.expectedVersion).tgz"
+$workArchivePath = Join-Path $repoRoot ".artifacts/xiaotangyuan/$workArchiveName"
 $oniArchiveName = "qimidandapigu-oni-adapter-$($manifest.oniAdapter.expectedVersion).tgz"
 $oniArchivePath = Join-Path $repoRoot ".artifacts/xiaotangyuan/$oniArchiveName"
 $runtimeRoot = Join-Path $repoRoot '.artifacts/desktop-runtime'
@@ -15,6 +17,9 @@ $artifactRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot '.artifacts'))
 
 if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
   throw "Desktop plugin archive was not found: $archivePath"
+}
+if (-not (Test-Path -LiteralPath $workArchivePath -PathType Leaf)) {
+  throw "Desktop Work Orchestrator archive was not found: $workArchivePath"
 }
 if (-not (Test-Path -LiteralPath $oniArchivePath -PathType Leaf)) {
   throw "Desktop ONI Adapter archive was not found: $oniArchivePath"
@@ -49,6 +54,9 @@ try {
   try {
     pnpm --ignore-workspace --config.node-linker=hoisted install --prod --ignore-scripts | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "runtime DSH installation failed with exit code $LASTEXITCODE" }
+
+    pnpm --ignore-workspace --config.node-linker=hoisted add --prod --save-exact --ignore-scripts $workArchivePath | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "runtime Work Orchestrator installation failed with exit code $LASTEXITCODE" }
 
     pnpm --ignore-workspace --config.node-linker=hoisted add --prod --save-exact --ignore-scripts $archivePath | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "runtime plugin installation failed with exit code $LASTEXITCODE" }
@@ -131,6 +139,7 @@ $stagePackage = [ordered]@{
   app = $appRoot
   runtime = $runtimeRoot
   plugin = $archivePath
+  workOrchestrator = $workArchivePath
   oniAdapter = $oniArchivePath
   dsh = $manifest.compatibility.desktopDsh
 } | ConvertTo-Json
