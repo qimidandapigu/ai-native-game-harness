@@ -142,8 +142,12 @@ cd ai-native-game-harness
 pnpm install --frozen-lockfile
 pnpm check
 pnpm smoke:dsh-story
+pnpm desktop:dev:prepare
+pnpm desktop:dev
 pnpm desktop:demo
 ```
+
+`desktop:dev:prepare` 只准备源码开发所需的插件和增量构建，不安装独立生产 Runtime，也不生成 NSIS；日常修改 Desktop 后直接运行 `desktop:dev`。修改小汤圆、Work Orchestrator、ONI Adapter 或共享插件后，执行一次 `desktop:dev:sync` 再重新启动开发版。完整 `desktop:prepare / pack / dist` 只用于发行目录、安装器和最终发布验证。
 
 第三方游戏接入可以从 [`examples/adapter-starter`](examples/adapter-starter) 开始。
 

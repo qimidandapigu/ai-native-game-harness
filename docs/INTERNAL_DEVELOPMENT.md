@@ -217,13 +217,28 @@ pnpm smoke:dsh-product
 
 两条冒烟不包含在 `pnpm check` 中，必须看到脚本定义的成功结果才算通过。详细排错见 [常见问题与排错](xiaotangyuan/TROUBLESHOOTING.md)。
 
-桌面开发与打包：
+桌面源码开发：
+
+```powershell
+pnpm desktop:dev:prepare
+pnpm desktop:dev
+pnpm desktop:dev:sync  # 插件或共享 Runtime 代码变化后执行，再重启 desktop:dev
+```
+
+- `desktop:dev:prepare` / `desktop:dev:sync` 只增量构建源码依赖、按需重建媒体 Host，并生成开发用插件归档；不会安装第二套生产 DSH Runtime、运行完整冒烟或生成安装器。
+- `desktop:dev` 使用仓库依赖直接启动 Electron，并把 DSH_HOME、插件标记和 Session 隔离到 `.artifacts/desktop-dev-user-data`，不会覆盖已安装游戏版的 profile。
+- 开发环境根据插件归档 SHA-256 而不是版本号判断更新，因此同一开发版本下修改代码也会重新安装插件。
+
+发行验证与打包：
 
 ```powershell
 pnpm desktop:dsh
 pnpm desktop:prepare
+pnpm desktop:pack
 pnpm desktop:dist
 ```
+
+日常开发不运行 `desktop:dist`。功能稳定后先用 `desktop:pack` 检查解压目录；只有 Beta、Release Candidate 或正式发布才生成并安装 NSIS。
 
 ## 发布与版本边界
 

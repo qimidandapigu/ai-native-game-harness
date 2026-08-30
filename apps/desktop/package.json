@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "start": "electron .",
+    "dev": "cross-env AI_GAME_HARNESS_DEV=1 electron .",
     "start:demo": "cross-env AI_GAME_HARNESS_DEMO=1 electron .",
     "start:mock": "pnpm run start:demo",
     "start:dsh": "electron .",

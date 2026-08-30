@@ -1,0 +1,23 @@
+# 轻量 Desktop 源码开发流程
+
+- Task ID: `desktop-dev-workflow-20260831`
+- 状态：已提交，完整源码启动验收待后续继续
+- 分支与 worktree：`feat/lightweight-desktop-dev` / `F:\game\ai-native-game-harness-dev-workflow-20260831`
+- 目标：新增无需生成 NSIS 安装包的 Desktop 源码开发模式，并保留现有完整发行流程。
+- 允许修改：
+  - `package.json`
+  - `apps/desktop/src/main.mjs`
+  - `scripts/prepare-desktop-dev.ps1`
+  - `scripts/pack-desktop-dev-plugins.mjs`
+  - `README.md`
+  - `docs/INTERNAL_DEVELOPMENT.md`
+  - `docs/xiaotangyuan/DEVELOPMENT.md`
+  - `site/index.html`
+  - `site/developers.html`
+  - `site/styles.css`
+  - 本 claim 文件
+- 共享热点：`package.json`、`README.md`（用户已明确要求提交代码并更新文档和网页，本任务在独立 worktree 中统一处理）。
+- 不修改：稳定分支与标签、Electron Builder 发行配置、游戏 Mod、安装到本机的 Desktop/DSH profile。
+- 已验证：依赖安装、Node/PowerShell 语法检查、开发插件增量准备（14.5 秒）、隔离开发 profile、`git diff --check`。
+- 待继续：Electron 源码窗口可启动，但当前 preload 加载与 DSH Web 就绪尚未完成验收；包级回归、HTML 浏览器验收、NSIS 和真实游戏验收本次未执行。
+- 交接：测试 Electron/Node 进程已停止；稳定分支与标签、已安装 Desktop、生产 DSH profile 和游戏 Mod 均未修改。

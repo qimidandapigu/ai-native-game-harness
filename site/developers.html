@@ -20,7 +20,7 @@
   <title>AI Native Game Harness｜开发者接入</title>
   <link rel="canonical" href="https://qimidandapigu.github.io/ai-native-game-harness/developers.html">
   <link rel="icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=20260828-2">
+  <link rel="stylesheet" href="styles.css?v=20260831-2">
   <script
     defer
     src="https://vibecafe.ai/telemetry/v1.js"
@@ -40,6 +40,7 @@
       <a href="#integration">接入方式</a>
       <a href="#architecture">架构边界</a>
       <a href="#protocols">协议与发行</a>
+      <a href="#development">开发流程</a>
       <a href="#status">当前状态</a>
     </nav>
     <div class="audience-switch" aria-label="选择页面版本">
@@ -210,6 +211,21 @@
       </div>
     </section>
 
+    <section class="section development-cycle" id="development">
+      <div class="section-heading">
+        <div><p class="eyebrow"><span></span> SOURCE FIRST · PACKAGE LATER</p><h2>开发时直接运行源码，<br>稳定后再生成安装包</h2></div>
+        <p>日常修改不需要反复压缩整套 DSH Runtime。开发版、发行目录和 Windows 安装器是三种不同的验证层级。</p>
+      </div>
+      <div class="development-cycle-grid" aria-label="Desktop 开发与发行流程">
+        <article class="active"><span>01 · DAILY</span><h3>源码开发</h3><code>pnpm desktop:dev</code><p>直接启动 Electron 和仓库 Runtime；插件按内容指纹更新，不生成安装包。</p></article>
+        <i>→</i>
+        <article><span>02 · FEATURE</span><h3>目录包验证</h3><code>pnpm desktop:pack</code><p>检查打包后的目录结构、资源路径和内置 Runtime，不执行 NSIS 安装。</p></article>
+        <i>→</i>
+        <article><span>03 · RELEASE</span><h3>安装包验收</h3><code>pnpm desktop:dist</code><p>仅在 Beta、候选版和正式发布时验证安装、启动、升级与卸载。</p></article>
+      </div>
+      <div class="development-cycle-note"><b>一次准备，多次运行</b><span>首次执行 <code>pnpm desktop:dev:prepare</code>；插件源码变化后执行 <code>pnpm desktop:dev:sync</code>。</span></div>
+    </section>
+
     <section class="section story-demo" id="evidence">
       <div class="story-copy">
         <p class="eyebrow"><span></span> AUTHORITATIVE LOOP</p>
@@ -232,7 +248,7 @@
       <div class="status-board">
         <article><span class="status done">可运行</span><h3>Core 与协议</h3><p>Harness Core、Adapter Protocol、WebSocket Host、Game Pack 注册表与一致性检查。</p></article>
         <article><span class="status done">有示例</span><h3>接入起点</h3><p>Adapter Starter、Mock Game，以及星露谷、饥荒和缺氧的不同语言实现。</p></article>
-        <article><span class="status testing">开发验证</span><h3>桌面与发行</h3><p>Windows 本地安装链已验证；正式签名 Release 与开放生态安全策略尚未完成。</p></article>
+        <article><span class="status testing">开发验证</span><h3>桌面与发行</h3><p>源码开发已与 NSIS 打包解耦；Windows 本地安装链已验证，正式签名 Release 与开放生态安全策略尚未完成。</p></article>
       </div>
     </section>
 

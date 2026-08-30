@@ -44,6 +44,9 @@ games/oxygen-not-included/bridge
 pnpm install
 pnpm check
 pnpm check:xiaotangyuan
+pnpm desktop:dev:prepare
+pnpm desktop:dev
+pnpm desktop:dev:sync
 pnpm integration:xiaotangyuan
 pnpm desktop:dist
 dotnet build games/stardew-valley/adapter/StardewAgentMod.csproj -c Release
@@ -57,6 +60,9 @@ dotnet build games/oxygen-not-included/bridge/DoubaoAI.ONI.csproj -c Release
 |---|---|
 | `pnpm check` | Game Core、Transport、Fake Game 的构建与集成测试 |
 | `pnpm check:xiaotangyuan` | 饥荒、反馈接收端、ONI Adapter 和小汤圆插件的完整检查 |
+| `pnpm desktop:dev:prepare` | 首次准备 Desktop 源码开发依赖和开发插件，不生成安装包 |
+| `pnpm desktop:dev` | 使用独立开发 DSH_HOME 直接运行 Electron 源码，不重新准备发行 Runtime |
+| `pnpm desktop:dev:sync` | 插件代码变化后增量构建、打开发归档并按 SHA-256 触发下次启动更新 |
 | `pnpm integration:xiaotangyuan` | 构建媒体 Host、小汤圆与 ONI Adapter 包，启动桌面同版本 DSH，并用本地模拟模型验证 Web、Gateway、状态和对话闭环 |
 | `pnpm desktop:dist` | 准备内置 DSH Runtime、小汤圆插件和桌面配置，生成 Windows NSIS 安装包 |
 | `dotnet build games/stardew-valley/adapter/StardewAgentMod.csproj -c Release` | 编译星露谷 `StardewAgentMod.dll` |
@@ -119,6 +125,18 @@ dsh-xiaotangyuan-game-stardew-<adapter-version>.zip
 10. 反馈接收端只授予目标仓库 Issues 写权限，并验证签名、时间戳和 nonce。
 
 构建成功不等于游戏内验证成功。发布后仍需重启对应游戏，检查游戏日志，并完成一次真实文字/语音对话。缺氧还要确认 ONI Adapter 已建立到 `33145` 的连接、媒体 Host 存活且当前 PID 的桥目录被选中。
+
+## 开发与发行分层
+
+日常开发直接运行源码；不要把 NSIS 当作代码刷新机制：
+
+1. 新 checkout 或依赖变化：`pnpm install --frozen-lockfile`，然后 `pnpm desktop:dev:prepare`。
+2. 只改 Desktop HTML / CSS / JS：重新运行 `pnpm desktop:dev`。
+3. 修改小汤圆、Work Orchestrator、ONI Adapter、Transport、Learning 或 Story：运行 `pnpm desktop:dev:sync`，再重启 `desktop:dev`。
+4. 功能阶段验收：运行 `pnpm desktop:pack` 检查 unpacked 目录。
+5. Beta 或正式发布：运行 `pnpm desktop:dist` 并单独完成安装、启动、卸载和真实游戏验收。
+
+完整发行脚本保持不变；源码开发模式不会修改已经安装的 Desktop、Steam Mods 或正式 DSH profile。
 
 ## 发布前检查表
 

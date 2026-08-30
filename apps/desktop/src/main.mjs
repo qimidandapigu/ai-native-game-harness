@@ -1,4 +1,5 @@
 import { createServer } from 'node:net'
+import { createHash } from 'node:crypto'
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
@@ -12,6 +13,9 @@ import { buildDiagnosticBundle, diagnosticFilename } from './diagnostics.mjs'
 const require = createRequire(import.meta.url)
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repoRoot = resolve(desktopRoot, '../..')
+if (!app.isPackaged && process.env.AI_GAME_HARNESS_DEV === '1') {
+  app.setPath('userData', resolve(process.env.AI_GAME_HARNESS_DEV_USER_DATA ?? join(repoRoot, '.artifacts', 'desktop-dev-user-data')))
+}
 let mainWindow
 let dshProcess
 let dshExitCode = null
@@ -159,20 +163,21 @@ function runtimePaths() {
   const patchPath = packaged
     ? join(resourceRoot, 'config', 'xiaotangyuan.patch.yml')
     : join(repoRoot, 'integrations', 'xiaotangyuan', 'desktop.patch.yml')
-  const pluginArchive = readdirSync(pluginRoot)
-    .filter((name) => /^qimidandapigu-dsh-xiaotangyuan-game-.+\.tgz$/.test(name))
-    .sort()
-    .at(-1)
+  const developmentManifest = packaged
+    ? undefined
+    : JSON.parse(readFileSync(join(repoRoot, 'integrations', 'xiaotangyuan', 'manifest.json'), 'utf8'))
+  const pluginArchive = packaged
+    ? readdirSync(pluginRoot).filter((name) => /^qimidandapigu-dsh-xiaotangyuan-game-.+\.tgz$/.test(name)).sort().at(-1)
+    : `qimidandapigu-dsh-xiaotangyuan-game-${developmentManifest.development.expectedVersion}.tgz`
   if (!pluginArchive) throw new Error(`未找到小汤圆插件包：${pluginRoot}`)
-  const workArchive = readdirSync(pluginRoot)
-    .filter((name) => /^qimidandapigu-dsh-work-orchestrator-.+\.tgz$/.test(name))
-    .sort()
-    .at(-1)
+  const workArchive = packaged
+    ? readdirSync(pluginRoot).filter((name) => /^qimidandapigu-dsh-work-orchestrator-.+\.tgz$/.test(name)).sort().at(-1)
+    : `qimidandapigu-dsh-work-orchestrator-${developmentManifest.workOrchestrator.expectedVersion}.tgz`
   if (!workArchive) throw new Error(`未找到 Work Orchestrator 插件包：${pluginRoot}`)
-  const oniArchive = app.isPackaged ? undefined : readdirSync(pluginRoot)
-    .filter((name) => /^qimidandapigu-oni-adapter-.+\.tgz$/.test(name))
-    .sort()
-    .at(-1)
+  const oniArchive = packaged ? undefined : `qimidandapigu-oni-adapter-${developmentManifest.oniAdapter.expectedVersion}.tgz`
+  for (const archive of [pluginArchive, workArchive, oniArchive].filter(Boolean)) {
+    if (!existsSync(join(pluginRoot, archive))) throw new Error(`未找到开发插件包：${join(pluginRoot, archive)}`)
+  }
   if (!app.isPackaged && !oniArchive) throw new Error(`未找到缺氧 Adapter 包：${pluginRoot}`)
 
   const runtimeRequire = packaged
@@ -185,13 +190,24 @@ function runtimePaths() {
   const dshBin = join(dirname(dshPackage), 'lib', 'bin.js')
   const oniVersion = JSON.parse(readFileSync(oniPackage, 'utf8')).version
 
+  const fingerprint = (path, version) => packaged
+    ? version
+    : `${version}:${createHash('sha256').update(readFileSync(path)).digest('hex')}`
+  const pluginPath = join(pluginRoot, pluginArchive)
+  const workPluginPath = join(pluginRoot, workArchive)
+  const oniPath = oniArchive ? join(pluginRoot, oniArchive) : undefined
+  const pluginVersion = pluginArchive.replace(/^.*-game-/, '').replace(/\.tgz$/, '')
+  const workPluginVersion = workArchive.replace(/^.*-orchestrator-/, '').replace(/\.tgz$/, '')
+
   return {
     dshBin,
     patchPath,
-    pluginPath: join(pluginRoot, pluginArchive),
-    pluginVersion: pluginArchive.replace(/^.*-game-/, '').replace(/\.tgz$/, ''),
-    workPluginPath: join(pluginRoot, workArchive),
-    workPluginVersion: workArchive.replace(/^.*-orchestrator-/, '').replace(/\.tgz$/, ''),
+    pluginPath,
+    pluginVersion,
+    pluginFingerprint: fingerprint(pluginPath, pluginVersion),
+    workPluginPath,
+    workPluginVersion,
+    workPluginFingerprint: fingerprint(workPluginPath, workPluginVersion),
     corePluginPath: packaged
       ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-core', 'dist', 'index.js')
       : join(repoRoot, 'plugins', 'game-core', 'dist', 'index.js'),
@@ -204,8 +220,9 @@ function runtimePaths() {
     storyPluginPath: packaged
       ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'dsh-story-generator', 'dist', 'index.js')
       : join(repoRoot, 'plugins', 'dsh-story-generator', 'dist', 'index.js'),
-    oniPath: oniArchive ? join(pluginRoot, oniArchive) : undefined,
+    oniPath,
     oniVersion,
+    oniFingerprint: oniPath ? fingerprint(oniPath, oniVersion) : oniVersion,
   }
 }
 
@@ -259,7 +276,7 @@ function runDshOnce(args, paths) {
 async function ensurePlugin(paths) {
   const stateRoot = join(app.getPath('userData'), 'runtime-state')
   const markerPath = join(stateRoot, 'xiaotangyuan.version')
-  const expectedVersion = `${paths.pluginVersion};work=${paths.workPluginVersion};oni=${paths.oniVersion}`
+  const expectedVersion = `${paths.pluginFingerprint};work=${paths.workPluginFingerprint};oni=${paths.oniFingerprint}`
   const installedVersion = existsSync(markerPath) ? readFileSync(markerPath, 'utf8').trim() : ''
 
   if (app.isPackaged) {
