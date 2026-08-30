@@ -4,23 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#071018">
-  <meta name="description" content="让 AI 上班，让人回家玩游戏。把生产力工具接进游戏 NPC：玩家继续种田、钓鱼和探险，NPC 接过工作并主动回来汇报。">
+  <meta name="description" content="AI Native Game Harness 让 AI 真正进入单机游戏：理解局面、参与行动、记住共同经历，并根据真实游戏状态推动故事继续生长。">
   <meta name="robots" content="index,follow">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:site_name" content="AI Native Game Harness">
-  <meta property="og:title" content="AI Native Game Harness｜让 AI 上班，让人回家玩游戏">
-  <meta property="og:description" content="玩家继续玩游戏，NPC 接过工作、调用生产力工具，并在完成后回到游戏里汇报。">
+  <meta property="og:title" content="AI Native Game Harness｜让 AI 真正进入游戏">
+  <meta property="og:description" content="给单机游戏装上一个会观察、会行动、会记忆、会成长的 AI 伙伴。">
   <meta property="og:url" content="https://qimidandapigu.github.io/ai-native-game-harness/">
   <meta property="og:image" content="https://qimidandapigu.github.io/ai-native-game-harness/og.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="AI Native Game Harness｜让 AI 上班，让人回家玩游戏">
-  <meta name="twitter:description" content="玩家继续玩游戏，NPC 接过工作并主动回来汇报。">
+  <meta name="twitter:title" content="AI Native Game Harness｜让 AI 真正进入游戏">
+  <meta name="twitter:description" content="给单机游戏装上一个会观察、会行动、会记忆、会成长的 AI 伙伴。">
   <meta name="twitter:image" content="https://qimidandapigu.github.io/ai-native-game-harness/og.png">
-  <title>AI Native Game Harness｜让 AI 上班，让人回家玩游戏</title>
+  <title>AI Native Game Harness｜让 AI 真正进入游戏</title>
   <link rel="canonical" href="https://qimidandapigu.github.io/ai-native-game-harness/">
   <link rel="icon" href="logo.png">
-  <link rel="stylesheet" href="styles.css?v=20260828-2">
+  <link rel="stylesheet" href="styles.css?v=20260831-1">
   <script
     defer
     src="https://vibecafe.ai/telemetry/v1.js"
@@ -53,18 +53,18 @@
   <main id="content">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow"><span></span> OPEN SOURCE · LET NPC WORK</p>
+        <p class="eyebrow"><span></span> OPEN SOURCE · AI COMPANION FOR GAMES</p>
         <p class="product-pill"><span>首个产品角色</span> 游戏内 NPC「小汤圆」</p>
-        <h1>让 AI 上班<br><em>让人回家玩游戏</em></h1>
-        <p class="hero-lead">如果人生能像《星露谷物语》一样就好了。你继续种田、钓鱼和探险，小汤圆听懂工作要求、接过耗时的活，做好以后再回到游戏里向你汇报。</p>
+        <h1>让 AI<br><em>真正进入游戏</em></h1>
+        <p class="hero-lead">小汤圆不只在聊天窗口里回答问题。它能看懂当前局面、参与游戏行动、记住共同经历，并根据玩家的选择和真实游戏事实一起成长。</p>
         <div class="hero-actions">
           <a class="button primary" href="#real-games">看看它如何进入游戏 <span>↓</span></a>
           <a class="button secondary" href="#progress">现在可以使用吗</a>
         </div>
         <div class="hero-points" aria-label="产品特点">
-          <span><i>✓</i> 在游戏里直接交代</span>
-          <span><i>✓</i> NPC 持续完成工作</span>
-          <span><i>✓</i> 结果主动回到游戏</span>
+          <span><i>✓</i> 游戏事实决定结果</span>
+          <span><i>✓</i> 记忆按存档隔离</span>
+          <span><i>✓</i> 本机连接优先</span>
         </div>
       </div>
 
@@ -283,6 +283,29 @@
             <strong>QQ 群 · 1043783217</strong>
             <span>搜索群号加入</span>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section work-module" id="work-module">
+      <div class="work-module-panel">
+        <div class="work-module-copy">
+          <p class="eyebrow"><span></span> OPTIONAL MODULE · WORK ORCHESTRATION</p>
+          <span class="module-label">独立可复用 DSH 插件 · v0.1.7</span>
+          <h2>让 AI 上班，<br>让人回家玩游戏</h2>
+          <p>陪伴角色先完成当前回复，后台再识别长期工作意图，并创建或恢复独立 Worker DSH Session。公开进度与结果返回原陪伴 Session，你可以继续留在游戏世界里。</p>
+          <div class="work-module-actions">
+            <a class="text-link" href="https://github.com/qimidandapigu/dsh-agh-work-orchestrator" target="_blank" rel="noreferrer">查看独立源码仓库 <span>→</span></a>
+            <a class="text-link muted-link" href="https://qimidandapigu.github.io/dsh-agh-work-orchestrator/" target="_blank" rel="noreferrer">查看模块宣传页 <span>↗</span></a>
+          </div>
+          <p class="module-state">当前发布的是 Git 源码，尚未声明 npm 发布；本地测试不等于真实模型、语音、桌面通知和最终成果的完整端到端验证。</p>
+        </div>
+        <div class="work-module-flow" aria-label="游戏 NPC 工作编排流程">
+          <article><span>01</span><div><small>COMPANION SESSION</small><strong>先完成当前陪伴回复</strong><p>正常游戏对话和语音不会被后台工作识别阻塞。</p></div></article>
+          <i>→</i>
+          <article><span>02</span><div><small>WORKER SESSION</small><strong>后台识别并持续执行</strong><p>命中工作意图后复用同一个 Worker Session 和 Workspace。</p></div></article>
+          <i>→</i>
+          <article class="return"><span>03</span><div><small>PUBLIC UPDATE</small><strong>公开进度回到游戏</strong><p>由原陪伴角色汇报，不维护第二套任务事实。</p></div></article>
         </div>
       </div>
     </section>

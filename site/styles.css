@@ -343,6 +343,28 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--mint); outline-
 .community-card strong { font-size: 14px; }
 .community-card span { color: var(--mint); font-size: 9px; }
 
+.work-module { padding-top: 25px; }
+.work-module-panel { padding: 58px; display: grid; grid-template-columns: .82fr 1.18fr; gap: 65px; align-items: center; border: 1px solid rgba(120,170,255,.21); border-radius: 20px; background: radial-gradient(circle at 10% 10%, rgba(72,112,182,.17), transparent 44%), rgba(10,24,36,.78); }
+.work-module-copy .eyebrow { color: var(--blue); }
+.work-module-copy .eyebrow span { background: var(--blue); }
+.module-label { margin: 8px 0 20px; padding: 6px 9px; display: inline-flex; border-radius: 999px; color: var(--blue); background: rgba(120,170,255,.08); font-size: 8px; letter-spacing: .06em; }
+.work-module-copy h2 { margin: 0; font-size: clamp(34px, 4vw, 54px); line-height: 1.16; letter-spacing: -.045em; font-weight: 600; }
+.work-module-copy > p:not(.eyebrow) { margin: 24px 0 0; color: var(--muted); font-size: 13px; line-height: 1.85; }
+.work-module-actions { margin-top: 25px; display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.work-module-actions .text-link { margin-top: 0; }
+.work-module-actions .muted-link { color: #8ea3ac; }
+.work-module-copy .module-state { margin-top: 20px; padding-top: 17px; border-top: 1px solid var(--line); color: #70868f; font-size: 9px; line-height: 1.7; }
+.work-module-flow { display: grid; grid-template-columns: 1fr 22px 1fr 22px 1fr; align-items: stretch; }
+.work-module-flow article { min-width: 0; min-height: 225px; padding: 23px; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.025); }
+.work-module-flow article.return { border-color: rgba(100,228,189,.25); background: rgba(100,228,189,.055); }
+.work-module-flow article > span { color: #5c7481; font: 9px/1 Consolas, monospace; }
+.work-module-flow div { margin-top: auto; }
+.work-module-flow small, .work-module-flow strong { display: block; }
+.work-module-flow small { color: var(--blue); font-size: 7px; letter-spacing: .1em; }
+.work-module-flow strong { margin-top: 9px; font-size: 13px; line-height: 1.45; }
+.work-module-flow p { margin: 8px 0 0; color: var(--muted); font-size: 9px; line-height: 1.65; }
+.work-module-flow > i { display: grid; place-items: center; color: #4f6873; font-style: normal; }
+
 .final-cta { width: var(--page); margin: 25px auto 90px; padding: 86px 30px; border: 1px solid rgba(100,228,189,.19); border-radius: 22px; background: radial-gradient(circle at 50% 10%, rgba(50, 152, 128, .18), transparent 55%), rgba(11,26,34,.72); text-align: center; }
 .final-cta > img { margin: 0 auto 28px; border-radius: 21px; }
 .final-cta .eyebrow { display: flex; justify-content: center; align-items: center; }
@@ -388,7 +410,7 @@ footer a:hover { color: var(--mint); }
   .runtime-strip { grid-template-columns: repeat(2, 1fr); }
   .trust-strip { padding: 20px; gap: 14px; flex-wrap: wrap; }
   .section { padding: 85px 0; }
-  .section-heading, .story-demo, .developer-layout, .community-panel { grid-template-columns: 1fr; gap: 35px; }
+  .section-heading, .story-demo, .developer-layout, .community-panel, .work-module-panel { grid-template-columns: 1fr; gap: 35px; }
   .section-heading { margin-bottom: 38px; }
   .feature-grid, .status-board, .player-step-grid, .principle-grid, .protocol-grid, .boundary-grid { grid-template-columns: 1fr; }
   .principle-card.featured, .principle-card.wide { grid-column: auto; }
@@ -426,6 +448,10 @@ footer a:hover { color: var(--mint); }
   .final-cta { padding: 60px 20px; }
   .community-panel { padding: 34px 22px; }
   .community-card { grid-template-columns: 1fr; }
+  .work-module-panel { padding: 34px 22px; }
+  .work-module-flow { grid-template-columns: 1fr; gap: 9px; }
+  .work-module-flow > i { height: 18px; transform: rotate(90deg); }
+  .work-module-flow article { min-height: 190px; }
   .developer-console { min-height: 410px; padding: 20px 15px; }
   .layer-stack, .ownership-panel { padding: 18px; }
   .layer-stack article { grid-template-columns: 1fr; }
