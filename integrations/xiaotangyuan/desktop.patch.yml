@@ -1,3 +1,12 @@
+- id: tool-pwsh
+  disabled: false
+
+- id: tool-fs
+  disabled: false
+
+- id: tool-fs-search
+  disabled: false
+
 - id: work-orchestrator
   config:
     enabled: true

@@ -601,7 +601,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      preload: join(desktopRoot, 'src', 'preload.mjs'),
+      preload: join(desktopRoot, 'src', 'preload.cjs'),
     },
   })
   installApplicationMenu()

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
+import { extname, isAbsolute, relative, resolve } from 'node:path'
 import { Service, type Context } from '@deepseek-ai/cordis'
 import { installModelSelection, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@deepseek-ai/dsh-agent'
 import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
@@ -221,8 +222,8 @@ export function obviousExternalWorkRequest(playerText: string): boolean {
   const text = playerText.trim()
   if (text === '') return false
   const artifact = /(?:html|网页|网站|页面|ppt|幻灯片|汇报|文档|报告|文章|推文|方案|代码|程序|资料|调研|表格|邮件|图片|海报|视频)/i.test(text)
-  const action = /(?:帮我|请|替我|给我|我要|想要|需要).{0,16}(?:写|做|生成|制作|准备|整理|查询|查找|搜索|调研|打开|修改|优化|迭代|开发)/i.test(text)
-    || /(?:写|做|生成|制作|准备|整理|查询|查找|搜索|调研|打开|修改|优化|迭代|开发).{0,32}(?:html|网页|网站|页面|ppt|幻灯片|汇报|文档|报告|文章|推文|方案|代码|程序|资料|调研|表格|邮件|图片|海报|视频)/i.test(text)
+  const action = /(?:帮我|请|替我|给我|我要|想要|需要).{0,16}(?:写|做|生成|制作|创建|准备|整理|查询|查找|搜索|调研|打开|修改|优化|迭代|开发)/i.test(text)
+    || /(?:写|做|生成|制作|创建|准备|整理|查询|查找|搜索|调研|打开|修改|优化|迭代|开发).{0,32}(?:html|网页|网站|页面|ppt|幻灯片|汇报|文档|报告|文章|推文|方案|代码|程序|资料|调研|表格|邮件|图片|海报|视频)/i.test(text)
   return artifact && action
 }
 
@@ -264,6 +265,192 @@ function assistantText(events: readonly SessionEvent[], firstSeq: number): strin
       .trim()
   }
   return ''
+}
+
+const REQUIRED_WORK_TOOLS = ['read', 'write', 'edit', 'glob', 'grep', 'pwsh'] as const
+
+/** Office Workers must inherit the DSH base tool layer, not only game-plugin tools. */
+export function assertRequiredWorkTools(toolNames: readonly string[]): void {
+  const available = new Set(toolNames)
+  const missing = REQUIRED_WORK_TOOLS.filter(name => !available.has(name))
+  if (missing.length > 0) {
+    throw new Error(`Work DSH Session tool configuration error: missing ${missing.join(', ')}`)
+  }
+}
+
+export function requiresArtifactWrite(instruction: string): boolean {
+  if (/(?:不要|无需|先别|暂不|不再).{0,8}(?:做|写|生成|制作|创建|修改|导出|保存|落盘)|不.{0,2}(?:做|写|生成|制作|创建|修改|导出|保存|落盘)/i.test(instruction)) return false
+  const artifact = /(?:html?|网页|网站|页面|pptx?|幻灯片|演示文稿|markdown|\.md\b|文档|报告|文章|推文|表格|xlsx?|csv|代码|程序|图片|海报|视频|文件)/i.test(instruction)
+  const planning = /(?:思路|方案|计划|规划|大纲|建议)/i.test(instruction)
+  const commitsArtifact = /(?:生成|制作|创建|导出|保存|落盘|打开|预览).{0,20}(?:html?|网页|网站|页面|pptx?|幻灯片|演示文稿|markdown|\.md\b|文档|报告|文章|推文|表格|xlsx?|csv|代码|程序|图片|海报|视频|文件)/i.test(instruction)
+    || /(?:html?|网页|网站|页面|pptx?|幻灯片|演示文稿|markdown|\.md\b|文档|报告|文章|推文|表格|xlsx?|csv|代码|程序|图片|海报|视频|文件).{0,20}(?:生成|制作|创建|导出|保存|落盘|打开|预览)/i.test(instruction)
+  if (planning && !commitsArtifact) return false
+  const action = /(?:做|写|生成|制作|创建|开发|修改|优化|迭代|重做|改成|导出|保存|落盘|create|build|write|generate|make|modify|edit|export|save)/i.test(instruction)
+  return artifact && action
+}
+
+export function requiresArtifactOpen(instruction: string): boolean {
+  if (/(?:不要|无需|先别|暂不|不再).{0,8}(?:打开|预览|展示|启动)|不.{0,2}(?:打开|预览|展示|启动)/i.test(instruction)) return false
+  return /(?:打开|预览|给我看|让我看|展示|启动|open|preview|show me|launch)/i.test(instruction)
+}
+
+interface WorkExecutionEvidence {
+  artifactPaths: string[]
+  opened: boolean
+  researched: boolean
+}
+
+function successfulToolCalls(events: readonly SessionEvent[], firstSeq: number): Array<{
+  name: string
+  arguments: string
+}> {
+  const succeeded = new Set<string>()
+  for (const event of events) {
+    if (event.seq < firstSeq || event.type !== 'tool/result' || event.data.error !== undefined) continue
+    for (const block of event.data.message.content) {
+      if (block.type === 'tool-result' && block.isError !== true) succeeded.add(String(block.toolCallId))
+    }
+  }
+  return events
+    .filter((event): event is SessionEvent<'tool/call'> => event.seq >= firstSeq && event.type === 'tool/call')
+    .filter(event => succeeded.has(String(event.data.callId)))
+    .map(event => ({ name: event.data.name, arguments: event.data.arguments }))
+}
+
+function parseToolArguments(raw: string): Record<string, unknown> {
+  try {
+    const value = JSON.parse(raw) as unknown
+    return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {}
+  } catch {
+    return {}
+  }
+}
+
+const OFFICE_ARTIFACT_EXTENSIONS = {
+  html: ['.html', '.htm'],
+  markdown: ['.md', '.markdown'],
+  document: ['.docx', '.pdf', '.md', '.html', '.htm', '.txt'],
+  presentation: ['.pptx', '.ppt'],
+  spreadsheet: ['.xlsx', '.xls', '.csv'],
+  image: ['.png', '.jpg', '.jpeg', '.webp', '.svg'],
+  video: ['.mp4', '.webm', '.mov'],
+} as const
+
+function expectedArtifactExtensions(instruction: string): Set<string> {
+  const extensions = new Set<string>()
+  const add = (kind: keyof typeof OFFICE_ARTIFACT_EXTENSIONS): void => {
+    for (const extension of OFFICE_ARTIFACT_EXTENSIONS[kind]) extensions.add(extension)
+  }
+  if (/(?:html?|网页|网站|页面)/i.test(instruction)) add('html')
+  if (/(?:markdown|\.md\b)/i.test(instruction)) add('markdown')
+  if (/(?:word|docx?|文档|报告|文章|推文)/i.test(instruction)) add('document')
+  if (/(?:pptx?|幻灯片|演示文稿|汇报文件)/i.test(instruction)) add('presentation')
+  if (/(?:xlsx?|excel|csv|表格|电子表格)/i.test(instruction)) add('spreadsheet')
+  if (/(?:图片|海报|png|jpe?g|webp|svg)/i.test(instruction)) add('image')
+  if (/(?:视频|mp4|webm|mov)/i.test(instruction)) add('video')
+  return extensions
+}
+
+function isPathInside(root: string, filePath: string): boolean {
+  const pathFromRoot = relative(root, filePath)
+  return pathFromRoot === '' || (!pathFromRoot.startsWith('..') && !isAbsolute(pathFromRoot))
+}
+
+function isValidOfficeArtifact(filePath: string, expected: ReadonlySet<string>): boolean {
+  if (!existsSync(filePath)) return false
+  const stat = statSync(filePath)
+  if (!stat.isFile() || stat.size === 0) return false
+  const extension = extname(filePath).toLowerCase()
+  if (expected.size > 0 && !expected.has(extension)) return false
+  const prefix = readFileSync(filePath).subarray(0, 65_536)
+  if (extension === '.html' || extension === '.htm') {
+    const text = prefix.toString('utf8').toLowerCase()
+    return text.includes('<!doctype html') || text.includes('<html')
+  }
+  if (extension === '.md' || extension === '.markdown' || extension === '.txt' || extension === '.csv') {
+    return prefix.toString('utf8').trim() !== ''
+  }
+  if (extension === '.docx' || extension === '.xlsx' || extension === '.pptx') {
+    return prefix.length >= 4 && prefix[0] === 0x50 && prefix[1] === 0x4b
+  }
+  return true
+}
+
+function stringValues(value: unknown): string[] {
+  if (typeof value === 'string') return [value]
+  if (Array.isArray(value)) return value.flatMap(stringValues)
+  if (typeof value !== 'object' || value === null) return []
+  return Object.values(value).flatMap(stringValues)
+}
+
+function candidatePaths(call: { name: string; arguments: string }, root: string): string[] {
+  const args = parseToolArguments(call.arguments)
+  const direct = ['file_path', 'path', 'output_path', 'outputPath', 'destination', 'target']
+    .flatMap(key => stringValues(args[key]))
+  if (call.name === 'write' || call.name === 'edit') {
+    return direct.map(filePath => resolve(root, filePath))
+  }
+  if (call.name !== 'pwsh') return []
+  const command = typeof args.command === 'string' ? args.command : ''
+  if (!/(?:Set-Content|Out-File|Export-Csv|SaveAs|WriteAll(?:Bytes|Text)|Copy-Item|Move-Item)/i.test(command)) return []
+  const quoted = [...command.matchAll(/["']([^"']+\.[A-Za-z0-9]{1,8})["']/g)].map(match => match[1] ?? '')
+  return [...direct, ...quoted].filter(Boolean).map(filePath => resolve(root, filePath))
+}
+
+function openedTargets(calls: ReadonlyArray<{ name: string; arguments: string }>, root: string): string[] {
+  return calls.flatMap(call => {
+    if (call.name !== 'pwsh') return []
+    const command = parseToolArguments(call.arguments).command
+    if (typeof command !== 'string' || !/(?:Start-Process|Invoke-Item|(?:^|[;\s])ii\s)/i.test(command)) return []
+    return [...command.matchAll(/["']([^"']+)["']/g)]
+      .map(match => match[1] ?? '')
+      .filter(Boolean)
+      .map(target => resolve(root, target))
+  })
+}
+
+export function requiresWebResearch(instruction: string): boolean {
+  if (/(?:不要|无需|别).{0,6}(?:联网|搜索|查资料|调研)/i.test(instruction)) return false
+  return /(?:联网|上网|搜索|查资料|查一下|调研|最新|research|web search|search online)/i.test(instruction)
+}
+
+function isResearchToolCall(call: { name: string; arguments: string }): boolean {
+  if (/(?:^|[._-])(?:web|search|browser)(?:$|[._-])/i.test(call.name)) return true
+  if (call.name !== 'pwsh') return false
+  const command = parseToolArguments(call.arguments).command
+  if (typeof command !== 'string') return false
+  return /(?:Invoke-WebRequest|Invoke-RestMethod|Start-BitsTransfer|(?:System\.Net\.)?(?:WebClient|WebRequest|HttpWebRequest)|System\.Net\.Http\.HttpClient|\.Download(?:String|Data|File)\s*\(|(?:^|[;&|\s])curl(?:\.exe)?(?:\s|$)|(?:^|[;&|\s])wget(?:\.exe)?(?:\s|$))/i.test(command)
+}
+
+export function verifyWorkExecution(
+  events: readonly SessionEvent[],
+  firstSeq: number,
+  workspace: string,
+  instruction: string,
+): WorkExecutionEvidence {
+  const root = resolve(workspace)
+  const calls = successfulToolCalls(events, firstSeq)
+  const expected = expectedArtifactExtensions(instruction)
+  const artifactPaths = [...new Set(calls.flatMap(call => candidatePaths(call, root)))]
+    .filter(filePath => isPathInside(root, filePath) && isValidOfficeArtifact(filePath, expected))
+  const targets = openedTargets(calls, root)
+  const opened = targets.some(target => {
+    if (!isPathInside(root, target) || !existsSync(target)) return false
+    if (artifactPaths.length === 0) return statSync(target).isFile()
+    return artifactPaths.some(filePath => filePath.toLowerCase() === target.toLowerCase())
+  })
+  const researched = calls.some(isResearchToolCall)
+
+  if (requiresArtifactWrite(instruction) && artifactPaths.length === 0) {
+    throw new Error('Work DSH Session did not create or modify a verifiable artifact')
+  }
+  if (requiresArtifactOpen(instruction) && !opened) {
+    throw new Error('Work DSH Session did not successfully open the verified artifact')
+  }
+  if (requiresWebResearch(instruction) && !researched) {
+    throw new Error('Work DSH Session did not perform the requested web research')
+  }
+  return { artifactPaths, opened, researched }
 }
 
 export interface WorkOrchestratorDependencies {
@@ -317,20 +504,23 @@ export class WorkOrchestratorService extends Service {
       .catch(async error => {
         this.ctx.logger.warn('dsh-work-orchestrator: post-turn recognition failed; the completed companion reply is unaffected')
         this.ctx.logger.warn(error)
-        const current = this.active.get(turn.companionSessionId)
-        if (current !== undefined) {
-          const helper = delegateName(turn)
-          await turn.notify?.({
-            workSessionId: current.sessionId,
-            title: current.title,
-            text: `${helper}暂时没能继续处理，请稍后再告诉我一次。`,
-            kind: 'error',
-            source: turn.source,
-            executor: current.executor,
-            status: '失败',
-            ...(current.codexThreadId === undefined ? {} : { codexThreadId: current.codexThreadId }),
-          })
+        if (process.env.DSH_WORK_DIAGNOSTICS === '1') {
+          console.error('[dsh-work-orchestrator] post-turn failure', error)
         }
+        const current = this.active.get(turn.companionSessionId)
+        const linked = linkReference(this.linkStore.get(turn.companionSessionId))
+        const work = current ?? linked
+        const helper = delegateName(turn)
+        await turn.notify?.({
+          workSessionId: work?.sessionId ?? '',
+          title: work?.title ?? externalWorkTitle(turn.playerText),
+          text: `${helper}暂时没能处理这件事，请稍后再告诉我一次。`,
+          kind: 'error',
+          source: turn.source,
+          executor: work?.executor ?? 'dsh',
+          status: '失败',
+          ...(work?.codexThreadId === undefined ? {} : { codexThreadId: work.codexThreadId }),
+        })
       })
       .finally(() => this.tasks.delete(task))
     this.tasks.add(task)
@@ -404,7 +594,7 @@ export class WorkOrchestratorService extends Service {
           `你是由“${profile.name}”通过 DeepSeek Harness 创建的独立后台工作线程，负责完成玩家交付的通用工作。`,
           '优先使用当前执行环境已安装的插件、技能和工具；只有现有能力确实不够时才写少量新代码。',
           `所有成果统一保存到这个绝对目录：${this.config.codex.workingDirectory}`,
-          '创建文件必须调用当前工具表中的官方文件写入工具（例如 write）；修改文件使用 edit。Windows 打开成果必须调用 pwsh，并用 Start-Process 打开成果的绝对路径。需要资料时使用 web。',
+          '文本成果优先使用当前工具表中的官方 write 创建、edit 修改；PPT、Word、Excel 等二进制成果优先使用已安装的对应技能或插件，也可用 pwsh 调用本机已有运行时生成。Windows 打开成果必须调用 pwsh，并用 Start-Process 打开成果的绝对路径。需要联网资料时使用 web_search。',
           '不得调用游戏、剧情、角色记忆或 Mod 工具完成通用工作。没有成功写入文件，不得声称成果已经生成；没有成功执行打开命令，不得声称已经打开。若所需工具不可用，明确报告工具配置错误。',
           '这项通用工作可能由玩家在游戏中发起。不要操作游戏、不要评论游戏是否连接，也不要冒充发起工作的陪伴角色。不要声称尚未验证的结果已经完成。',
           executeNow
@@ -420,7 +610,7 @@ export class WorkOrchestratorService extends Service {
           `玩家刚刚给出的反馈或下一步要求：${intent.instruction}`,
           `所有成果统一保存到这个绝对目录：${this.config.codex.workingDirectory}`,
           executeNow
-            ? '这是明确的执行请求。现在必须使用官方文件工具真实创建或修改成果；玩家要求打开或预览时，必须使用 pwsh 执行 Start-Process 打开绝对路径。没有成功的工具结果不得声称已完成或已打开。'
+            ? '这是明确的执行请求。现在必须使用现有工作工具真实创建或修改成果；玩家要求打开或预览时，必须使用 pwsh 执行 Start-Process 打开本次成果的绝对路径。没有成功的工具结果不得声称已完成或已打开。'
             : '玩家当前只要求思路、方案、进度或反馈；只完成本轮授权的范围。',
           '不要调用游戏、剧情、角色记忆或 Mod 工具完成这项通用工作。',
           '保持此前工作上下文；根据玩家意见迭代。若玩家只是让你汇报思路或进度，不要擅自扩大执行范围。',
@@ -510,14 +700,29 @@ export class WorkOrchestratorService extends Service {
     return (agentCtx) => {
       const selected: ModelSelectionRef = { current: selection, assembled: undefined }
       installModelSelection(agentCtx, selected)
-      const gameToolPrefixes = [
-        'game_', 'game.', 'xiaotangyuan_', 'stardew_', 'dont_starve_', 'dst_', 'oni_', 'oxygen_not_included_',
-      ]
-      const denied = agentCtx.tools.schemas()
-        .map(tool => tool.name)
-        .filter(name => gameToolPrefixes.some(prefix => name.startsWith(prefix)))
-      if (denied.length > 0) agentCtx.effect(() => agentCtx.tools.restrict({ deny: denied }))
+      agentCtx.inject(['tools'], (scoped) => {
+        const toolNames = scoped.tools.schemas().map(tool => tool.name)
+        assertRequiredWorkTools(toolNames)
+        const gameToolPrefixes = [
+          'game_', 'game.', 'xiaotangyuan_', 'stardew_', 'dont_starve_', 'dst_', 'oni_', 'oxygen_not_included_',
+        ]
+        const denied = toolNames
+          .filter(name => gameToolPrefixes.some(prefix => name.startsWith(prefix)))
+        if (denied.length > 0) scoped.tools.restrict({ deny: denied })
+      })
     }
+  }
+
+  /** Create/resume from the parent DSH scope so the Worker inherits official
+   * file, shell and web tools instead of only this game plugin's tool layer. */
+  private agentOwnerContext(): Context {
+    return this.ctx.fiber.parent
+  }
+
+  private agentRegistryForWorker() {
+    const registry = this.agentOwnerContext().get('agents')
+    if (registry === undefined) throw new Error('Work DSH Session cannot access the DSH agent registry')
+    return registry
   }
 
   private saveLink(companionSessionId: string, work: ActiveWorkSession, status: WorkSessionLink['status']): void {
@@ -544,7 +749,7 @@ export class WorkOrchestratorService extends Service {
     const link = this.linkStore.get(turn.companionSessionId)
     if (link === undefined) return {}
     try {
-      const handle = await this.ctx.agents.resume({
+      const handle = await this.agentRegistryForWorker().resume({
         resumeSessionId: SessionId(link.workerSessionId),
         agentOptions: { provider: link.selection.provider, model: link.selection.model },
         setup: this.setupWorker(link.selection),
@@ -584,7 +789,7 @@ export class WorkOrchestratorService extends Service {
   private async createWorkSession(turn: CompletedCompanionTurn, title: string): Promise<ActiveWorkSession> {
     const selection = this.selectionFor(turn)
     const sessionId = `dsh-work-${randomUUID()}`
-    const handle = await this.ctx.agents.create({
+    const handle = await this.agentRegistryForWorker().create({
       sessionId: SessionId(sessionId),
       meta: { cwd: this.config.codex.workingDirectory },
       agentOptions: { provider: selection.provider, model: selection.model },
@@ -641,19 +846,60 @@ export class WorkOrchestratorService extends Service {
     } else {
       work.executor = 'dsh'
     }
-    return await this.runWorkerSession(work, workerPrompt)
+    const reply = await this.runWorkerSession(work, workerPrompt, `${work.title}\n${instruction}`, work.executor === 'dsh')
+    return reply
   }
 
-  private async runWorkerSession(work: ActiveWorkSession, workerPrompt: string): Promise<string> {
+  private async runWorkerSession(
+    work: ActiveWorkSession,
+    workerPrompt: string,
+    verificationInstruction?: string,
+    verifyExecution = false,
+  ): Promise<string> {
     const firstSeq = work.handle.agent.session.seq
     work.handle.agent.followup(createUserMessage({
       content: [{ type: 'text', text: workerPrompt }],
       source: { kind: 'plugin', plugin: 'dsh-work-orchestrator', form: 'instructions' },
     }))
     await work.handle.agent.whenIdle()
-    const reply = assistantText(work.handle.agent.session.events, firstSeq)
+    let reply = assistantText(work.handle.agent.session.events, firstSeq)
     if (reply === '') throw new Error('Worker DSH Session returned no public text')
-    return reply
+    if (!verifyExecution || verificationInstruction === undefined) return reply
+    let evidence: WorkExecutionEvidence
+    try {
+      evidence = verifyWorkExecution(
+        work.handle.agent.session.events,
+        firstSeq,
+        this.config.codex.workingDirectory,
+        verificationInstruction,
+      )
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      work.handle.agent.followup(createUserMessage({
+        content: [{
+          type: 'text',
+          text: [
+            'DSH_WORK_VERIFICATION_RETRY_V1',
+            `自动验收未通过：${reason}`,
+            '请在同一工作 Session 内立即纠正一次：使用现有工作工具完成缺失操作，并只在真实成功后报告。',
+            '生成成果必须保存到共享工作目录；要求打开时必须打开本次已验证成果；要求联网调研时必须实际调用联网搜索。',
+          ].join('\n'),
+        }],
+        source: { kind: 'plugin', plugin: 'dsh-work-orchestrator', form: 'instructions' },
+      }))
+      await work.handle.agent.whenIdle()
+      reply = assistantText(work.handle.agent.session.events, firstSeq)
+      if (reply === '') throw new Error('Worker DSH Session returned no public text after verification retry')
+      evidence = verifyWorkExecution(
+        work.handle.agent.session.events,
+        firstSeq,
+        this.config.codex.workingDirectory,
+        verificationInstruction,
+      )
+    }
+    return evidence.artifactPaths.length === 0
+      ? reply
+      : `${reply}\n已验证成果路径：${evidence.artifactPaths.join('；')}`
   }
 
   private getCodexClient(): CodexWorkerClient {

@@ -19,7 +19,7 @@
   },
   "workOrchestrator": {
     "packageName": "@qimidandapigu/dsh-work-orchestrator",
-    "expectedVersion": "0.1.2",
+    "expectedVersion": "0.1.3",
     "source": "plugins/dsh-work-orchestrator"
   },
   "oniAdapter": {

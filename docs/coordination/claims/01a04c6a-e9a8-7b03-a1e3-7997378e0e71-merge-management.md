@@ -1,22 +1,46 @@
 # 合并管理
 
 - Task ID: `01a04c6a-e9a8-7b03-a1e3-7997378e0e71`
-- 状态：运行版修复和真实链路验证完成，最终安装包封装中
-- 分支与 worktree：`main` / `C:\game\ai-native-game-harness`（共享目录）
-- 目标：建立统一协作规则、检查冲突，并在其他任务交接后完成只读审计与最终集成。
-- 当前允许修改：
-  - `AGENTS.md`
-  - `docs/coordination/**`
-- 用户已授权本任务统一收口以下共享链路：
-  - `plugins/xiaotangyuan-game/**`
+- 状态：办公模块源码、正式 Profile 热部署、真实生成/打开验收、公开文档与官网更新均已完成；等待 commit 和 push。
+- 分支与 worktree：`task/automated-acceptance` / `C:\game\ai-native-game-harness-worktrees\automated-acceptance`
+- 目标：把真实游戏前的大部分验收自动化，把最终人工验收压缩到约 10 分钟。
+- 本任务实际改动：
+  - `tests/integration/dual-session-e2e.test.ts`：真实 GameAgentSession + WorkOrchestratorService + Mock Game 的双 Session E2E。
+  - `scripts/smoke-desktop-startup.mjs`：隔离 Profile 的 Desktop/DSH 启动与退出冒烟。
+  - `scripts/prepare-game-demo.ps1`：一键检查、准备隔离演示 Profile、生成演示话术并可启动 Desktop。
+  - `docs/testing/GAME_DEMO_ACCEPTANCE.md`：约 10 分钟真实游戏验收清单。
+  - `tests/integration/office-work-golden-e2e.test.ts`、`docs/testing/OFFICE_WORK_GOLDEN_ACCEPTANCE.md`：HTML/Markdown/PPTX/Excel 办公黄金任务契约和最终人工验收清单。
+  - `apps/desktop/src/main.mjs`、`apps/desktop/src/preload.cjs`（替换 `preload.mjs`）、`tests/integration/desktop-branding.test.ts`：修复 Electron 43 sandbox 中 ESM preload 未执行的问题并加回归。
+  - `README.md`、`docs/INTERNAL_DEVELOPMENT.md`、`docs/coordination/STATUS.md`、`docs/testing/**`：同步自动验收、真实办公链证据、命令入口与人工验收边界。
+  - `site/index.html`、`site/developers.html`、`docs/AI_GAME_ENGINE_IDEOLOGY.html`：更新官网进展；玩家页只使用“NPC 后台干活并回游戏汇报”的对外叙事，不暴露 Worker Session 等内部词。
+  - `package.json`：增加双 Session、办公黄金、Desktop 启动冒烟和一键演示准备命令。
+  - 本 claim。
+- 本轮新增允许修改：
   - `plugins/dsh-work-orchestrator/**`
-  - `runtime/dsh-profile/xiaotangyuan.patch.yml`
-  - 本机 Desktop Runtime 热部署与重启（不关闭游戏）
-- 已完成但待集成的功能改动：语音键修复、语音回答先显示气泡、相关测试。
-- 当前不修改：其他游戏功能源文件、版本号、锁文件和远端分支。
-- 本轮统一语义：小汤圆始终是兼具陪玩与办公能力的同一角色；公开回答先展示一次，随后才运行 Work 分类。普通工作进入真实 Work DSH Session；进度/反馈复用原 Session；只有玩家明确点名 Codex 才允许该 Work Session 委派 Codex。全局配置不得默认把所有工作送给 Codex。
-- 实际改动文件：`plugins/xiaotangyuan-game/src/runtime/agent/game-agent-session.ts`、`plugins/xiaotangyuan-game/test/game-session.test.ts`、`plugins/dsh-work-orchestrator/src/{config,index,work-orchestrator-service}.ts`、对应 Work 测试、两个插件 patch/README、`runtime/dsh-profile/xiaotangyuan.patch.yml`，以及本 claim/状态文档。未修改其他游戏功能源文件。
-- 已验证：Work Orchestrator `5/5`、小汤圆 `100/100`、平台 `21/21`，`git diff --check` 仅有既存 CRLF 提示。真实链路验证覆盖了“先回复后分类”、明确办公漏判兜底、同 Session 进度查询、无默认 Codex、无重复首句和玩家文本 Markdown 清理。
-- 真实结果：带实际星露谷进程 ID 的“明天汇报，帮我写 AI 改变游戏网页”在 `2ms` 内先回复“好的，我收到啦，先让我看看。”；随后创建 `dsh-work-b13f22e8-4a5c-4de9-8d53-c919353fc17c`，标题“AI改变游戏网页”，执行器 `dsh`。进度回归复用了既有 `dsh-work-6727f680-d4f8-4ca0-ad8d-7b055bf90080`，未创建新任务。
-- 本机部署：源码 `dist` 已覆盖 Desktop profile 的真实 pnpm 目标和已安装资源目录，哈希一致；只重启 Desktop/媒体宿主，未关闭星露谷。
-- 待完成：记录最终 NSIS 安装包哈希；等待其他活跃任务填写自己的 claim，再做全仓库差异审计。没有 commit、pull、merge、rebase 或 push。
+  - `tests/integration/dual-session-e2e.test.ts`
+  - `scripts/smoke-desktop-startup.mjs`、新增办公 Runtime 验收脚本
+  - `integrations/xiaotangyuan/desktop.patch.yml`、`runtime/dsh-profile/xiaotangyuan.patch.yml`（仅办公工具接线）
+  - Desktop 本机 profile 与 Work 插件热部署；执行前确认无 Desktop/游戏版打包任务和 `33145` 占用
+- 本轮 P0 已解决：Work `0.1.3` 从父 DSH Scope 创建/恢复真实 Session；启动时断言 `read/write/edit/glob/grep/pwsh`；陪聊与 Work 分开限制工具；要求成果时强制验证成功的 `write/edit` 或文件型 `pwsh`、真实文件类型和准确的 `pwsh Start-Process` 打开目标；要求联网时验证真实 web/search/browser 工具或 PowerShell `Invoke-WebRequest`、`WebClient.DownloadString` 等联网调用；验收首次失败会在同一 Work Session 内做一次有界修复。
+- 双 Session E2E 已覆盖：小汤圆先快速回复；回复后才创建 Work Session；进度与反馈复用原 Session；最终真实写出 HTML；玩家可见内容不暴露 DSH、Worker、Codex 或分类器等内部词；工作 Session 使用 Full access preset。
+- Desktop 冒烟已覆盖：preload 暴露 API；真实隔离 DSH Web HTTP 就绪；`33145` 监听；临时 Profile 与正式 Profile 分离；退出后进程与端口无残留。
+- 冒烟边界：当前以 standalone Desktop 壳层和隔离 DSH Runtime 并排验证真实组件，未覆盖打包版 Desktop 内部拉起 DSH 的进程桥。
+- 验证结果：
+  - Work Orchestrator：7/7。
+  - 小汤圆：103/103。
+  - Integration：33/33；办公黄金任务 + 双 Session 关键回归 3/3。
+  - Platform：21/21。
+  - Desktop smoke：通过，`preload=loaded`、`isolated=true`、`residualProcesses=0`。
+  - 一键脚本 `-SkipChecks -SkipStartupSmoke -NoLaunch`：通过；中文话术 UTF-8 正确；未复制旧 storages；未启动进程。
+  - `git diff --check`：通过，仅显示既有 Windows CRLF 提示。
+- 本轮办公源码修改：`plugins/dsh-work-orchestrator/**`、`plugins/xiaotangyuan-game/src/runtime/agent/game-agent-session.ts`、两个办公工具 patch，以及 `integrations/xiaotangyuan/manifest.json` 的 Work 期望版本 `0.1.3`。未修改 lockfile、安装包配置、网站、公共 STATUS 或远端分支。
+- 人工仍需确认：真实麦克风与语音服务、星露谷中气泡位置/语音结束后约 5 秒消失、游戏不中断、主动简短汇报、最终 HTML 在系统浏览器真实打开。
+- 正式环境真实验收（2026-08-31）：玩家可见首句 2ms 返回“好的，我收到啦，先让我看看。”；后台 Work Session `dsh-work-8337cffb-a3b4-49d3-ad5b-69cee74f9a47` 成功调用 `write` 和 `pwsh Start-Process`，生成并打开 `C:\Users\10354\AppData\Local\AI Native Game Harness\work-orchestrator\workspace\office-production-success.html`；随后同一存档询问进度仍复用该 Work Session。
+- 正式环境根因修复：Profile 中 hoisted 的重复 `@deepseek-ai` 核心包造成 Agent Loop 与 ToolRuntime 的私有调度 Symbol 不同，模型已发出 `write` 却在执行前报 `Cannot read properties of undefined (reading 'prepare')`。现将 Profile 的 `node_modules/@deepseek-ai` 统一 Junction 到桌面内置 Runtime；原目录可恢复备份在 `.artifacts/office-runtime/profile-deepseek-backup-20260831-1628`。
+- 正式资源：Work `0.1.3` 与小汤圆 `0.7.9` 最终 tgz 已复制到已安装 Desktop `resources/plugins`，源码/安装文件哈希一致；损坏的旧 memory SQLite 备份在 `C:\Users\10354\AppData\Local\XiaoTangYuan\profiles\default\corrupt-memory-backup-20260831-160718`。
+- 2026-08-31 20:35 正式环境复测：玩家可见首句 1ms 返回“好的，我收到啦，先让我看看。”；后台只创建并执行一轮 Work Session `dsh-work-1ae1c61d-8d04-41d5-9acb-756c7079d9c1`，成功调用 `Invoke-WebRequest`、`write` 与准确指向成果的 `Start-Process`，生成并打开 `C:\Users\10354\AppData\Local\AI Native Game Harness\work-orchestrator\workspace\test-page.html`；Session 状态回到 `[Work · 等待反馈]`，玩家收到简短“有新进展”通知，无验证修复轮。
+- 正式环境部署哈希：源码、Desktop Runtime、正式 Profile 的 `work-orchestrator-service.js` 均为 `B36C7F3E37446323F2A8AB9B9BD84621CF845EB967C60D1E951127847C01CD7F`；本次可恢复备份在 `.artifacts/office-runtime/deploy-20260831-203430/backup`。
+- 最终回归：Work 7/7，小汤圆 103/103，Integration 33/33，Platform 21/21，`git diff --check` 通过（仅 CRLF 提示）。
+- 官网本地浏览器检查：玩家页与开发者页均无横向溢出、无控制台警告/错误；玩家 Work 区未出现 `Worker DSH Session`、`COMPANION SESSION` 或 `WORKER SESSION`。
+- 额外环境说明：仓库级 `check:xiaotangyuan` 在本机系统 Python 缺少 `websocket-client` 时停在饥荒测试导入；本次涉及的 Work、小汤圆、Integration、Platform 均已在正确依赖顺序下独立通过。
+- 当前环境：正式 Desktop 已启动，`33145` 由其 DSH utility process 监听，`XtyMediaHost.exe` 正在运行；可直接进入游戏做真实麦克风、气泡与语音结束后约 5 秒消失的最终人工验收。

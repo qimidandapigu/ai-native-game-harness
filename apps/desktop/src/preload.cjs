@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+const { contextBridge, ipcRenderer } = require('electron')
 
 let chatSequence = 0
 
@@ -27,7 +27,7 @@ contextBridge.exposeInMainWorld('harnessDesktop', {
         ipcRenderer.removeListener('platform-chat-event', listener)
       }
     },
-    reset: (gameId) => ipcRenderer.invoke('platform:reset', { gameId }),
+    reset: gameId => ipcRenderer.invoke('platform:reset', { gameId }),
     exportDiagnostics: () => ipcRenderer.invoke('platform:export-diagnostics'),
     listGamePacks: () => ipcRenderer.invoke('platform:list-game-packs'),
     installGamePack: () => ipcRenderer.invoke('platform:install-game-pack'),

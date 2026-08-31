@@ -257,8 +257,8 @@
       </div>
       <div class="status-board">
         <article><span class="status done">已跑通</span><h3>游戏 AI 基础能力</h3><p>对话、状态理解、动作结果、记忆隔离和测试游戏已经形成完整闭环。</p></article>
-        <article><span class="status testing">验证中</span><h3>动态剧情与自学习</h3><p>剧情由同一 Agent 会话生成，技能需要真实试跑成功后才能保存。</p></article>
-        <article><span class="status testing">本地已验证</span><h3>Windows 安装与真实游戏</h3><p>日常开发已经改为直接运行源码；未签名 NSIS 只在阶段发布时验证安装—启动—卸载，继续完善真实游戏长期体验与公开签名。</p></article>
+        <article><span class="status done">本机已验证</span><h3>游戏里交办工作</h3><p>NPC 可以先快速回应，再在后台联网、生成真实文件并打开成果；进度询问和修改意见会接着原来的工作继续。</p></article>
+        <article><span class="status testing">现场验收中</span><h3>Windows 安装与真实游戏</h3><p>自动回归与本机办公链已经通过；真实麦克风、游戏气泡时序、长期游玩和正式签名发行仍在继续验证。</p></article>
       </div>
       <div class="games">
         <span>STARDEW VALLEY</span><span>DON'T STARVE TOGETHER</span><span>OXYGEN NOT INCLUDED</span><span>MOCK GAME</span>
@@ -293,19 +293,19 @@
           <p class="eyebrow"><span></span> OPTIONAL MODULE · WORK ORCHESTRATION</p>
           <span class="module-label">独立可复用 DSH 插件 · v0.1.7</span>
           <h2>让 AI 上班，<br>让人回家玩游戏</h2>
-          <p>陪伴角色先完成当前回复，后台再识别长期工作意图，并创建或恢复独立 Worker DSH Session。公开进度与结果返回原陪伴 Session，你可以继续留在游戏世界里。</p>
+          <p>你继续种田、钓鱼和探险。游戏里的 NPC 先回应你，再在后台理解工作要求、调用合适的生产力工具；有进展和成果时，它会主动回到游戏里汇报。</p>
           <div class="work-module-actions">
             <a class="text-link" href="https://github.com/qimidandapigu/dsh-agh-work-orchestrator" target="_blank" rel="noreferrer">查看独立源码仓库 <span>→</span></a>
             <a class="text-link muted-link" href="https://qimidandapigu.github.io/dsh-agh-work-orchestrator/" target="_blank" rel="noreferrer">查看模块宣传页 <span>↗</span></a>
           </div>
-          <p class="module-state">当前发布的是 Git 源码，尚未声明 npm 发布；本地测试不等于真实模型、语音、桌面通知和最终成果的完整端到端验证。</p>
+          <p class="module-state">当前发布的是 Git 源码，尚未声明 npm 发布；自动双会话、联网、文件生成和打开成果已经通过，本次仍保留真实游戏语音与气泡时序的现场验收边界。</p>
         </div>
         <div class="work-module-flow" aria-label="游戏 NPC 工作编排流程">
-          <article><span>01</span><div><small>COMPANION SESSION</small><strong>先完成当前陪伴回复</strong><p>正常游戏对话和语音不会被后台工作识别阻塞。</p></div></article>
+          <article><span>01</span><div><small>PLAYER TALKS</small><strong>NPC 先快速回应</strong><p>玩家不用停下游戏，语音也不会被耗时工作一直占住。</p></div></article>
           <i>→</i>
-          <article><span>02</span><div><small>WORKER SESSION</small><strong>后台识别并持续执行</strong><p>命中工作意图后复用同一个 Worker Session 和 Workspace。</p></div></article>
+          <article><span>02</span><div><small>NPC STARTS WORK</small><strong>后台调用成熟工具</strong><p>查资料、写文档、生成页面和后续修改都接着同一份工作继续。</p></div></article>
           <i>→</i>
-          <article class="return"><span>03</span><div><small>PUBLIC UPDATE</small><strong>公开进度回到游戏</strong><p>由原陪伴角色汇报，不维护第二套任务事实。</p></div></article>
+          <article class="return"><span>03</span><div><small>NPC REPORTS BACK</small><strong>进度和成果回到游戏</strong><p>玩家随时能问做到哪了，也能继续提出修改意见。</p></div></article>
         </div>
       </div>
     </section>

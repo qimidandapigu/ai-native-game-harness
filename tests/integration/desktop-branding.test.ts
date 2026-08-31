@@ -69,7 +69,7 @@ describe('AI Native Game Harness branding', () => {
 
   it('opens the original Harness by default and keeps explicit two-way navigation', () => {
     const main = read('apps/desktop/src/main.mjs')
-    const preload = read('apps/desktop/src/preload.mjs')
+    const preload = read('apps/desktop/src/preload.cjs')
     const product = read('apps/desktop/src/product.html')
     const productScript = read('apps/desktop/src/product.js')
 

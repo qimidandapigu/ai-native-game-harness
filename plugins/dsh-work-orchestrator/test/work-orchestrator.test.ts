@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
@@ -6,14 +6,19 @@ import type { AgentHandle } from '@deepseek-ai/dsh-agent'
 import { describe, expect, it } from 'vitest'
 import {
   compactWorkNotification,
+  assertRequiredWorkTools,
   WorkOrchestratorService,
   linkedWorkIntentShortcut,
   obviousExternalWorkRequest,
   parseWorkIntent,
   postTurnWorkIntentShortcut,
   requestsImmediateExecution,
+  requiresArtifactOpen,
+  requiresArtifactWrite,
+  requiresWebResearch,
   requestsCodex,
   resolveConfig,
+  verifyWorkExecution,
   type WorkNotification,
   type CodexWorkerClient,
 } from '../src/index.js'
@@ -27,7 +32,42 @@ function assistantEvent(seq: number, text: string) {
   }
 }
 
-function fakeHandle(id: string, reply: (prompt: string) => string): AgentHandle {
+interface FakeToolCall {
+  name: string
+  arguments: Record<string, unknown>
+  isError?: boolean
+}
+
+function successfulToolEvents(tools: FakeToolCall[]): Array<Record<string, unknown>> {
+  const events: Array<Record<string, unknown>> = []
+  for (const [index, tool] of tools.entries()) {
+    const callId = `evidence-${index}`
+    events.push({
+      seq: events.length,
+      time: Date.now(),
+      type: 'tool/call',
+      data: { turn: 1, step: index, callId, name: tool.name, arguments: JSON.stringify(tool.arguments) },
+    })
+    events.push({
+      seq: events.length,
+      time: Date.now(),
+      type: 'tool/result',
+      data: {
+        turn: 1,
+        step: index,
+        message: {
+          content: [{ type: 'tool-result', toolCallId: callId, content: [{ type: 'text', text: 'ok' }], isError: false }],
+        },
+      },
+    })
+  }
+  return events
+}
+
+function fakeHandle(
+  id: string,
+  reply: (prompt: string) => string | { text: string; tools: FakeToolCall[] },
+): AgentHandle {
   const events: Array<Record<string, unknown>> = []
   const session = {
     id,
@@ -48,7 +88,28 @@ function fakeHandle(id: string, reply: (prompt: string) => string): AgentHandle 
     session,
     followup(message: { content: Array<{ type: string; text?: string }> }) {
       const prompt = message.content.map(block => block.text ?? '').join('')
-      events.push(assistantEvent(events.length, reply(prompt)))
+      const response = reply(prompt)
+      if (typeof response !== 'string') {
+        for (const [index, tool] of response.tools.entries()) {
+          const callId = `call-${events.length}-${index}`
+          session.append('tool/call', {
+            turn: events.length,
+            step: index,
+            callId,
+            name: tool.name,
+            arguments: JSON.stringify(tool.arguments),
+          })
+          session.append('tool/result', {
+            turn: events.length,
+            step: index,
+            message: {
+              content: [{ type: 'tool-result', toolCallId: callId, content: [{ type: 'text', text: 'ok' }], isError: tool.isError }],
+            },
+            ...(tool.isError === true ? { error: { name: 'FakeError', code: 'FAKE_ERROR' } } : {}),
+          })
+        }
+      }
+      events.push(assistantEvent(events.length, typeof response === 'string' ? response : response.text))
     },
     whenIdle: async () => undefined,
     cancel: () => undefined,
@@ -118,6 +179,7 @@ describe('DSH Work Orchestrator', () => {
     expect(linkedWorkIntentShortcut('第四页不对，请修改一下', true)).toBeUndefined()
     expect(linkedWorkIntentShortcut('HTML 做得怎么样了？', false)).toBeUndefined()
     expect(obviousExternalWorkRequest('我想我明天要汇报，帮我写个 AI 改变游戏的网页。')).toBe(true)
+    expect(obviousExternalWorkRequest('帮我创建一个 HTML 页面并打开')).toBe(true)
     expect(obviousExternalWorkRequest('帮我砍一下这棵树')).toBe(false)
     expect(postTurnWorkIntentShortcut('我想我明天要汇报，帮我写个 AI 改变游戏的网页。', true)).toEqual({
       kind: 'start',
@@ -128,12 +190,151 @@ describe('DSH Work Orchestrator', () => {
     expect(postTurnWorkIntentShortcut('做吧', true)).toEqual({ kind: 'continue', instruction: '做吧' })
     expect(requestsImmediateExecution('帮我做一个网站并打开')).toBe(true)
     expect(requestsImmediateExecution('先给我讲讲网站思路，不要执行')).toBe(false)
+    expect(requiresArtifactWrite('帮我做一个网站并打开')).toBe(true)
+    expect(requiresArtifactOpen('帮我做一个网站并打开')).toBe(true)
+    expect(requiresArtifactWrite('先讲讲网站思路')).toBe(false)
+    expect(requiresArtifactWrite('请修改刚才的 HTML 思路，第二部分换成真实案例')).toBe(false)
+    expect(requiresArtifactWrite('先给思路，不要生成 HTML 文件')).toBe(false)
+    expect(requiresArtifactOpen('生成 HTML，但是先不要打开')).toBe(false)
+    expect(requiresWebResearch('联网查资料，做成报告')).toBe(true)
+    expect(requiresWebResearch('不要联网，只整理这份文档')).toBe(false)
+    expect(() => assertRequiredWorkTools(['read', 'write', 'edit', 'glob', 'grep', 'pwsh'])).not.toThrow()
+    expect(() => assertRequiredWorkTools(['game_story_advance'])).toThrow('missing read, write, edit, glob, grep, pwsh')
     expect(compactWorkNotification('AI 游戏行业汇报', '这是很长的完整方案。第二段。第三段。', 'update')).toBe(
       '“AI 游戏行业汇报”有新进展啦。要听我简单说说，还是打开工作页面看完整内容？',
     )
     expect(compactWorkNotification('行业汇报', '目前已完成**三段式汇报思路**，尚未生成最终 HTML。第三句不应出现。', 'status')).toBe(
       '目前已完成三段式汇报思路，尚未生成最终 HTML。第三句不应出现。',
     )
+  })
+
+  it('verifies real office artifacts, exact open targets, and requested research', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-office-evidence-'))
+    const workspace = join(directory, 'workspace')
+    mkdirSync(workspace)
+    const html = join(workspace, 'research.html')
+    const unrelated = join(workspace, 'unrelated.html')
+    const pptx = join(workspace, 'briefing.pptx')
+    writeFileSync(html, '<!doctype html><html><h1>AI 游戏行业</h1></html>')
+    writeFileSync(unrelated, '<!doctype html><html><h1>other</h1></html>')
+    writeFileSync(pptx, Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00]))
+    try {
+      const webHtml = successfulToolEvents([
+        { name: 'web_search', arguments: { search_query: 'AI 游戏行业最新资料' } },
+        { name: 'write', arguments: { file_path: html, content: '<!doctype html>' } },
+        { name: 'pwsh', arguments: { command: `Start-Process -LiteralPath '${html}'` } },
+      ])
+      expect(verifyWorkExecution(webHtml as never, 0, workspace, '联网查资料，生成 HTML 并打开')).toEqual({
+        artifactPaths: [html],
+        opened: true,
+        researched: true,
+      })
+
+      const powershellWebHtml = successfulToolEvents([
+        {
+          name: 'pwsh',
+          arguments: { command: "Invoke-WebRequest -Uri 'https://example.com' | Select-Object -ExpandProperty Content" },
+        },
+        { name: 'write', arguments: { file_path: html, content: '<!doctype html>' } },
+        { name: 'pwsh', arguments: { command: `Start-Process -LiteralPath '${html}'` } },
+      ])
+      expect(verifyWorkExecution(powershellWebHtml as never, 0, workspace, '联网查资料，生成 HTML 并打开')).toEqual({
+        artifactPaths: [html],
+        opened: true,
+        researched: true,
+      })
+
+      const webClientHtml = successfulToolEvents([
+        {
+          name: 'pwsh',
+          arguments: {
+            command: "$client = New-Object System.Net.WebClient; $result = $client.DownloadString('https://example.com')",
+          },
+        },
+        { name: 'write', arguments: { file_path: html, content: '<!doctype html>' } },
+        { name: 'pwsh', arguments: { command: `Start-Process -LiteralPath '${html}'` } },
+      ])
+      expect(verifyWorkExecution(webClientHtml as never, 0, workspace, '联网查资料，生成 HTML 并打开')).toMatchObject({
+        artifactPaths: [html],
+        opened: true,
+        researched: true,
+      })
+
+      const binary = successfulToolEvents([
+        {
+          name: 'pwsh',
+          arguments: { command: `[IO.File]::WriteAllBytes('${pptx}', [byte[]](80,75,3,4))` },
+        },
+        { name: 'pwsh', arguments: { command: `Start-Process -LiteralPath '${pptx}'` } },
+      ])
+      expect(verifyWorkExecution(binary as never, 0, workspace, '生成 PPT 并打开')).toMatchObject({
+        artifactPaths: [pptx],
+        opened: true,
+      })
+
+      const wrongOpen = successfulToolEvents([
+        { name: 'write', arguments: { file_path: html, content: '<!doctype html>' } },
+        { name: 'pwsh', arguments: { command: `Start-Process -LiteralPath '${unrelated}'` } },
+      ])
+      expect(() => verifyWorkExecution(wrongOpen as never, 0, workspace, '生成 HTML 并打开'))
+        .toThrow('did not successfully open the verified artifact')
+
+      const noResearch = successfulToolEvents([
+        { name: 'pwsh', arguments: { command: "Get-Content -LiteralPath 'notes.txt'" } },
+        { name: 'write', arguments: { file_path: html, content: '<!doctype html>' } },
+      ])
+      expect(() => verifyWorkExecution(noResearch as never, 0, workspace, '联网查资料并生成 HTML'))
+        .toThrow('did not perform the requested web research')
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('repairs one failed artifact verification inside the same Work Session', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-work-repair-'))
+    const artifact = join(directory, 'workspace', 'repaired.html')
+    const notifications: WorkNotification[] = []
+    let createCalls = 0
+    let workerCalls = 0
+    const runtime = createContext([], {
+      get: () => undefined,
+      create: async (options: { sessionId: string }) => {
+        createCalls += 1
+        return fakeHandle(options.sessionId, prompt => {
+          workerCalls += 1
+          if (!prompt.includes('DSH_WORK_VERIFICATION_RETRY_V1')) return '网页已经完成并打开。'
+          writeFileSync(artifact, '<!doctype html><html><h1>修复成功</h1></html>')
+          return {
+            text: '已纠正并完成真实操作。',
+            tools: [
+              { name: 'write', arguments: { file_path: artifact, content: '<!doctype html>' } },
+              { name: 'pwsh', arguments: { command: `Start-Process -LiteralPath '${artifact}'` } },
+            ],
+          }
+        })
+      },
+    })
+    const service = new WorkOrchestratorService(runtime.ctx, config(directory))
+    try {
+      service.scheduleTurn({
+        companionSessionId: 'companion-repair',
+        playerText: '帮我创建一个 HTML 页面并打开',
+        companionReply: '好的，我先看看。',
+        selection: { provider: 'zai', model: 'glm-5.2' },
+        source: 'voice',
+        notify: notification => { notifications.push(notification) },
+      })
+      await service.flush()
+      expect(createCalls).toBe(1)
+      expect(workerCalls).toBe(2)
+      expect(readFileSync(artifact, 'utf8')).toContain('修复成功')
+      expect(notifications).toHaveLength(1)
+      expect(notifications[0]?.kind).toBe('update')
+    } finally {
+      await service.close()
+      await runtime.release()
+      rmSync(directory, { recursive: true, force: true })
+    }
   })
 
   it('answers first, then creates and reuses one native Worker DSH Session', async () => {
@@ -154,6 +355,14 @@ describe('DSH Work Orchestrator', () => {
         const worker = fakeHandle(options.sessionId, prompt => {
           expect(prompt).toContain('DSH_WORKER_SESSION_V1')
           if (prompt.includes('真实进度')) return '目前已完成**三段式汇报思路**，尚未生成最终 HTML。'
+          if (prompt.includes('这是明确的执行请求')) {
+            const artifact = join(directory, 'workspace', prompt.includes('产品介绍') ? 'product.html' : 'report.html')
+            writeFileSync(artifact, '<!doctype html><title>report</title>')
+            return {
+              text: 'HTML 已生成。',
+              tools: [{ name: 'write', arguments: { file_path: artifact, content: '<!doctype html>' } }],
+            }
+          }
           return prompt.includes('继续处理') ? '已按反馈重排第二部分。' : '建议先确认三段式汇报思路。'
         })
         workers.push(worker)

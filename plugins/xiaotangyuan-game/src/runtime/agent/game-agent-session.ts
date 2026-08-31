@@ -6,6 +6,7 @@ import { installModelSelection, type AgentHandle, type ModelSelection, type Mode
 import { createUserMessage, type ContentBlock } from '@deepseek-ai/dsh-llm'
 import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-system-prompt'
+import type {} from '@deepseek-ai/dsh-tools'
 import {
   linkedWorkIntentShortcut,
   obviousExternalWorkRequest,
@@ -212,6 +213,13 @@ export class GameAgentSession {
     return (agentCtx) => {
         const selected: ModelSelectionRef = { current: selection, assembled: undefined }
         installModelSelection(agentCtx, selected)
+        // The companion answers first and routes office work only after its
+        // reply. Keep production tools out of this fast conversational Session.
+        agentCtx.inject(['tools'], (scoped) => {
+          const workOnlyTools = new Set(['read', 'write', 'edit', 'glob', 'grep', 'pwsh', 'web_search'])
+          const denied = scoped.tools.schemas().map(tool => tool.name).filter(name => workOnlyTools.has(name))
+          if (denied.length > 0) scoped.tools.restrict({ deny: denied })
+        })
         agentCtx.systemPrompt.section({
           name: 'xiaotangyuan:companion-policy',
           order: 10,

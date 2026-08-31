@@ -1,6 +1,6 @@
 {
   "name": "@qimidandapigu/dsh-work-orchestrator",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Post-turn work recognition and native Worker DSH Session orchestration for DeepSeek Harness companions.",
   "type": "module",
   "main": "./dist/index.js",

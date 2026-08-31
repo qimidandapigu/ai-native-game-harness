@@ -148,7 +148,7 @@ DSH Session
 - 流式 TTS 在已经播放部分音频后失败时不再整段重播；首个音频分片前失败仍允许完整回复兼容回退。
 - ONI Adapter 使用 Bridge heartbeat 排除 Windows PID 复用产生的陈旧目录，并验证吸水、喷水动作使用当前光标格。
 - ONI Adapter 已接入动态 Adapter Protocol Host，源码版本为 `0.1.6`。
-- Work Orchestrator 插件源码版本为 `0.1.2`；小汤圆 Harness Plugin 源码版本为 `0.7.9`；缺氧 Bridge 源码版本为 `0.6.7`。
+- Work Orchestrator 插件源码版本为 `0.1.3`；小汤圆 Harness Plugin 源码版本为 `0.7.9`；缺氧 Bridge 源码版本为 `0.6.7`。
 - 桌面发行 Runtime 固定为 DSH `0.1.1-rc.2`。
 - 游戏版 Gateway 使用 `33145`；星露谷和饥荒按 `V`，缺氧按 `Q`。
 
@@ -170,10 +170,13 @@ DSH Session
 
 - `pnpm install --frozen-lockfile`
 - `pnpm check`
-- 30 项集成测试
+- 33 项集成测试
 - 21 项平台测试
-- 独立 Work Orchestrator：5 项测试
+- 独立 Work Orchestrator：7 项测试
 - 小汤圆插件：103 项测试
+- 双 Session E2E：先回复、后置工作识别、同一工作 Session 的进度/反馈复用、HTML 真实落盘和玩家可见文案边界
+- 办公黄金 E2E：联网证据、HTML/Markdown/PPTX/Excel 类型、准确打开目标和一次有界自纠
+- Desktop 隔离启动冒烟：preload、真实 DSH Web、`33145`、Profile 隔离与退出清理
 - 饥荒、反馈服务和 ONI Adapter 另有各自的自动检查
 - `pnpm desktop:prepare`：构建媒体 Host、插件与 ONI Adapter，完成 Adapter、状态、两轮对话和同存档 Session 恢复冒烟，并准备桌面 Runtime
 - `pnpm desktop:dist`：已生成 284,176,643 字节的 Windows NSIS 安装包，包含 DSH `0.1.1-rc.2`、小汤圆插件 `0.7.7`、ONI Adapter `0.1.6` 和自包含媒体 Host
@@ -249,7 +252,7 @@ pnpm desktop:dist
 - 主仓库 `v1.1.0` Release 只提供 GitHub 自动生成的源码归档，不包含签名安装包。
 - 旧仓库公开稳定包仍为 Harness Plugin `0.5.1`、ONI Adapter `0.1.3`。
 - `v1.1.0` 源码快照包含 Harness Plugin `0.7.7`、ONI Adapter `0.1.6` 与 Bridge `0.6.7` 的源码，但不能写成这些组件已经拥有独立公开的签名安装包。
-- 当前 `main` 又增加了 Work Orchestrator `0.1.2` 和 Harness Plugin `0.7.9` 等后续开发内容，不属于 `v1.1.0` 稳定快照。
+- 当前 `main` 又增加了 Work Orchestrator `0.1.3` 和 Harness Plugin `0.7.9` 等后续开发内容，不属于 `v1.1.0` 稳定快照。
 - 本地构建、代码提交、Git 推送、Git 标签和 GitHub Release 是五个不同状态，必须分别报告。
 
 ## 下一步

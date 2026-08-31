@@ -26,7 +26,11 @@
     "desktop:dist": "pnpm desktop:prepare && pnpm --filter @ai-native-game-harness/desktop dist",
     "smoke:dsh-adapter": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-dsh-adapter.ps1",
     "smoke:dsh-story": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-dsh-story.ps1",
-    "smoke:dsh-product": "pnpm --filter @ai-native-game-harness/game-transport... build && node scripts/smoke-dsh-product-runtime.mjs"
+    "smoke:dsh-product": "pnpm --filter @ai-native-game-harness/game-transport... build && node scripts/smoke-dsh-product-runtime.mjs",
+    "smoke:desktop-startup": "node scripts/smoke-desktop-startup.mjs",
+    "test:dual-session": "pnpm --filter @ai-native-game-harness/integration-tests exec vitest run dual-session-e2e.test.ts",
+    "test:office-work": "pnpm --filter @ai-native-game-harness/integration-tests exec vitest run office-work-golden-e2e.test.ts",
+    "demo:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-game-demo.ps1"
   },
   "engines": {
     "node": ">=22.19"

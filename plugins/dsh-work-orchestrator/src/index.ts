@@ -27,6 +27,7 @@ export { resolveConfig } from './config.js'
 export { CodexAppServerClient } from './codex-app-server-client.js'
 export type { CodexAppServerOptions, CodexProgress, CodexWorkerClient } from './codex-app-server-client.js'
 export {
+  assertRequiredWorkTools,
   compactWorkNotification,
   LEGACY_WORK_RELAY_PREFIX,
   WORK_RELAY_META_PREFIX,
@@ -37,7 +38,11 @@ export {
   parseWorkIntent,
   postTurnWorkIntentShortcut,
   requestsImmediateExecution,
+  requiresArtifactOpen,
+  requiresArtifactWrite,
+  requiresWebResearch,
   requestsCodex,
+  verifyWorkExecution,
 } from './work-orchestrator-service.js'
 export type {
   CompletedCompanionTurn,

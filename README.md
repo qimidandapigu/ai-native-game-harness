@@ -130,7 +130,7 @@ AI 理解当前状态，生成或延续短剧情，并回答或请求执行动�
 | 游戏开发者 / MOD 作者 | 可以使用 Adapter Starter 和 Mock Game 评估接入方式 |
 | 项目贡献者 | 可以运行源码、自动测试和桌面演示 |
 
-当前 `main` 已通过 30 项集成测试和 21 项平台测试，并通过独立 Work Orchestrator 5 项与小汤圆插件 103 项专项测试；饥荒、反馈服务和缺氧 Adapter 也有各自的自动检查。`smoke:dsh-story` 还会让当前 DSH 模型真实生成一段 Mock Game 剧情、完成金币目标，并在第二次启动后读回历史。Windows 安装器已完成不依赖系统 Node/pnpm 的安装、内置 DSH 页面 HTTP 200、媒体宿主启动和完整卸载验证；一次剧情冒烟和一次本机安装验收仍不等于长期剧情质量、真实游戏或正式签名 Release 已经完成。
+当前 `main` 已通过 33 项集成测试和 21 项平台测试，并通过独立 Work Orchestrator 7 项与小汤圆插件 103 项专项测试；饥荒、反馈服务和缺氧 Adapter 也有各自的自动检查。双 Session E2E 会验证“小汤圆先回复、工作随后执行、进度与修改复用原工作会话、最终文件真实落盘”；办公黄金验收还会检查联网、HTML/Markdown/PPTX/Excel 文件类型和准确打开目标。正式 Desktop Profile 已完成两次本机办公链复测，真实生成并打开 HTML；真实麦克风、游戏内气泡时序和长时间游戏体验仍需现场人工验收。
 
 ## 开发者体验
 
@@ -141,13 +141,18 @@ git clone https://github.com/qimidandapigu/ai-native-game-harness.git
 cd ai-native-game-harness
 pnpm install --frozen-lockfile
 pnpm check
+pnpm test:dual-session
+pnpm test:office-work
+pnpm smoke:desktop-startup
 pnpm smoke:dsh-story
 pnpm desktop:dev:prepare
 pnpm desktop:dev
-pnpm desktop:demo
+pnpm demo:prepare
 ```
 
 `desktop:dev:prepare` 只准备源码开发所需的插件和增量构建，不安装独立生产 Runtime，也不生成 NSIS；日常修改 Desktop 后直接运行 `desktop:dev`。修改小汤圆、Work Orchestrator、ONI Adapter 或共享插件后，执行一次 `desktop:dev:sync` 再重新启动开发版。完整 `desktop:prepare / pack / dist` 只用于发行目录、安装器和最终发布验证。
+
+`pnpm demo:prepare` 会完成自动检查、准备隔离演示 Profile、生成演示话术并启动 Desktop，但不会启动或修改星露谷存档。最后约 10 分钟的真实游戏检查见[游戏内办公演示验收](docs/testing/GAME_DEMO_ACCEPTANCE.md)，办公成果契约见[办公模块黄金验收](docs/testing/OFFICE_WORK_GOLDEN_ACCEPTANCE.md)。
 
 第三方游戏接入可以从 [`examples/adapter-starter`](examples/adapter-starter) 开始。
 
