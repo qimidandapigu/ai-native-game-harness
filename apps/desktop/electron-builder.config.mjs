@@ -16,6 +16,10 @@ export default {
   directories: {
     output: resolve(repoRoot, 'distribution/desktop'),
   },
+  publish: [{
+    provider: 'generic',
+    url: 'https://github.com/qimidandapigu/ai-native-game-harness/releases/download/desktop-updates',
+  }],
   files: [
     'src/**/*',
     'node_modules/**/*',
@@ -51,6 +55,7 @@ export default {
   },
   nsis: {
     oneClick: false,
+    deleteAppDataOnUninstall: false,
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,

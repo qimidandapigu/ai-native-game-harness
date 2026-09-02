@@ -109,14 +109,14 @@ const PROACTIVE_PROMPT = [
 ].join('')
 
 export class GameGateway implements VoiceInteractionHandler {
-  private readonly server: WebSocketServer
+  private server?: WebSocketServer
   private readonly connections = new Set<ConnectionState>()
-  private readonly proactiveTimer: ReturnType<typeof setInterval>
+  private proactiveTimer?: ReturnType<typeof setInterval>
 
   constructor(
     private readonly ctx: Context,
-    host: string,
-    port: number,
+    private readonly host: string,
+    private readonly port: number,
     private readonly multimodal: MultimodalRouter,
     private readonly memory: MemoryService | undefined,
     private readonly skills: SkillService | undefined,
@@ -129,21 +129,61 @@ export class GameGateway implements VoiceInteractionHandler {
     private readonly finishSpeechReply: (processId: number, interactionId: string, finalText: string) => Promise<boolean>,
     private readonly startRecording: (processId: number) => boolean = () => false,
     private readonly stopRecording: (processId: number) => boolean = () => false,
-  ) {
-    this.server = new WebSocketServer({ host, port, maxPayload: 1024 * 1024 })
-    this.server.on('connection', socket => this.onConnection(socket))
-    this.server.on('listening', () => {
-      console.info(`[dsh-xiaotangyuan-game] listening on ws://${host}:${port}`)
-    })
-    this.server.on('error', error => {
+  ) {}
+
+  async start(retryDelaysMs: readonly number[] = [300, 700, 1_500, 3_000]): Promise<void> {
+    if (this.server !== undefined) return
+    let lastError: unknown
+    for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
+      if (attempt > 0) {
+        const delayMs = retryDelaysMs[attempt - 1]!
+        this.ctx.logger.warn(`xiaotangyuan-game: ${this.host}:${this.port} 暂时被占用，${delayMs}ms 后重试（${attempt}/${retryDelaysMs.length}）`)
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+      try {
+        const server = await this.listenOnce()
+        this.server = server
+        console.info(`[dsh-xiaotangyuan-game] listening on ws://${this.host}:${this.port}`)
+        this.proactiveTimer = setInterval(() => {
+          void this.runProactiveCycle().catch(error => {
+            this.ctx.logger.warn('xiaotangyuan-game: 主动聊天调度失败')
+            this.ctx.logger.warn(error)
+          })
+        }, 1_000)
+        return
+      } catch (error) {
+        lastError = error
+        if (!isAddressInUse(error) || attempt === retryDelaysMs.length) break
+      }
+    }
+    const detail = lastError instanceof Error ? lastError.message : String(lastError)
+    throw new Error(`小汤圆游戏 Gateway 无法监听 ws://${this.host}:${this.port}：${detail}`, { cause: lastError })
+  }
+
+  private async listenOnce(): Promise<WebSocketServer> {
+    const server = new WebSocketServer({ host: this.host, port: this.port, maxPayload: 1024 * 1024 })
+    server.on('connection', socket => this.onConnection(socket))
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const onListening = (): void => {
+          server.off('error', onError)
+          resolve()
+        }
+        const onError = (error: Error): void => {
+          server.off('listening', onListening)
+          reject(error)
+        }
+        server.once('listening', onListening)
+        server.once('error', onError)
+      })
+    } catch (error) {
+      await closeWebSocketServer(server)
+      throw error
+    }
+    server.on('error', error => {
       console.error('[dsh-xiaotangyuan-game] WebSocket server error', error)
     })
-    this.proactiveTimer = setInterval(() => {
-      void this.runProactiveCycle().catch(error => {
-        this.ctx.logger.warn('xiaotangyuan-game: 主动聊天调度失败')
-        this.ctx.logger.warn(error)
-      })
-    }, 1_000)
+    return server
   }
 
   private onConnection(socket: WebSocket): void {
@@ -664,7 +704,8 @@ export class GameGateway implements VoiceInteractionHandler {
   }
 
   async close(): Promise<void> {
-    clearInterval(this.proactiveTimer)
+    if (this.proactiveTimer !== undefined) clearInterval(this.proactiveTimer)
+    this.proactiveTimer = undefined
     const sessions: GameAgentSession[] = []
     for (const connection of this.connections) {
       connection.postReplyAction?.abort(new Error('gateway shutting down'))
@@ -674,6 +715,22 @@ export class GameGateway implements VoiceInteractionHandler {
     }
     this.connections.clear()
     await Promise.allSettled(sessions.map(session => session.dispose()))
-    await new Promise<void>((resolve) => this.server.close(() => resolve()))
+    const server = this.server
+    this.server = undefined
+    if (server !== undefined) await closeWebSocketServer(server)
   }
+}
+
+function isAddressInUse(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'EADDRINUSE'
+}
+
+async function closeWebSocketServer(server: WebSocketServer): Promise<void> {
+  await new Promise<void>(resolve => {
+    try {
+      server.close(() => resolve())
+    } catch {
+      resolve()
+    }
+  })
 }

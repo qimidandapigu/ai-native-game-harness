@@ -34,7 +34,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   registerGameTools(ctx, feedback, resolved.installers.dontStarve)
   if (memory !== undefined) registerMemoryTools(ctx, memory)
 
-  ctx.effect(() => {
+  ctx.effect(async () => {
     const media = new WindowsMediaHost(ctx, resolved.media)
     const multimodal = new MultimodalRouter(ctx, resolved.vision, media)
     let speech: SpeechController | undefined
@@ -62,6 +62,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       processId => media.startRecording(processId),
       processId => media.stopRecording(processId),
     )
+    await gateway.start()
     const capabilities = new CapabilityRegistry()
     const speechProvider = new VolcengineSpeechProvider(ctx, resolved.speech)
     capabilities.register('speech.transcribe', speechProvider)

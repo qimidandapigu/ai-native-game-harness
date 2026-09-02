@@ -10,7 +10,7 @@ AI Native Game Harness 想为玩家提供一个可以进入不同游戏的 AI �
 
 对于游戏开发者和 MOD 作者，它提供一套可复用的 AI 游戏底座。你只需要描述自己的游戏世界、状态和可执行动作，不必为每款游戏重新开发模型接入、语音、记忆、工具调用和桌面应用。
 
-> `v1.1.0` 稳定源码版本已经发布，保存当前玩家版、开发者版、完整技术理念、游戏 Harness 与多游戏接入代码。Windows NSIS 安装包已完成本地安装、启动、内置 DSH Runtime 和卸载验证，但尚未数字签名，也没有作为正式 Release 资产对外发布。
+> `v1.1.0` 稳定源码版本已经发布，保存玩家版、开发者版、完整技术理念、游戏 Harness 与多游戏接入代码。当前 `main` 在此基础上增加了 Desktop 单实例/Gateway 生命周期修复、Windows 安全自动更新和轻量稳定性采集；公网更新源、数字签名安装包与 macOS 安装包仍未正式发布。
 
 > `1.0` / `v1.0.0` 保留第一份稳定快照；`1.1` 分支、`v1.1.0` 标签与 GitHub Release 保存本次稳定源码。封版时 `main` 与 `v1.1.0` 一致，后续开发不会反向修改这两个稳定版本。
 
@@ -61,7 +61,7 @@ AI 不应该只是让人一天完成三天的工作。生产力继续提高以�
 
 本仓库只维护可以公开复用的本地核心：游戏协议、Adapter、DSH 插件、NPC 工作编排、桌面基础能力和自动验收。账号、额度、支付以及托管模型路由不是公共核心的依赖，也不会把服务器密钥或商业实现放进游戏 MOD。
 
-未来的正式产品可以在开源核心之上增加可选的登录和云服务，但依赖方向始终是单向的：产品发行版消费一个固定的公开版本，公共仓库不会反向依赖私有服务。只使用开源版本的开发者仍然可以自行配置模型并运行本地能力。
+正式产品可以在开源核心之上增加可选的登录、额度、支付和托管模型服务，但依赖方向始终是单向的：产品发行版消费一个固定的公开版本，公共仓库不会反向依赖私有服务。只使用开源版本的开发者仍然可以自行配置模型并运行本地能力。
 
 ### 一个应用连接多款游戏
 
@@ -132,11 +132,11 @@ AI 理解当前状态，生成或延续短剧情，并回答或请求执行动�
 
 | 使用者 | 当前建议 |
 | --- | --- |
-| 普通玩家 | 可以查看 `v1.1.0` 稳定源码；本地一键安装包已验证，但尚未签名或作为 Release 资产公开发布 |
+| 普通玩家 | 可以查看 `v1.1.0` 稳定源码；Windows 本地安装与升级链已验证，但尚未签名或作为 Release 资产公开发布，macOS 仍在适配 |
 | 游戏开发者 / MOD 作者 | 可以使用 Adapter Starter 和 Mock Game 评估接入方式 |
 | 项目贡献者 | 可以运行源码、自动测试和桌面演示 |
 
-当前 `main` 已通过 33 项集成测试和 21 项平台测试，并通过独立 Work Orchestrator 7 项与小汤圆插件 103 项专项测试；饥荒、反馈服务和缺氧 Adapter 也有各自的自动检查。双 Session E2E 会验证“小汤圆先回复、工作随后执行、进度与修改复用原工作会话、最终文件真实落盘”；办公黄金验收还会检查联网、HTML/Markdown/PPTX/Excel 文件类型和准确打开目标。正式 Desktop Profile 已完成两次本机办公链复测，真实生成并打开 HTML；真实麦克风、游戏内气泡时序和长时间游戏体验仍需现场人工验收。
+当前 `main` 合并后的基线覆盖 45 项集成测试和 22 项平台测试，并通过独立 Work Orchestrator 与小汤圆插件专项测试；饥荒、反馈服务和缺氧 Adapter 也有各自的自动检查。Desktop 现在会阻止重复实例争抢 `33145`，退出时按顺序关闭 Gateway/Runtime，并在打包后的 Windows 版本中后台检查更新。轻量稳定性脚本可记录进程资源、Gateway 连通和重连证据；真实麦克风、游戏内气泡时序、连续一小时游玩和 macOS 现场体验仍需人工验收。
 
 ## 开发者体验
 
@@ -151,6 +151,7 @@ pnpm test:dual-session
 pnpm test:office-work
 pnpm smoke:desktop-startup
 pnpm smoke:dsh-story
+PowerShell -NoProfile -ExecutionPolicy Bypass -File scripts/real-game-stability-lite.ps1 -Game auto -DurationMinutes 60
 pnpm desktop:dev:prepare
 pnpm desktop:dev
 pnpm demo:prepare
@@ -169,6 +170,7 @@ pnpm demo:prepare
 - [游戏安装与升级](docs/xiaotangyuan/INSTALLATION.md)
 - [常见问题与排错](docs/xiaotangyuan/TROUBLESHOOTING.md)
 - [内部开发状态与技术决策](docs/INTERNAL_DEVELOPMENT.md)
+- [轻量真实游戏稳定性验收](docs/testing/LIGHTWEIGHT_GAME_STABILITY.md)
 
 ## License
 

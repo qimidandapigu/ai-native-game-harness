@@ -10,6 +10,7 @@ import { PlatformRuntime } from './platform-runtime.mjs'
 import { DshProductRuntime } from './dsh-product-runtime.mjs'
 import { buildDiagnosticBundle, diagnosticFilename } from './diagnostics.mjs'
 import { EVALUATION_CATALOG, runDstButterflyProductEvaluation } from './evaluation-runtime.mjs'
+import { startDesktopUpdater } from './updater.mjs'
 
 const require = createRequire(import.meta.url)
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -20,6 +21,7 @@ if (!app.isPackaged && process.env.AI_GAME_HARNESS_DEV === '1') {
 let mainWindow
 let dshProcess
 let dshExitCode = null
+let dshExited = false
 let quitting = false
 let shutdownComplete = false
 let platformRuntime
@@ -34,6 +36,7 @@ let demoAdapterProcess
 let gamePackRegistry
 let runtimeWebUrl
 let evaluationRunning = false
+let desktopUpdater
 
 const PRODUCT_TITLE = 'AI Native Game Harness 游戏版'
 
@@ -348,7 +351,7 @@ function getFreePort() {
 async function waitForWeb(url, child, timeoutMs = 60_000) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
-    if (dshExitCode !== null) throw new Error(`AI Runtime 在界面就绪前退出，代码 ${dshExitCode}`)
+    if (dshExited) throw new Error(`AI Runtime 在界面就绪前退出，代码 ${dshExitCode ?? 'signal'}`)
     try {
       const response = await fetch(url)
       if (response.ok) return
@@ -356,6 +359,42 @@ async function waitForWeb(url, child, timeoutMs = 60_000) {
     await new Promise((resolveWait) => setTimeout(resolveWait, 300))
   }
   throw new Error('等待 AI Runtime 界面启动超时')
+}
+
+async function waitForGameGateway(readRecentLog, timeoutMs = 12_000) {
+  const listeningLine = '[dsh-xiaotangyuan-game] listening on ws://127.0.0.1:33145'
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    if (dshExited) throw new Error(`AI Runtime 在游戏语音网关就绪前退出，代码 ${dshExitCode ?? 'signal'}`)
+    if (readRecentLog().includes(listeningLine)) return
+    await new Promise((resolveWait) => setTimeout(resolveWait, 200))
+  }
+  const recentLog = readRecentLog().trim()
+  throw new Error([
+    '游戏语音网关 127.0.0.1:33145 未能启动。请勿重复打开 Harness；若端口被其他程序占用，请先关闭占用程序。',
+    recentLog === '' ? '' : `最近运行日志：\n${recentLog}`,
+  ].filter(Boolean).join('\n'))
+}
+
+async function stopDshRuntime(timeoutMs = 8_000) {
+  const child = dshProcess
+  if (!child?.pid) return
+  if (dshExited) {
+    dshProcess = undefined
+    return
+  }
+  const exited = new Promise(resolveExit => child.once('exit', () => resolveExit(true)))
+  child.kill()
+  const exitedInTime = await Promise.race([
+    exited,
+    new Promise(resolveTimeout => setTimeout(() => resolveTimeout(false), timeoutMs)),
+  ])
+  if (!exitedInTime) {
+    appendRuntimeLog(`[desktop] AI Runtime 在 ${timeoutMs}ms 内未确认退出\n`)
+    child.kill()
+    return
+  }
+  dshProcess = undefined
 }
 
 function writeProductPatch(paths, adapterPort) {
@@ -426,6 +465,7 @@ async function startRuntime() {
   appendRuntimeLog(`[desktop] starting DSH Runtime at ${url}\n`)
 
   dshExitCode = null
+  dshExited = false
   dshProcess = forkDsh([
     'web',
     '--patch', paths.patchPath,
@@ -436,6 +476,7 @@ async function startRuntime() {
   ], paths, 'AI Native Game Harness Runtime')
 
   let recentLog = ''
+  let startupComplete = false
   const collect = (data) => {
     const text = data.toString()
     recentLog = `${recentLog}${text}`.slice(-12_000)
@@ -448,14 +489,22 @@ async function startRuntime() {
   dshProcess.stderr?.on('data', collect)
   dshProcess.once('exit', (code) => {
     dshExitCode = code
-    if (!quitting && mainWindow && !mainWindow.isDestroyed()) {
+    dshExited = true
+    if (!quitting && startupComplete && mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.loadFile(join(desktopRoot, 'src', 'status.html'))
       sendStatus('AI Runtime 已停止', recentLog || `退出代码 ${code}`)
     }
   })
 
-  await waitForWeb(url, dshProcess)
+  try {
+    await waitForWeb(url, dshProcess)
+    await waitForGameGateway(() => recentLog)
+  } catch (error) {
+    await stopDshRuntime()
+    throw error
+  }
   appendRuntimeLog('[desktop] DSH Web Runtime ready\n')
+  appendRuntimeLog('[desktop] game Gateway ready on ws://127.0.0.1:33145\n')
   runtimeWebUrl = url
   dshProductRuntime = new DshProductRuntime({
     baseUrl: url,
@@ -471,6 +520,7 @@ async function startRuntime() {
   dshProductUnsubscribe = dshProductRuntime.subscribe((snapshot) => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('platform-snapshot', snapshot)
   })
+  startupComplete = true
   await showHarnessPage()
 }
 
@@ -687,22 +737,47 @@ function createWindow() {
   })
 }
 
-registerPlatformIpc()
-app.whenReady().then(createWindow)
-app.on('window-all-closed', () => app.quit())
-app.on('before-quit', (event) => {
-  if (shutdownComplete) return
-  event.preventDefault()
-  if (quitting) return
-  quitting = true
-  void (async () => {
-    if (demoAdapterProcess?.pid) demoAdapterProcess.kill()
-    platformUnsubscribe?.()
-    await platformRuntime?.close()
-    dshProductUnsubscribe?.()
-    await dshProductRuntime?.close()
-    if (dshProcess?.pid) dshProcess.kill()
-    shutdownComplete = true
-    app.quit()
-  })()
-})
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
+if (!hasSingleInstanceLock) {
+  shutdownComplete = true
+  app.quit()
+} else {
+  registerPlatformIpc()
+  app.on('second-instance', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+  })
+  app.whenReady().then(() => {
+    createWindow()
+    void startDesktopUpdater({
+      app,
+      dialog,
+      getWindow: () => mainWindow,
+      log: appendRuntimeLog,
+    }).then((controller) => {
+      desktopUpdater = controller
+    }).catch((error) => {
+      appendRuntimeLog(`[updater:warn] updater initialization failed without blocking startup: ${error instanceof Error ? error.message : String(error)}\n`)
+    })
+  })
+  app.on('window-all-closed', () => app.quit())
+  app.on('before-quit', (event) => {
+    if (shutdownComplete) return
+    event.preventDefault()
+    if (quitting) return
+    quitting = true
+    void (async () => {
+      if (demoAdapterProcess?.pid) demoAdapterProcess.kill()
+      platformUnsubscribe?.()
+      await platformRuntime?.close()
+      dshProductUnsubscribe?.()
+      await dshProductRuntime?.close()
+      await stopDshRuntime()
+      desktopUpdater?.stop()
+      shutdownComplete = true
+      app.quit()
+    })()
+  })
+}

@@ -1,6 +1,6 @@
 {
   "name": "@ai-native-game-harness/desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Windows game edition of AI Native Game Harness.",
   "type": "module",
@@ -22,6 +22,7 @@
     "@ai-native-game-harness/adapter-websocket": "workspace:*",
     "@ai-native-game-harness/game-pack": "workspace:*",
     "@ai-native-game-harness/harness-core": "workspace:*",
+    "electron-updater": "6.8.9",
     "ws": "8.21.3"
   },
   "devDependencies": {

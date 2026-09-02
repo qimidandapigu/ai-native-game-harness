@@ -4,6 +4,14 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $manifestPath = Join-Path $repoRoot 'integrations/xiaotangyuan/manifest.json'
 $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+$desktopPackagePath = Join-Path $repoRoot 'apps/desktop/package.json'
+$desktopPackage = Get-Content -Raw -LiteralPath $desktopPackagePath | ConvertFrom-Json
+$desktopVersion = [string]$desktopPackage.version
+$electronUpdaterVersion = [string]$desktopPackage.dependencies.'electron-updater'
+$webSocketVersion = [string]$desktopPackage.dependencies.ws
+if ([string]::IsNullOrWhiteSpace($desktopVersion)) { throw 'Desktop package version is missing' }
+if ([string]::IsNullOrWhiteSpace($electronUpdaterVersion)) { throw 'Desktop electron-updater dependency is missing' }
+if ([string]::IsNullOrWhiteSpace($webSocketVersion)) { throw 'Desktop ws dependency is missing' }
 $archiveName = "qimidandapigu-dsh-xiaotangyuan-game-$($manifest.development.expectedVersion).tgz"
 $archivePath = Join-Path $repoRoot ".artifacts/xiaotangyuan/$archiveName"
 $workArchiveName = "qimidandapigu-dsh-work-orchestrator-$($manifest.workOrchestrator.expectedVersion).tgz"
@@ -99,6 +107,24 @@ foreach ($runtimePackageEntry in $runtimePackages) {
 New-Item -ItemType Directory -Force -Path $appRoot | Out-Null
 Copy-Item -LiteralPath $sourceRoot -Destination $appRoot -Recurse -Force
 
+$installPackage = [ordered]@{
+  name = '@ai-native-game-harness/desktop-stage'
+  version = $desktopVersion
+  private = $true
+  dependencies = [ordered]@{
+    'electron-updater' = $electronUpdaterVersion
+    'ws' = $webSocketVersion
+  }
+}
+[IO.File]::WriteAllText((Join-Path $appRoot 'package.json'), ($installPackage | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+Push-Location $appRoot
+try {
+  pnpm --ignore-workspace --config.node-linker=hoisted install --prod --ignore-scripts | Out-Host
+  if ($LASTEXITCODE -ne 0) { throw "desktop dependency installation failed with exit code $LASTEXITCODE" }
+} finally {
+  Pop-Location
+}
+
 $appModules = Join-Path $appRoot 'node_modules'
 $scopeRoot = Join-Path $appModules '@ai-native-game-harness'
 New-Item -ItemType Directory -Force -Path $scopeRoot | Out-Null
@@ -111,15 +137,16 @@ foreach ($packageName in @('adapter-protocol', 'adapter-websocket', 'harness-cor
   Copy-Item -LiteralPath (Join-Path $packageRoot 'dist') -Destination $packageTarget -Recurse -Force
 }
 
-$webSocketSource = Join-Path $repoRoot 'packages/adapter-websocket/node_modules/ws'
-if (-not (Test-Path -LiteralPath $webSocketSource -PathType Container)) {
-  throw "Desktop WebSocket dependency was not found: $webSocketSource"
+foreach ($requiredDependency in @('electron-updater', 'ws')) {
+  $requiredDependencyPath = Join-Path $appModules $requiredDependency
+  if (-not (Test-Path -LiteralPath $requiredDependencyPath -PathType Container)) {
+    throw "Desktop dependency was not staged: $requiredDependencyPath"
+  }
 }
-Copy-Item -LiteralPath $webSocketSource -Destination (Join-Path $appModules 'ws') -Recurse -Force
 
 $stagePackage = [ordered]@{
   name = '@ai-native-game-harness/desktop'
-  version = '0.1.0'
+  version = $desktopVersion
   private = $true
   description = 'Windows game edition of AI Native Game Harness.'
   author = 'qimidandapigu'
@@ -130,7 +157,8 @@ $stagePackage = [ordered]@{
     '@ai-native-game-harness/adapter-websocket' = '0.1.0'
     '@ai-native-game-harness/game-pack' = '0.1.0'
     '@ai-native-game-harness/harness-core' = '0.1.0'
-    'ws' = '8.21.3'
+    'electron-updater' = $electronUpdaterVersion
+    'ws' = $webSocketVersion
   }
 }
 [IO.File]::WriteAllText((Join-Path $appRoot 'package.json'), ($stagePackage | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
