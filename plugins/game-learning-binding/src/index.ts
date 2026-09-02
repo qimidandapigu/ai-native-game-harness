@@ -20,6 +20,8 @@ interface ProductTurn {
   turn: number
   playerText: string
   reply: string
+  gameId?: string
+  evaluation: boolean
 }
 
 interface LegacyAdapterHello {
@@ -44,14 +46,22 @@ function messageText(content: readonly { type: string; text?: string }[]): strin
   return content.filter(block => block.type === 'text').map(block => block.text ?? '').join('').trim()
 }
 
-function unwrapProductTurn(text: string): string | undefined {
+function unwrapProductTurn(text: string): { playerText: string; gameId?: string; evaluation: boolean } | undefined {
   if (!text.startsWith(PRODUCT_TURN_PREFIX)) return undefined
   const separator = '\nPLAYER_MESSAGE:\n'
   const index = text.indexOf(separator, PRODUCT_TURN_PREFIX.length)
-  return index < 0 ? undefined : text.slice(index + separator.length).trim()
+  if (index < 0) return undefined
+  const header = text.slice(PRODUCT_TURN_PREFIX.length, index)
+  const gameId = header.match(/^GAME_ID:([a-zA-Z0-9._:-]{1,128})$/m)?.[1]
+  return {
+    playerText: text.slice(index + separator.length).trim(),
+    ...(gameId === undefined ? {} : { gameId }),
+    evaluation: /^EVALUATION_MODE:true$/m.test(header),
+  }
 }
 
-function activeAdapter(core: GameCoreService): AdapterSummary | undefined {
+function activeAdapter(core: GameCoreService, gameId?: string): AdapterSummary | undefined {
+  if (gameId !== undefined) return core.harness.listAdapters().find(adapter => adapter.gameId === gameId)
   return core.harness.listAdapters().find(adapter => adapter.status === 'connected')
     ?? core.harness.listAdapters()[0]
 }
@@ -120,8 +130,9 @@ class ProductLearningBinding {
     queueMicrotask(() => this.publish())
   }
 
-  private adapterContext(): { adapter: AdapterSummary; legacy: LegacyAdapterHello } | undefined {
-    const adapter = activeAdapter(this.ctx.gameCore)
+  private adapterContext(sessionId?: string, gameId?: string): { adapter: AdapterSummary; legacy: LegacyAdapterHello } | undefined {
+    const requestedGameId = gameId ?? (sessionId === undefined ? undefined : this.turns.get(sessionId)?.gameId)
+    const adapter = activeAdapter(this.ctx.gameCore, requestedGameId)
     return adapter === undefined ? undefined : { adapter, legacy: legacyAdapter(this.ctx.gameCore, adapter) }
   }
 
@@ -134,8 +145,8 @@ class ProductLearningBinding {
   private onSessionEvent(session: Session, event: SessionEvent): void {
     const sessionId = String(session.id)
     if (event.type === 'user/message' && event.data.source.kind === 'user') {
-      const playerText = unwrapProductTurn(messageText(event.data.content))
-      if (playerText !== undefined) this.turns.set(sessionId, { turn: -1, playerText, reply: '' })
+      const productTurn = unwrapProductTurn(messageText(event.data.content))
+      if (productTurn !== undefined) this.turns.set(sessionId, { turn: -1, reply: '', ...productTurn })
       return
     }
     const turn = this.turns.get(sessionId)
@@ -160,7 +171,7 @@ class ProductLearningBinding {
   }
 
   private async processTurn(sessionId: string, turn: ProductTurn): Promise<void> {
-    this.ctx.workOrchestrator.scheduleTurn({
+    if (!turn.evaluation) this.ctx.workOrchestrator.scheduleTurn({
       companionSessionId: sessionId,
       playerText: turn.playerText,
       companionReply: turn.reply,
@@ -173,8 +184,9 @@ class ProductLearningBinding {
         relayInstructions: '用简短自然的中文说明工作思路、进度或结果，并邀请玩家继续语音反馈。',
       },
     })
+    if (turn.evaluation) return
     const memory = this.ctx.xiaotangyuanLearning.memory
-    const current = this.adapterContext()
+    const current = this.adapterContext(undefined, turn.gameId)
     if (memory === undefined || current === undefined) return
     const observation = this.ctx.gameCore.harness.snapshot().observations.find(item => item.gameId === current.adapter.gameId)
     if (!this.memorySessions.has(sessionId)) {
@@ -226,9 +238,9 @@ class ProductLearningBinding {
         },
         render: (_args, value) => [{ type: 'text', text: value.message }],
       },
-      execute: async (args) => {
+      execute: async (args, exec) => {
         const memory = this.ctx.xiaotangyuanLearning.memory
-        const current = this.adapterContext()
+        const current = this.adapterContext(String(exec.agent?.id ?? 'dsh-learning'))
         const observation = current === undefined ? undefined : this.ctx.gameCore.harness.snapshot().observations.find(item => item.gameId === current.adapter.gameId)
         if (memory === undefined || current === undefined) {
           return { available: false, message: '当前没有可用的游戏记忆或已连接游戏。' }
@@ -270,7 +282,7 @@ class ProductLearningBinding {
       },
       execute: async (args, exec) => {
         const skills = this.ctx.xiaotangyuanLearning.skills
-        const current = this.adapterContext()
+        const current = this.adapterContext(String(exec.agent?.id ?? 'dsh-learning'))
         if (skills === undefined || current === undefined) throw new Error('当前没有可用的技能库或已连接游戏。')
         const allowed = new Set(current.adapter.capabilities.filter(item => item.kind === 'action').map(item => item.name))
         const result = await skills.run(
@@ -310,8 +322,8 @@ class ProductLearningBinding {
         },
         render: (_args, value) => [{ type: 'text', text: value.message }],
       },
-      execute: async () => {
-        const current = this.adapterContext()
+      execute: async (_args, exec) => {
+        const current = this.adapterContext(String(exec.agent?.id ?? 'dsh-learning'))
         const skills = this.ctx.xiaotangyuanLearning.skills
         if (current === undefined) return { available: false, catalogJson: '{}', message: '当前没有已连接游戏。' }
         const catalog = {
@@ -365,7 +377,7 @@ class ProductLearningBinding {
       },
       execute: async (args, exec) => {
         const skills = this.ctx.xiaotangyuanLearning.skills
-        const current = this.adapterContext()
+        const current = this.adapterContext(String(exec.agent?.id ?? 'dsh-learning'))
         if (skills === undefined || current === undefined) throw new Error('当前没有可用的技能库或已连接游戏。')
         const allowed = new Set(current.adapter.capabilities.filter(item => item.kind === 'action').map(item => item.name))
         const attempt = await skills.tryLearnSource({

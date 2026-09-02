@@ -148,6 +148,25 @@ input:focus, select:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 
 .learning-empty { min-height: 100px; display: grid; place-items: center; line-height: 1.5; }
 .compact-list .learning-row { padding: 11px 14px; }
 
+.evaluation-intro { align-items: center; }
+.evaluation-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin-bottom: 18px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--line); }
+.evaluation-summary div { padding: 16px 18px; background: rgba(13,29,39,.92); min-width: 0; }
+.evaluation-summary span, .evaluation-summary strong { display: block; }
+.evaluation-summary span { color: var(--muted); font-size: 9px; margin-bottom: 7px; }
+.evaluation-summary strong { color: #dcebea; font-size: 12px; overflow-wrap: anywhere; }
+.evaluation-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr); gap: 18px; }
+.evaluation-case > p { margin: 16px 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.evaluation-flow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.evaluation-flow b { border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; background: rgba(255,255,255,.025); font-size: 10px; }
+.evaluation-flow i { color: var(--mint); font-style: normal; }
+.evaluation-progress { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: var(--mint-dim); color: var(--mint); font-size: 11px; line-height: 1.55; }
+.evaluation-log { display: grid; gap: 16px; margin-top: 16px; }
+.evaluation-replies { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.evaluation-reply { border: 1px solid var(--line); border-radius: 11px; padding: 13px; background: rgba(255,255,255,.02); }
+.evaluation-reply strong { display: block; margin-bottom: 9px; font-size: 11px; }
+.evaluation-reply pre { margin: 0; max-height: 210px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: #b7cdce; font: 9px/1.6 Consolas, monospace; }
+.evaluation-atoms { display: grid; gap: 9px; }
+
 .analysis-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
 .metric-card { border: 1px solid var(--line); border-radius: 14px; padding: 18px; background: rgba(13,29,39,.75); }
 .metric-card span, .metric-card small { display: block; color: var(--muted); }
@@ -224,7 +243,7 @@ input:focus, select:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 
   .chat-layout { height: auto; min-height: 100%; grid-template-columns: 1fr; }
   .conversation { min-height: 620px; }
   .analysis-grid, .runtime-card { grid-template-columns: repeat(2, 1fr); }
-  .learning-metrics, .learning-grid, .story-metrics, .story-grid { grid-template-columns: 1fr; }
+  .learning-metrics, .learning-grid, .story-metrics, .story-grid, .evaluation-summary, .evaluation-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {
@@ -254,4 +273,5 @@ input:focus, select:focus { border-color: rgba(101, 230, 196, .45); box-shadow: 
   .game-pack-card { grid-template-columns: 1fr; }
   .game-pack-actions { justify-items: start; }
   .adapter-status { grid-column: 2; }
+  .evaluation-replies { grid-template-columns: 1fr; }
 }

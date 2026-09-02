@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 let chatSequence = 0
+let evaluationSequence = 0
 
 contextBridge.exposeInMainWorld('harnessDesktop', {
   navigation: {
@@ -36,6 +37,21 @@ contextBridge.exposeInMainWorld('harnessDesktop', {
       const listener = (_event, snapshot) => callback(snapshot)
       ipcRenderer.on('platform-snapshot', listener)
       return () => ipcRenderer.removeListener('platform-snapshot', listener)
+    },
+  },
+  evaluation: {
+    catalog: () => ipcRenderer.invoke('evaluation:catalog'),
+    async run(evaluationId, onEvent) {
+      const requestId = `evaluation-${Date.now()}-${++evaluationSequence}`
+      const listener = (_event, payload) => {
+        if (payload?.requestId === requestId) onEvent?.(payload.event)
+      }
+      ipcRenderer.on('evaluation-progress', listener)
+      try {
+        return await ipcRenderer.invoke('evaluation:run', { evaluationId, requestId })
+      } finally {
+        ipcRenderer.removeListener('evaluation-progress', listener)
+      }
     },
   },
 })
