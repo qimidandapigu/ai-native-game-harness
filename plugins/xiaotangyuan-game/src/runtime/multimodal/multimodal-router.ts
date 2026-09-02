@@ -37,10 +37,17 @@ export class MultimodalRouter {
 
   private async findImageModel(signal: AbortSignal): Promise<ModelSelection | undefined> {
     const preferred = this.ctx.agentDefaultModel.currentSelection()
-    const defaultModelKey = `${preferred.provider}\u0000${preferred.model}`
+    const configured = { provider: this.config.provider, model: this.config.model }
+    const defaultModelKey = `${configured.provider}\u0000${configured.model}\u0000${preferred.provider}\u0000${preferred.model}`
     if (this.cachedSelection?.defaultModelKey === defaultModelKey
       && this.cachedSelection.expiresAt > Date.now()) {
       return this.cachedSelection.selection
+    }
+    try {
+      const info = await this.ctx.llm.resolveModelInfo(configured.provider, configured.model, signal)
+      if (acceptsImages(info)) return this.rememberSelection(defaultModelKey, configured)
+    } catch {
+      // A developer build may omit the product provider and use its own image route.
     }
     try {
       const info = await this.ctx.llm.resolveModelInfo(preferred.provider, preferred.model, signal)

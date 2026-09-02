@@ -1,0 +1,29 @@
+# 产品模型固定绑定
+
+- Task ID: `product-model-binding-20260831`
+- 状态：完成（已整理为独立提交，待推送与 PR）
+- 分支与 worktree：`feat/public-runtime-integration-20260903` / `F:\game\ai-native-game-harness`
+- 目标：把产品版的工作模型固定为智谱 GLM-5.2 最大思考，把游戏文字、语音与截图理解固定为 GLM-5V-Turbo。
+- 允许修改：
+  - `plugins/xiaotangyuan-game/src/config.ts`
+  - `plugins/xiaotangyuan-game/src/runtime/multimodal/multimodal-router.ts`
+  - `plugins/xiaotangyuan-game/test/**product-model*`
+  - `integrations/xiaotangyuan/desktop.patch.yml`
+  - `tests/integration/**product-model*`
+  - 本认领文件
+- 共享热点：用户要求完成模型绑定后，由本任务在独立 worktree 中验证，并把不重叠的模型配置整合进本地 main 的 `integrations/xiaotangyuan/desktop.patch.yml`；不修改 `plugins/dsh-work-orchestrator/**`。
+- 不修改：`apps/desktop/src/main.mjs`、锁文件、版本号、本机 DSH profile、安装包和 Steam Mods。
+- 验证：
+  - `pnpm install --frozen-lockfile`：通过。
+  - `pnpm build`：通过。
+  - 小汤圆 `check`：19 个测试文件、106/106 通过。
+  - Integration：11 个测试文件、33/33 通过。
+  - Platform：21/21 通过。
+  - DSH `llm-pi-ai` Config schema：智谱 provider 与两个模型配置解析通过。
+  - `git diff --check`：通过，仅有 Windows CRLF 转换提示。
+- 交接：
+  - 游戏 Runtime 默认优先选择 `zhipu/glm-5v-turbo`，即使用户保存的 Harness 默认仍为 FlashX；产品视觉路由不可用时才允许开发者配置回退。
+  - Desktop 产品配置把 Harness 与 Work Worker 固定为 `zhipu/glm-5.2`、`reasoningEffort: max`，把游戏文字、语音和截图理解固定为 `zhipu/glm-5v-turbo`。
+  - Desktop 产品配置同时声明智谱 provider 与两个模型目录；用户只需保存 `ZHIPU_API_KEY` 凭据，不会再选中一个未注册的模型。
+  - `xiaotangyuan-preset` 任务对同一 Desktop patch 的改动位于另一个 worktree，最终合并时需保留其 `agent-presets.default: xiaotangyuan` 配置。
+  - 本轮没有修改本机 DSH profile、安装包或 Steam Mods；没有启动 Desktop、游戏或后台服务。
