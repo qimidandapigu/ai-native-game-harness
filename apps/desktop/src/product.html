@@ -18,6 +18,7 @@
         <button class="nav-item active" data-page="chat" aria-current="page"><span class="nav-icon">◇</span><span>对话</span></button>
         <button class="nav-item" data-page="story"><span class="nav-icon">✦</span><span>动态剧情</span></button>
         <button class="nav-item" data-page="learning"><span class="nav-icon">◉</span><span>自学习</span></button>
+        <button class="nav-item" data-page="evaluation"><span class="nav-icon">✓</span><span>自动测评</span></button>
         <button class="nav-item" data-page="analysis"><span class="nav-icon">⌁</span><span>分析</span></button>
         <button class="nav-item" data-page="adapters"><span class="nav-icon">⌘</span><span>Adapter 中心</span></button>
       </nav>
@@ -104,6 +105,35 @@
           <article class="learning-card"><div class="panel-heading"><div><p class="eyebrow">VERIFIED PROCEDURES</p><h2>已学技能</h2></div><span id="learning-skill-status">等待同步</span></div><div id="learning-skill-list" class="learning-list"></div></article>
         </div>
         <article class="learning-card attempts-card"><div class="panel-heading"><div><p class="eyebrow">AUDIT HISTORY</p><h2>最近技能学习尝试</h2></div><span>成功才保存</span></div><div id="learning-attempt-list" class="learning-list compact-list"></div></article>
+      </section>
+
+      <section class="page" id="page-evaluation" aria-labelledby="page-title">
+        <div class="section-intro evaluation-intro">
+          <div><p class="eyebrow">AUTOMATED PRODUCT EVALUATION</p><h2>批量验证 Agent 是否真的做到</h2><p>在 Harness 内创建隔离 Session 和 Fake Game，使用当前 Session 实际模型执行，自动评分并保存原子日志。当前 P0 清单共 1 项。</p></div>
+          <div class="section-actions"><button class="primary" id="run-dst-butterfly-evaluation" type="button">运行全部（1 项）</button></div>
+        </div>
+        <article class="evaluation-summary">
+          <div><span>实际运行模型</span><strong id="evaluation-model">正在读取 Harness 当前 Session</strong></div>
+          <div><span>运行状态</span><strong id="evaluation-status">尚未运行</strong></div>
+          <div><span>总分</span><strong id="evaluation-score">—</strong></div>
+          <div><span>耗时</span><strong id="evaluation-duration">—</strong></div>
+        </article>
+        <div class="evaluation-grid">
+          <article class="learning-card evaluation-case">
+            <div class="panel-heading"><div><p class="eyebrow">P0 · DON'T STARVE TOGETHER</p><h2>学习并复用抓蝴蝶</h2></div><span>Fake DST</span></div>
+            <p>模型自己生成受限技能，真实试跑成功后保存，再用已学技能抓第二只蝴蝶。</p>
+            <div class="evaluation-flow"><b>模型生成</b><i>→</i><b>寻找蝴蝶</b><i>→</i><b>攻击</b><i>→</i><b>收集</b><i>→</i><b>复跑</b></div>
+            <div class="evaluation-progress" id="evaluation-progress" role="status">点击“运行全部”开始。</div>
+          </article>
+          <article class="learning-card">
+            <div class="panel-heading"><div><p class="eyebrow">DETERMINISTIC SCORERS</p><h2>自动评分</h2></div><span id="evaluation-check-count">4 项</span></div>
+            <div class="learning-list" id="evaluation-score-list"><div class="empty learning-empty">运行后显示每项 PASS / FAIL。</div></div>
+          </article>
+        </div>
+        <article class="learning-card attempts-card">
+          <div class="panel-heading"><div><p class="eyebrow">ATOM TRACE</p><h2>模型回复与游戏原子日志</h2></div><span id="evaluation-result-path">本地保存</span></div>
+          <div class="evaluation-log" id="evaluation-log"><div class="empty">尚无测评记录。</div></div>
+        </article>
       </section>
 
       <section class="page" id="page-analysis" aria-labelledby="page-title">

@@ -2,12 +2,37 @@ import { describe, expect, it } from 'vitest'
 import { resolveConfig } from '../src/config.js'
 import { readAdapterHello, readStateUpdate, readStateUpdateSaveId } from '../src/protocol/game.js'
 import { buildPcm16Wav } from '../src/runtime/speech/wav.js'
+import { globalPushToTalkProcessIds, matchPostReplyVoiceCommand } from '../src/gateway/game-gateway.js'
 
 describe('game runtime configuration', () => {
+  it('keeps ONI on its in-game Q key instead of the shared desktop push-to-talk key', () => {
+    expect(globalPushToTalkProcessIds([
+      { adapterId: 'oni', gameId: 'oxygen-not-included', version: '1', protocolVersion: '1.1', processId: 10 },
+      { adapterId: 'dst', gameId: 'dont-starve-together', version: '1', protocolVersion: '1.1', processId: 20 },
+      { adapterId: 'stardew', gameId: 'stardew-valley', version: '1', protocolVersion: '1.1', processId: 30 },
+    ])).toEqual([20, 30])
+  })
+
+  it('matches only explicit post-reply game-action commands', () => {
+    const adapter = {
+      adapterId: 'oni', gameId: 'oxygen-not-included', version: '1', protocolVersion: '1.1',
+      atoms: [{ name: 'oni_companion_absorb_water', description: 'absorb', parameters: '{}', returns: '{}' }],
+      voiceCommands: [{ atom: 'oni_companion_absorb_water', phrases: ['吸水'] }],
+    }
+    expect(matchPostReplyVoiceCommand(adapter, '吸水', '好，我来吸水。')).toBe('oni_companion_absorb_water')
+    expect(matchPostReplyVoiceCommand(adapter, '帮我吸水一下', '交给我吧。')).toBe('oni_companion_absorb_water')
+    expect(matchPostReplyVoiceCommand(adapter, '你会吸水吗', '我会呀。')).toBeUndefined()
+    expect(matchPostReplyVoiceCommand(adapter, '能不能帮我吸水', '当然可以。')).toBeUndefined()
+    expect(matchPostReplyVoiceCommand(adapter, '不要吸水', '好。')).toBeUndefined()
+    expect(matchPostReplyVoiceCommand(adapter, '吸水', '不行，现在没法吸水。')).toBeUndefined()
+  })
+
   it('defaults to mandatory multimodal and speech capabilities without embedding secrets', () => {
     const config = resolveConfig()
     expect(config.vision.enabled).toBe(true)
     expect(config.vision.maxWidth).toBe(1280)
+    expect(config.vision.provider).toBe('zhipu')
+    expect(config.vision.model).toBe('glm-5v-turbo')
     expect(config.speech.enabled).toBe(true)
     expect(config.speech.provider).toBe('auto')
     expect(config.speech.recognitionProvider).toBe('auto')
@@ -31,6 +56,12 @@ describe('game runtime configuration', () => {
 
   it('rejects an unsafe screenshot width', () => {
     expect(() => resolveConfig({ vision: { maxWidth: 200 } })).toThrow('vision.maxWidth')
+  })
+
+  it('lets developer builds replace the fixed product vision route explicitly', () => {
+    const config = resolveConfig({ vision: { provider: 'local', model: 'vision-test' } })
+    expect(config.vision.provider).toBe('local')
+    expect(config.vision.model).toBe('vision-test')
   })
 
   it('validates the shared proactive chat interval', () => {
@@ -88,6 +119,20 @@ describe('game protocol extensions', () => {
       atoms: [{ name: 'test.find_target', description: 'find target', parameters: '{}', returns: '{"targetId": number}' }],
     })
     expect(hello.atoms?.[0].returns).toContain('targetId')
+  })
+
+  it('accepts bounded voice commands only when they reference a declared atom', () => {
+    const hello = readAdapterHello({
+      adapterId: 'oni', gameId: 'oxygen-not-included', version: '1.0.0', protocolVersion: '1.1',
+      atoms: [{ name: 'oni_companion_absorb_water', description: 'absorb', parameters: '{}', returns: '{}' }],
+      voiceCommands: [{ atom: 'oni_companion_absorb_water', phrases: ['吸水', '收水'] }],
+    })
+    expect(hello.voiceCommands?.[0].phrases).toEqual(['吸水', '收水'])
+    expect(() => readAdapterHello({
+      adapterId: 'oni', gameId: 'oxygen-not-included', version: '1.0.0', protocolVersion: '1.1',
+      atoms: [{ name: 'oni_companion_absorb_water', description: 'absorb', parameters: '{}', returns: '{}' }],
+      voiceCommands: [{ atom: 'oni.missing', phrases: ['吸水'] }],
+    })).toThrow('must reference a declared atom')
   })
 
   it('accepts structured state updates', () => {

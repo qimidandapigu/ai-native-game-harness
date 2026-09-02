@@ -5,6 +5,7 @@ const pages = {
   chat: { title: '与游戏一起思考' },
   story: { title: '生成正在发生的故事' },
   learning: { title: '看见伙伴学会了什么' },
+  evaluation: { title: '自动验证 Agent 能不能真的做到' },
   analysis: { title: '看清每一步决策' },
   adapters: { title: '管理游戏连接' },
 }
@@ -41,6 +42,7 @@ let selectedGameId
 let gamePacks = []
 let traceFilter = 'all'
 let traceSearch = ''
+let evaluationState = { catalog: [], currentModel: undefined, running: false, progress: '尚未运行', result: undefined }
 const seenRuntimeNotifications = new Set()
 const $ = (selector) => document.querySelector(selector)
 
@@ -688,6 +690,104 @@ async function refreshGamePacks() {
   gamePacks = desktop?.listGamePacks ? await desktop.listGamePacks() : []
 }
 
+function formatEvaluationModel(model) {
+  return model?.provider && model?.model ? `${model.provider}/${model.model}` : '尚未读取'
+}
+
+function renderEvaluation() {
+  const result = evaluationState.result
+  $('#evaluation-model').textContent = formatEvaluationModel(result?.model ?? evaluationState.currentModel)
+  $('#evaluation-status').textContent = evaluationState.running ? '运行中' : result ? (result.status === 'passed' ? '通过' : '未通过') : '尚未运行'
+  $('#evaluation-score').textContent = result ? `${result.score}%` : '—'
+  $('#evaluation-duration').textContent = result ? `${(result.durationMs / 1000).toFixed(1)}s` : '—'
+  $('#evaluation-progress').textContent = evaluationState.progress
+  $('#run-dst-butterfly-evaluation').disabled = evaluationState.running
+  $('#run-dst-butterfly-evaluation').textContent = evaluationState.running ? '正在运行…' : '运行全部（1 项）'
+
+  const scoreList = $('#evaluation-score-list')
+  scoreList.replaceChildren()
+  for (const score of result?.scores ?? []) scoreList.append(learningRow(
+    score.name, score.detail || '无详细信息', score.passed ? 'PASS' : 'FAIL', score.passed ? 'success' : 'failure',
+  ))
+  if (!result?.scores?.length) scoreList.append(learningEmpty('运行后显示每项 PASS / FAIL。'))
+  $('#evaluation-check-count').textContent = `${result?.scores?.length ?? 4} 项`
+  $('#evaluation-result-path').textContent = result?.resultPath ?? '本地保存'
+
+  const log = $('#evaluation-log')
+  log.replaceChildren()
+  if (!result) {
+    const empty = document.createElement('div')
+    empty.className = 'empty'
+    empty.textContent = '尚无测评记录。'
+    log.append(empty)
+    return
+  }
+  const replies = document.createElement('div')
+  replies.className = 'evaluation-replies'
+  for (const [title, text] of [['学习回复', result.firstReply], ['复跑回复', result.secondReply]]) {
+    const card = document.createElement('article')
+    card.className = 'evaluation-reply'
+    const heading = document.createElement('strong')
+    heading.textContent = title
+    const body = document.createElement('pre')
+    body.textContent = text || '（无公开文本）'
+    card.append(heading, body)
+    replies.append(card)
+  }
+  const atoms = document.createElement('div')
+  atoms.className = 'evaluation-atoms'
+  for (const call of result.atomCalls ?? []) {
+    const row = document.createElement('article')
+    row.className = 'learning-row success'
+    const body = document.createElement('div')
+    const heading = document.createElement('strong')
+    heading.textContent = call.atom
+    const detail = document.createElement('p')
+    detail.textContent = `${JSON.stringify(call.arguments)} → ${call.error ?? JSON.stringify(call.result)}`
+    const badge = document.createElement('span')
+    badge.textContent = call.phase === 'learning' ? '学习试跑' : '已学复跑'
+    body.append(heading, detail)
+    row.append(body, badge)
+    atoms.append(row)
+  }
+  log.append(replies, atoms)
+}
+
+async function refreshEvaluationCatalog() {
+  const evaluation = window.harnessDesktop?.evaluation
+  if (!evaluation?.catalog) return
+  const catalog = await evaluation.catalog()
+  evaluationState.catalog = catalog.evaluations ?? []
+  evaluationState.currentModel = catalog.currentModel
+  evaluationState.running = Boolean(catalog.running)
+  renderEvaluation()
+}
+
+async function runDstButterflyEvaluation() {
+  const evaluation = window.harnessDesktop?.evaluation
+  if (!evaluation?.run || evaluationState.running) return
+  evaluationState.running = true
+  evaluationState.result = undefined
+  evaluationState.progress = '正在准备隔离评测环境…'
+  renderEvaluation()
+  try {
+    evaluationState.result = await evaluation.run('dst.learn-and-run-butterfly', event => {
+      const tool = event?.event?.tool ? ` · ${event.event.tool}` : ''
+      evaluationState.progress = `${event?.phase ?? '运行中'}${event?.detail ? ` · ${event.detail}` : ''}${tool}`
+      renderEvaluation()
+    })
+    evaluationState.currentModel = evaluationState.result.model
+    evaluationState.progress = evaluationState.result.status === 'passed'
+      ? '全部评分项通过。'
+      : '评测完成，请查看未通过的评分项和原子日志。'
+  } catch (error) {
+    evaluationState.progress = `评测失败：${error.message}`
+  } finally {
+    evaluationState.running = false
+    renderEvaluation()
+  }
+}
+
 function addMessage(role, text = '', work = undefined) {
   const message = document.createElement('article')
   message.className = `message ${role}`
@@ -768,7 +868,7 @@ async function submitMessage(text) {
     const result = await api('/api/chat', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ sessionId: 'desktop-demo', message: text.trim() }),
+      body: JSON.stringify({ sessionId: 'desktop-demo', gameId: activeAdapter()?.gameId, message: text.trim() }),
     }, handleEvent)
     if (!result) throw new Error('当前页面没有连接 Platform Runtime。请从 Electron Desktop 启动。')
     if (!streamedEvents) result.events.forEach(handleEvent)
@@ -791,6 +891,7 @@ document.querySelectorAll('.nav-item').forEach((button) => button.addEventListen
 $('#return-harness').addEventListener('click', () => {
   window.location.href = 'ai-native-game-harness://harness'
 })
+$('#run-dst-butterfly-evaluation').addEventListener('click', runDstButterflyEvaluation)
 document.querySelectorAll('[data-prompt]').forEach((button) => button.addEventListener('click', () => submitMessage(button.dataset.prompt)))
 document.querySelectorAll('.learning-chat').forEach((button) => button.addEventListener('click', () => {
   setPage('chat')
@@ -889,9 +990,11 @@ window.harnessDesktop?.platform?.onSnapshot((fresh) => {
   snapshot = fresh
   render()
 })
-const [initial] = await Promise.all([api('/api/snapshot'), refreshGamePacks()])
+const [initial] = await Promise.all([api('/api/snapshot'), refreshGamePacks(), refreshEvaluationCatalog()])
 if (initial) {
   appendRuntimeNotifications(initial)
   snapshot = initial
 }
 render()
+const initialPage = new URLSearchParams(location.search).get('page')
+if (initialPage && pages[initialPage]) setPage(initialPage)

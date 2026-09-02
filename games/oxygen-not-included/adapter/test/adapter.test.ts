@@ -76,6 +76,53 @@ describe('ONI Adapter file bridge', () => {
     await expect(execution).resolves.toEqual({ success: true, reply: '已创建挖掘任务' })
   })
 
+  it('announces post-reply water commands and executes a Gateway atom request', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'oni-post-reply-'))
+    const processId = process.pid
+    const sessionDir = join(root, String(processId))
+    await mkdir(sessionDir)
+    await writeFile(join(sessionDir, 'session.json'), JSON.stringify({ processId, saveId: 'post-reply-colony' }))
+    const state = { id: 'state-1', method: 'state.update', params: { observation: { cursor: { cell: 321 }, duplicants: [] } } }
+    await writeFile(join(sessionDir, 'outbox.json'), JSON.stringify({ events: [state] }))
+
+    const server = new WebSocketServer({ port: 0 })
+    await new Promise<void>(resolve => server.once('listening', resolve))
+    const address = server.address()
+    if (typeof address === 'string' || address === null) throw new Error('missing test port')
+    const messages: Array<Record<string, unknown>> = []
+    server.on('connection', socket => socket.on('message', raw => {
+      messages.push(JSON.parse(raw.toString()) as Record<string, unknown>)
+    }))
+    const adapter = new OniAdapter(root, `ws://127.0.0.1:${address.port}`)
+    adapter.start()
+    cleanups.push(async () => { await adapter.close(); await new Promise<void>(resolve => server.close(() => resolve())); await rm(root, { recursive: true, force: true }) })
+
+    const hello = await until(async () => messages.find(message => message.method === 'adapter.hello'))
+    const helloParams = hello.params as { atoms?: Array<{ name: string }>; voiceCommands?: Array<{ atom: string; phrases: string[] }> }
+    expect(helloParams.atoms?.map(atom => atom.name)).toContain('oni_companion_absorb_water')
+    expect(helloParams.voiceCommands).toContainEqual({ atom: 'oni_companion_absorb_water', phrases: ['吸水', '收水', '吸走水'] })
+
+    const socket = [...server.clients][0]
+    if (socket === undefined) throw new Error('missing adapter socket')
+    socket.send(JSON.stringify({
+      jsonrpc: '2.0', id: 'post-reply-action-1', method: 'game.atom.execute',
+      params: { atom: 'oni_companion_absorb_water', arguments: {} },
+    }))
+    const request = await until(async () => {
+      try {
+        const inbox = JSON.parse(await readFile(join(sessionDir, 'inbox.json'), 'utf8')) as { events: Array<{ method: string; params: { callId?: string; name?: string; args?: { targetCell?: number } } }> }
+        return inbox.events.find(event => event.method === 'tool.execute' && event.params.name === 'oni_companion_absorb_water')
+      } catch { return undefined }
+    })
+    expect(request.params.args?.targetCell).toBe(321)
+    await writeFile(join(sessionDir, 'outbox.json'), JSON.stringify({ events: [state, {
+      id: 'result-1', method: 'tool.result',
+      params: { callId: request.params.callId, success: true, reply: '吸水成功' },
+    }] }))
+    const response = await until(async () => messages.find(message => message.id === 'post-reply-action-1'))
+    expect(response.result).toEqual({ success: true, reply: '吸水成功' })
+  })
+
   it('ignores a stale bridge directory even when Windows has reused its process id', async () => {
     const root = await mkdtemp(join(tmpdir(), 'oni-stale-adapter-'))
     const sessionDir = join(root, String(process.pid))

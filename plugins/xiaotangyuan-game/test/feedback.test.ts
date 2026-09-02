@@ -84,6 +84,21 @@ describe('official feedback authentication', () => {
 })
 
 describe('model-led feedback routing', () => {
+  it('keeps post-reply game actions independent from post-turn work routing', () => {
+    const prompt = formatGamePrompt({
+      adapterId: 'oni', gameId: 'oxygen-not-included', version: '1', protocolVersion: '1.1',
+      atoms: [{ name: 'oni_companion_absorb_water', description: '吸收鼠标格的水', parameters: '{}', returns: '{}' }],
+      voiceCommands: [{ atom: 'oni_companion_absorb_water', phrases: ['吸水'] }],
+    }, { text: '吸水' }, undefined, false, 'normal', {
+      title: '玩家的攻略工作',
+      status: 'running',
+    })
+    expect(prompt).toContain('separate post-reply game-action stage')
+    expect(prompt).toContain('independent from the separate post-turn work service')
+    expect(prompt).toContain('吸水 -> oni_companion_absorb_water')
+    expect(prompt).toContain('Current linked non-game work')
+  })
+
   it('includes bounded standardized game facts in the current model prompt', () => {
     const prompt = formatGamePrompt(undefined, {
       text: '看看现在的画面',

@@ -348,6 +348,16 @@ describe('independent platform boundary', () => {
     expect(content).toContain('PLAYER_MESSAGE:\n记住我想先完成基地供氧')
   })
 
+  it('keeps product evaluations isolated on the requested Adapter', () => {
+    const content = productTurnContent('学习抓蝴蝶', 'dst-eval-run-1', { evaluation: true })
+    expect(content).toContain('GAME_ID:dst-eval-run-1')
+    expect(content).toContain('EVALUATION_MODE:true')
+    expect(content).toContain('Use only the selected evaluation Adapter')
+    expect(content).not.toContain('game_learning_memory_recall')
+    expect(content).not.toContain('game_story_context')
+    expect(content).not.toContain('post-turn work skill')
+  })
+
   it('accepts only finite non-negative values from the official DSH sessionStats projection', () => {
     expect(normalizeSessionStats({
       turns: 2,

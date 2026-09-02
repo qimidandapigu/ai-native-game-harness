@@ -44,22 +44,26 @@ function asErrorMessage(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
-export function productTurnContent(message) {
+export function productTurnContent(message, gameId, { evaluation = false } = {}) {
   return [
     PRODUCT_TURN_PREFIX.trimEnd(),
-    'This is an AI Native Game Harness Desktop game turn.',
-    'Before answering, call game_learning_memory_recall exactly once with the original PLAYER_MESSAGE as query when that tool is available.',
-    'Use recalled memory only as possibly stale context. Current game observation and successful tool results are authoritative.',
-    'Call game_story_context exactly once when it is available. Treat its active beat as the current generated narrative goal.',
-    'When game_story_context returns needsGeneration=true, generate only 1 to 3 near-term StoryBeat-v1 objects and submit them with game_story_propose before narrating a new objective.',
-    'The story is dynamic, not a prewritten plot. Never claim a beat completed until Story Runtime has accepted Adapter Observation evidence.',
-    'Call game_story_choose only after the player explicitly selects one of the pending choices; never choose on their behalf.',
+    evaluation
+      ? 'This is an isolated AI Native Game Harness product evaluation turn. Use only the selected evaluation Adapter and game_learning_skill_* tools required by the task; do not run memory, story, work, filesystem, shell, Mod detection, or installation tools.'
+      : 'This is an AI Native Game Harness Desktop game turn.',
+    gameId ? `GAME_ID:${gameId}` : undefined,
+    evaluation ? 'EVALUATION_MODE:true' : undefined,
+    evaluation ? undefined : 'Before answering, call game_learning_memory_recall exactly once with the original PLAYER_MESSAGE as query when that tool is available.',
+    evaluation ? undefined : 'Use recalled memory only as possibly stale context. Current game observation and successful tool results are authoritative.',
+    evaluation ? undefined : 'Call game_story_context exactly once when it is available. Treat its active beat as the current generated narrative goal.',
+    evaluation ? undefined : 'When game_story_context returns needsGeneration=true, generate only 1 to 3 near-term StoryBeat-v1 objects and submit them with game_story_propose before narrating a new objective.',
+    evaluation ? undefined : 'The story is dynamic, not a prewritten plot. Never claim a beat completed until Story Runtime has accepted Adapter Observation evidence.',
+    evaluation ? undefined : 'Call game_story_choose only after the player explicitly selects one of the pending choices; never choose on their behalf.',
     'If the player asks you to learn a repeatable game procedure, call game_learning_skill_catalog before game_learning_skill_learn; only report it learned when learned=true.',
     'If the player asks to run a learned procedure, call game_learning_skill_catalog before game_learning_skill_run and only report success when success=true.',
-    'If the player requests substantial non-game work such as research, a presentation, HTML, a document, code, or an artifact revision, acknowledge it briefly but do not perform that work or call work tools in this turn. A post-turn work skill will decide whether to hand it to a separate Worker DSH Session. Do not claim that Worker has started or finished yet.',
+    evaluation ? undefined : 'If the player requests substantial non-game work such as research, a presentation, HTML, a document, code, or an artifact revision, acknowledge it briefly but do not perform that work or call work tools in this turn. A post-turn work skill will decide whether to hand it to a separate Worker DSH Session. Do not claim that Worker has started or finished yet.',
     'PLAYER_MESSAGE:',
     message,
-  ].join('\n')
+  ].filter(value => value !== undefined).join('\n')
 }
 
 function safeJson(text) {
@@ -321,13 +325,15 @@ export class DshProductRuntime {
   #pendingWorkRelayMetadata
   #workRelayTurns = new Map()
   #notifications = []
+  #forceNewSession
 
-  constructor({ baseUrl, cwd, adapterUrl, fetchImpl = fetch, WebSocketImpl = WebSocket }) {
+  constructor({ baseUrl, cwd, adapterUrl, forceNewSession = false, fetchImpl = fetch, WebSocketImpl = WebSocket }) {
     this.#baseUrl = baseUrl.replace(/\/$/, '')
     this.#cwd = cwd
     this.#adapterUrl = adapterUrl
     this.#fetch = fetchImpl
     this.#WebSocket = WebSocketImpl
+    this.#forceNewSession = forceNewSession
   }
 
   async start() {
@@ -338,7 +344,7 @@ export class DshProductRuntime {
         this.#startStream('/api/events.mux', (frame) => this.#handleMuxFrame(frame), 'mux'),
         this.#startStream('/api/events.host', (frame) => this.#handleHostFrame(frame), 'host'),
       ])
-      const listed = await this.#rpc('session.list', {})
+      const listed = this.#forceNewSession ? { items: [] } : await this.#rpc('session.list', {})
       const reusable = listed.items?.find((item) => item.blank === true && item.running === false && item.cwd === this.#cwd)
       if (reusable) {
         this.#sessionId = reusable.sessionId
@@ -364,6 +370,7 @@ export class DshProductRuntime {
       sessionId: this.#sessionId,
       agentPreset: this.#agentPreset,
       adapterUrl: this.#adapterUrl,
+      cwd: this.#cwd,
     }
   }
 
@@ -398,6 +405,24 @@ export class DshProductRuntime {
   subscribe(listener) {
     this.#listeners.add(listener)
     return () => this.#listeners.delete(listener)
+  }
+
+  async modelSelection() {
+    if (!this.#sessionId) throw new Error('AI Native Game Harness Session 尚未创建。')
+    const models = await this.#rpc('session.models', { sessionId: this.#sessionId })
+    return structuredClone(models.current)
+  }
+
+  async selectModel(selection) {
+    if (!this.#sessionId) throw new Error('AI Native Game Harness Session 尚未创建。')
+    if (!selection?.provider || !selection?.model) throw new Error('模型选择无效。')
+    const selected = await this.#rpc('session.selectModel', {
+      sessionId: this.#sessionId,
+      provider: selection.provider,
+      model: selection.model,
+      ...(selection.reasoningEffort === undefined ? {} : { reasoningEffort: selection.reasoningEffort }),
+    })
+    return structuredClone(selected.selected)
   }
 
   attachCoreSnapshot(snapshot) {
@@ -438,7 +463,7 @@ export class DshProductRuntime {
     return true
   }
 
-  async chat({ message }, onEvent = () => undefined) {
+  async chat({ message, gameId, evaluation = false }, onEvent = () => undefined) {
     if (!this.#sessionId) throw new Error('AI Native Game Harness Session 尚未创建。')
     if (this.#pendingChat) throw new Error('AI Native Game Harness Session 正在处理上一条消息。')
 
@@ -459,7 +484,7 @@ export class DshProductRuntime {
       const result = await this.#rpc('session.prompt', {
         sessionId: this.#sessionId,
         mode: 'queue',
-        content: [{ type: 'text', text: productTurnContent(message) }],
+        content: [{ type: 'text', text: productTurnContent(message, gameId, { evaluation }) }],
         clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       })
       if (result.command) {

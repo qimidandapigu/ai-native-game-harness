@@ -9,6 +9,7 @@ import { GamePackRegistry, readGamePackManifest } from '@ai-native-game-harness/
 import { PlatformRuntime } from './platform-runtime.mjs'
 import { DshProductRuntime } from './dsh-product-runtime.mjs'
 import { buildDiagnosticBundle, diagnosticFilename } from './diagnostics.mjs'
+import { EVALUATION_CATALOG, runDstButterflyProductEvaluation } from './evaluation-runtime.mjs'
 
 const require = createRequire(import.meta.url)
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -32,6 +33,7 @@ const pendingDshDiagnostics = []
 let demoAdapterProcess
 let gamePackRegistry
 let runtimeWebUrl
+let evaluationRunning = false
 
 const PRODUCT_TITLE = 'AI Native Game Harness 游戏版'
 
@@ -74,20 +76,32 @@ async function installGamePageEntry() {
       window.__aiNativeBrandObserver.observe(document.documentElement, { childList: true, subtree: true })
     }
     if (document.getElementById('ai-native-game-page-entry')) return
-    const button = document.createElement('button')
-    button.id = 'ai-native-game-page-entry'
-    button.type = 'button'
-    button.textContent = '🎮 进入游戏版'
-    button.title = '进入 AI Native Game Harness 游戏版（Ctrl+2）'
-    Object.assign(button.style, {
-      position: 'fixed', right: '18px', bottom: '18px', zIndex: '2147483647',
-      border: '1px solid rgba(255,255,255,.18)', borderRadius: '12px',
-      padding: '10px 14px', background: '#123a3a', color: '#d8fff5',
-      boxShadow: '0 10px 30px rgba(0,0,0,.28)', cursor: 'pointer',
-      font: '600 13px system-ui, sans-serif'
+    const makeEntry = ({ id, text, title, bottom, href, accent }) => {
+      const button = document.createElement('button')
+      button.id = id
+      button.type = 'button'
+      button.textContent = text
+      button.title = title
+      Object.assign(button.style, {
+        position: 'fixed', right: '18px', bottom, zIndex: '2147483647',
+        border: '1px solid rgba(255,255,255,.18)', borderRadius: '12px',
+        padding: '10px 14px', background: accent, color: '#d8fff5',
+        boxShadow: '0 10px 30px rgba(0,0,0,.28)', cursor: 'pointer',
+        font: '600 13px system-ui, sans-serif'
+      })
+      button.addEventListener('click', () => { window.location.href = href })
+      document.body.append(button)
+    }
+    makeEntry({
+      id: 'ai-native-evaluation-entry', text: '✓ 自动测评',
+      title: '进入 Harness 自动测评（Ctrl+3）', bottom: '66px',
+      href: 'ai-native-game-harness://evaluation', accent: '#28512f'
     })
-    button.addEventListener('click', () => { window.location.href = 'ai-native-game-harness://game' })
-    document.body.append(button)
+    makeEntry({
+      id: 'ai-native-game-page-entry', text: '🎮 进入游戏版',
+      title: '进入 AI Native Game Harness 游戏版（Ctrl+2）', bottom: '18px',
+      href: 'ai-native-game-harness://game', accent: '#123a3a'
+    })
   })()`)
 }
 
@@ -97,8 +111,9 @@ async function showHarnessPage() {
   await installGamePageEntry()
 }
 
-async function showGamePage() {
-  await mainWindow.loadFile(join(desktopRoot, 'src', 'product.html'))
+async function showGamePage(page) {
+  const options = page ? { query: { page } } : undefined
+  await mainWindow.loadFile(join(desktopRoot, 'src', 'product.html'), options)
 }
 
 function installApplicationMenu() {
@@ -123,6 +138,7 @@ function installApplicationMenu() {
     { label: '页面', submenu: [
       { label: '原 Harness 页面', accelerator: 'CmdOrCtrl+1', click: () => navigate(showHarnessPage) },
       { label: '游戏版页面', accelerator: 'CmdOrCtrl+2', click: () => navigate(showGamePage) },
+      { label: '自动测评', accelerator: 'CmdOrCtrl+3', click: () => navigate(() => showGamePage('evaluation')) },
     ] },
     { label: '视图', submenu: [
       { role: 'reload', label: '刷新' }, { role: 'forceReload', label: '强制刷新' },
@@ -227,10 +243,11 @@ function runtimePaths() {
 }
 
 function childEnvironment(paths) {
+  const disableHmr = app.isPackaged ? '1' : process.env.DSH_DISABLE_HMR
   return {
     ...process.env,
     DSH_HOME: join(app.getPath('userData'), 'dsh-home'),
-    DSH_DISABLE_HMR: app.isPackaged ? '1' : process.env.DSH_DISABLE_HMR,
+    ...(disableHmr === undefined ? {} : { DSH_DISABLE_HMR: disableHmr }),
   }
 }
 
@@ -552,6 +569,29 @@ function registerPlatformIpc() {
     const removed = await packs().uninstall(id, version)
     return { removed, gamePacks: (await packs().list()).map(productGamePack) }
   })
+  ipcMain.handle('evaluation:catalog', async () => {
+    const currentModel = dshProductRuntime ? await dshProductRuntime.modelSelection() : undefined
+    return { evaluations: EVALUATION_CATALOG, currentModel, running: evaluationRunning }
+  })
+  ipcMain.handle('evaluation:run', async (ipcEvent, input) => {
+    if (!dshProductRuntime) throw new Error('自动测评需要正在运行的 AI Native Game Harness Session。')
+    if (evaluationRunning) throw new Error('已有自动测评正在运行。')
+    const evaluationId = typeof input?.evaluationId === 'string' ? input.evaluationId : ''
+    if (evaluationId !== 'dst.learn-and-run-butterfly') throw new Error('未知自动测评。')
+    const requestId = typeof input?.requestId === 'string' ? input.requestId.slice(0, 200) : ''
+    evaluationRunning = true
+    try {
+      return await runDstButterflyProductEvaluation({
+        sourceRuntime: dshProductRuntime,
+        artifactRoot: join(app.getPath('userData'), 'evaluations', 'dst-butterfly'),
+        onProgress: event => {
+          if (!ipcEvent.sender.isDestroyed()) ipcEvent.sender.send('evaluation-progress', { requestId, event })
+        },
+      })
+    } finally {
+      evaluationRunning = false
+    }
+  })
 }
 
 function startDemoAdapter(adapterUrl) {
@@ -619,6 +659,9 @@ function createWindow() {
     if (url === 'ai-native-game-harness://game') {
       event.preventDefault()
       void showGamePage()
+    } else if (url === 'ai-native-game-harness://evaluation') {
+      event.preventDefault()
+      void showGamePage('evaluation')
     } else if (url === 'ai-native-game-harness://harness') {
       event.preventDefault()
       void showHarnessPage()

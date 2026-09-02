@@ -7,18 +7,53 @@
 - id: tool-fs-search
   disabled: false
 
+- id: llm-pi-ai
+  config:
+    providers:
+      zhipu:
+        displayName: 智谱 AI
+        apiKeyEnv: ZHIPU_API_KEY
+        api: openai-completions
+        baseURL: https://open.bigmodel.cn/api/paas/v4
+        defaultMaxTokens: 131072
+        models:
+          - id: glm-5.2
+            name: GLM-5.2
+            contextWindow: 1048576
+            input:
+              - text
+            reasoningEfforts:
+              max: max
+            compat:
+              supportsReasoningEffort: true
+              thinkingFormat: zai
+          - id: glm-5v-turbo
+            name: GLM-5V-Turbo
+            contextWindow: 204800
+            input:
+              - text
+              - image
+
+- id: agent-default-model
+  config:
+    provider: zhipu
+    model: glm-5.2
+    reasoningEffort: max
+
 - id: work-orchestrator
   config:
     enabled: true
-    provider: zai
+    provider: zhipu
     model: glm-5.2
-    reasoningEffort: off
+    reasoningEffort: max
 
 - id: xiaotangyuan-game
   config:
     port: 33145
     vision:
       enabled: true
+      provider: zhipu
+      model: glm-5v-turbo
       maxWidth: 768
     speech:
       enabled: true

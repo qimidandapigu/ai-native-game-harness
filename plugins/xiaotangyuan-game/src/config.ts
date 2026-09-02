@@ -4,6 +4,8 @@ import { isAbsolute, join } from 'node:path'
 export interface VisionConfig {
   enabled?: boolean
   maxWidth?: number
+  provider?: string
+  model?: string
 }
 
 export interface SpeechConfig {
@@ -81,6 +83,8 @@ export interface ResolvedConfig {
   vision: {
     enabled: boolean
     maxWidth: number
+    provider: string
+    model: string
   }
   speech: {
     enabled: boolean
@@ -235,6 +239,8 @@ export function resolveConfig(config: Config = {}): ResolvedConfig {
     vision: {
       enabled: config.vision?.enabled ?? true,
       maxWidth: visionMaxWidth,
+      provider: config.vision?.provider?.trim() || 'zhipu',
+      model: config.vision?.model?.trim() || 'glm-5v-turbo',
     },
     speech: {
       enabled: config.speech?.enabled ?? true,
