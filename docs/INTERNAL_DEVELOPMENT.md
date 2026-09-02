@@ -178,6 +178,9 @@ DSH Session
 - 办公黄金 E2E：联网证据、HTML/Markdown/PPTX/Excel 类型、准确打开目标和一次有界自纠
 - Desktop 隔离启动冒烟：preload、真实 DSH Web、`33145`、Profile 隔离与退出清理
 - 饥荒、反馈服务和 ONI Adapter 另有各自的自动检查
+- Desktop 单实例与 Gateway 生命周期回归：重复启动只聚焦既有窗口，退出按顺序关闭 Gateway 与 DSH Runtime，避免 `33145` 残留占用
+- Windows 更新客户端：打包版延迟检查、后台下载、下次启动安装；卸载默认保留 AppData，更新错误只记录日志且不阻塞启动
+- 轻量稳定性采集：复用重连/诊断测试，并记录进程资源、Gateway 可用性和 Adapter 连接证据
 - `pnpm desktop:prepare`：构建媒体 Host、插件与 ONI Adapter，完成 Adapter、状态、两轮对话和同存档 Session 恢复冒烟，并准备桌面 Runtime
 - `pnpm desktop:dist`：已生成 284,176,643 字节的 Windows NSIS 安装包，包含 DSH `0.1.1-rc.2`、小汤圆插件 `0.7.7`、ONI Adapter `0.1.6` 和自包含媒体 Host
 - 安装器隔离验收：在不提供系统 Node/pnpm 的 PATH 下启动安装后应用，Electron Renderer、内置 DSH NodeService 与 `XtyMediaHost.exe` 正常运行，本地 DSH 页面返回 HTTP 200；短路径静默卸载返回 0 并完整删除安装目录
@@ -196,6 +199,7 @@ DSH Session
 - 动态剧情已通过确定性 ToolRuntime 测试和单次真实 DSH 模型冒烟，但尚未用真实游戏存档、长时间多轮生成和多次模型样本验收剧情质量、连续性、重复率与玩家选择体验。
 - 最新代码拉取后尚未完成真实星露谷、饥荒或缺氧存档验收。
 - 主仓库已有 `v1.1.0` 稳定源码 Release，`main` 已有经过本机安装—启动—卸载验收的未签名 NSIS 产物，但仍没有正式签名并上传 Release 的一键安装包。
+- Windows 公网更新源尚未发布；macOS 原生媒体、游戏发现/安装、签名、公证和真机验收尚未完成。
 - 安装包当前约 271 MiB、解压约 684 MiB；完整 DSH 依赖树使首次安装偏慢。极长自定义安装目录还可能触发传统 Windows `MAX_PATH`，短路径安装与卸载已验证无残留。
 
 因此，自动测试通过只能证明代码和确定性契约，不代表桌面发行 Runtime 或真实游戏已经验收。
@@ -216,6 +220,7 @@ pnpm desktop:demo
 pnpm smoke:dsh-adapter
 pnpm smoke:dsh-story
 pnpm smoke:dsh-product
+PowerShell -NoProfile -ExecutionPolicy Bypass -File scripts/real-game-stability-lite.ps1 -Game auto -DurationMinutes 60
 ```
 
 两条冒烟不包含在 `pnpm check` 中，必须看到脚本定义的成功结果才算通过。详细排错见 [常见问题与排错](xiaotangyuan/TROUBLESHOOTING.md)。
@@ -262,8 +267,9 @@ pnpm desktop:dist
 1. 建立长剧情自动验收：连续运行 20–50 个 StoryBeat，量化 grounding、连续性、重复率、玩家选择、拒绝修复和重启恢复。
 2. 在方便真实测试时，用实际语音交互记录区分 ASR、模型首字、Agent、TTS、游戏动作和总耗时，不凭主观感受调优。
 3. 按 [真实游戏端到端验收清单](REAL_GAME_ACCEPTANCE.md) 完成至少一个真实存档闭环，覆盖状态、文字、语音、Action、剧情推进、失败、重连和诊断关联。
-4. 裁剪安装包中的非 Windows 平台依赖、类型声明和 Source Map，降低体积与首次安装时间，并对过长自定义安装路径给出限制或提示。
-5. 完成第三方 Game Pack 权限授权、可信启动和代码签名，之后再把带 SHA256 的签名安装包作为主仓库 Release 资产公开。
+4. 完成 macOS 原生媒体、游戏发现/安装、arm64/x64 打包、Developer ID 签名、公证和真机验收；不能把仅能生成 DMG 写成产品已支持。
+5. 裁剪安装包中的非目标平台依赖、类型声明和 Source Map，降低体积与首次安装时间，并对过长自定义安装路径给出限制或提示。
+6. 完成第三方 Game Pack 权限授权、可信启动和代码签名，之后再把带 SHA256 的签名安装包作为主仓库 Release 资产公开。
 
 ## 相关内部资料
 

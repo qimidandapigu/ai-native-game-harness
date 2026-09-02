@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { connect } from 'node:net'
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -164,7 +164,14 @@ try {
       return !(segments[0] === 'profiles' && segments[1] === 'node_modules')
     },
   })
-  cpSync(preparedRuntimeState, join(smokeUserData, 'runtime-state'), { recursive: true })
+  const smokeRuntimeState = join(smokeUserData, 'runtime-state')
+  // Some Windows security products reject fs.cp while it creates a directory
+  // in the user Temp tree. Creating the isolated destination first keeps the
+  // copy deterministic without weakening the profile boundary.
+  mkdirSync(smokeRuntimeState, { recursive: true })
+  for (const name of readdirSync(preparedRuntimeState)) {
+    cpSync(join(preparedRuntimeState, name), join(smokeRuntimeState, name), { recursive: true, force: true })
+  }
 
   const electronPackage = requireFromDesktop.resolve('electron/package.json')
   const packagedElectron = join(dirname(electronPackage), 'dist', process.platform === 'win32' ? 'electron.exe' : 'electron')

@@ -1,7 +1,7 @@
 # 轻量真实游戏稳定性验收
 
 - Task ID: `stability-lite-20260903`
-- 状态：待集成
+- 状态：已集成并通过短采样验证
 - 分支与 worktree：`task/stability-lite` / `F:\game\ai-native-game-harness-worktrees\stability-lite`
 - 目标：复用现有诊断、重连和超时能力，增加一个无需服务器的本地稳定性采集与安全故障检查入口。
 - 允许修改：

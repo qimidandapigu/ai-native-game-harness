@@ -1,7 +1,7 @@
 # Windows 最小安全自动更新
 
 - Task ID: `windows-auto-update-minimal-20260903`
-- 状态：实现与本机验收完成，待集成；公网更新源尚未发布
+- 状态：已集成并通过本机验收；公网更新源尚未发布
 - 分支与 worktree：`task/windows-auto-update-minimal-20260903` / `F:\game\ai-native-game-harness-worktrees\windows-auto-update-minimal-20260903`
 - 目标：使用现成 Electron 更新能力实现启动检查、后台下载、下次启动安装，并验证诊断与卸载数据保留边界。
 - 允许修改：

@@ -1,7 +1,7 @@
 # Desktop Gateway 生命周期稳定性修复
 
 - Task ID: `gateway-lifecycle-20260903`
-- 状态：实现与自动化验证完成，待集成
+- 状态：已集成并通过自动化验证
 - 分支与 worktree：`task/gateway-lifecycle-20260903` / `F:\game\ai-native-game-harness-worktrees\gateway-lifecycle-20260903`
 - 目标：系统解决 Desktop 快速重启或重复启动时 `33145` 端口冲突导致星露谷按 V 静默失效的问题。
 - 允许修改：
