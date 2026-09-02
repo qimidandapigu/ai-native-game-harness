@@ -53,7 +53,7 @@ const ONI_CAPABILITIES: AdapterCapability[] = [
 ]
 const ONI_ACTIONS = new Set(ONI_CAPABILITIES.filter(item => item.kind === 'action').map(item => item.name))
 
-const ROLE = '你是住在《缺氧》里的小汤圆，是玩家傲娇、调皮但可靠的伙伴。使用简洁自然中文，不用 Markdown。需要操作游戏时必须调用名称中包含 oni_ 的游戏工具；只有工具返回 ok=true 后才能说动作已经执行。玩家明确要求你改为跟随某个复制人时，调用包含 oni_companion_follow 的工具；不要因为普通选择或提到复制人就切换。玩家让你吸水、收水或把这里的水吸走时调用包含 oni_companion_absorb_water 的工具；玩家让你喷水、放水或把储水喷到这里时调用包含 oni_companion_spray_water 的工具。水技能是否学会、储水量和种类以当前观察及工具结果为准。'
+const ROLE = '你是住在《缺氧》里的小汤圆，是玩家傲娇、调皮但可靠的伙伴。使用简洁自然中文，不用 Markdown。玩家明确要求你改为跟随某个复制人时，才调用 oni_companion_follow；不要因为普通选择或提到复制人就切换。玩家让你吸水、收水、喷水或放水时，先简短表示马上行动，不要在回答阶段调用工具，也不要提前声称动作已经完成；AI Native Game Harness 会在回答后执行对应的吸水或喷水动作。水技能是否学会、储水量和种类以当前观察及动作结果为准。'
 
 export const name = 'oni-adapter'
 export const inject = ['tools']
@@ -291,13 +291,37 @@ export class OniAdapter implements GameAdapter {
     if (this.gatewayUrl === undefined) return
     this.disconnect(); this.processId = processId; this.saveId = saveId
     const socket = this.socket = new WebSocket(this.gatewayUrl)
-    socket.on('open', () => socket.send(JSON.stringify({ jsonrpc: '2.0', id: `oni-hello-${processId}`, method: 'adapter.hello', params: { adapterId: 'qimidandapigu.oxygen-not-included-fairy', gameId: 'oxygen-not-included', version: ADAPTER_VERSION, protocolVersion: '1.1', capabilities: ['assistant.text-stream'], processId, saveId } })))
+    socket.on('open', () => socket.send(JSON.stringify({ jsonrpc: '2.0', id: `oni-hello-${processId}`, method: 'adapter.hello', params: {
+      adapterId: 'qimidandapigu.oxygen-not-included-fairy', gameId: 'oxygen-not-included', version: ADAPTER_VERSION,
+      protocolVersion: '1.1', capabilities: ['assistant.text-stream'], processId, saveId,
+      atoms: [
+        { name: 'oni_companion_absorb_water', description: '吸收鼠标格的水', parameters: '{}', returns: '{"success":boolean,"reply":string}' },
+        { name: 'oni_companion_spray_water', description: '向鼠标格喷水', parameters: '{}', returns: '{"success":boolean,"reply":string}' },
+      ],
+      voiceCommands: [
+        { atom: 'oni_companion_absorb_water', phrases: ['吸水', '收水', '吸走水'] },
+        { atom: 'oni_companion_spray_water', phrases: ['喷水', '放水', '喷出水'] },
+      ],
+    } })))
     socket.on('error', () => { if (this.socket === socket) this.socket = undefined })
     socket.on('close', () => { if (this.socket === socket) this.socket = undefined })
     socket.on('message', raw => {
       try {
         const value = JSON.parse(raw.toString()) as { id?: string, method?: string, params?: ObjectValue, result?: { reply?: string }, error?: { message?: string } }
-        if (typeof value.method === 'string' && value.params !== undefined) this.enqueue(value.method, value.params)
+        if (typeof value.id === 'string' && value.method === 'game.atom.execute' && value.params !== undefined) {
+          const atom = typeof value.params.atom === 'string' ? value.params.atom : ''
+          const args = typeof value.params.arguments === 'object' && value.params.arguments !== null && !Array.isArray(value.params.arguments)
+            ? value.params.arguments as ObjectValue : {}
+          void this.executeTool(atom, args, AbortSignal.timeout(15_000)).then(result => {
+            if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ jsonrpc: '2.0', id: value.id, result }))
+          }).catch(error => {
+            if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({
+              jsonrpc: '2.0', id: value.id,
+              error: { code: -32000, message: error instanceof Error ? error.message : String(error) },
+            }))
+          })
+        }
+        else if (typeof value.method === 'string' && value.params !== undefined) this.enqueue(value.method, value.params)
         else if (typeof value.id === 'string' && typeof value.result?.reply === 'string') this.enqueue('assistant.present', { text: value.result.reply, source: 'chat' })
         else if (typeof value.id === 'string' && typeof value.error?.message === 'string') this.enqueue('assistant.error', { message: value.error.message })
       } catch { /* ignore malformed loopback messages */ }

@@ -49,11 +49,14 @@ describe('voice and post-turn work timing', () => {
       events.push('speech-finished')
       return true
     })
-    const notify = vi.fn(() => events.push('caption-presented'))
+    const notify = vi.fn((_connection: unknown, method: string) => {
+      if (method === 'assistant.present') events.push('caption-presented')
+    })
     const finishTextStream = vi.fn(() => events.push('caption-finished'))
     const gateway = {
       connectionForProcess: () => connection,
       markInteraction: () => undefined,
+      schedulePostReplyAction: () => events.push('game-action-scheduled'),
       finishSpeechReply,
       notify,
       finishTextStream,
@@ -85,6 +88,7 @@ describe('voice and post-turn work timing', () => {
       'work-recognition-started',
       'caption-presented',
       'caption-finished',
+      'game-action-scheduled',
     ])
 
     releaseSpeech()
@@ -95,8 +99,68 @@ describe('voice and post-turn work timing', () => {
       'work-recognition-started',
       'caption-presented',
       'caption-finished',
+      'game-action-scheduled',
       'speech-finished',
     ])
+  })
+
+  it('publishes the reply before a game action while post-turn work still runs independently', async () => {
+    const events: string[] = []
+    const connection = {
+      latestSaveId: 'save-a',
+      latestObservation: { cursor: { cell: 321 } },
+      speechQueue: Promise.resolve(),
+      streamingInteractions: new Set<string>(),
+      postReplyAction: undefined as AbortController | undefined,
+      adapter: {
+        gameId: 'oxygen-not-included',
+        atoms: [{ name: 'oni_companion_absorb_water', description: 'absorb', parameters: '{}', returns: '{}' }],
+        voiceCommands: [{ atom: 'oni_companion_absorb_water', phrases: ['吸水'] }],
+      },
+      session: {
+        async ask() {
+          setImmediate(() => events.push('post-turn-work'))
+          return { reply: '好，我马上吸水。', sessionId: 'companion-session', interactionId: 'turn-action' }
+        },
+      },
+    }
+    const internals = GameGateway.prototype as unknown as {
+      schedulePostReplyAction: (connection: unknown, transcript: string, reply: string, interactionId: string) => void
+      runPostReplyAction: (connection: unknown, atom: string, interactionId: string, controller: AbortController) => Promise<void>
+    }
+    const gateway = {
+      ctx: { logger: { warn: vi.fn() } },
+      connectionForProcess: () => connection,
+      markInteraction: () => undefined,
+      notify: (_connection: unknown, method: string, params: { status?: string; atom?: string }) => {
+        events.push(`${method}${params.status === undefined ? '' : `:${params.status}`}${params.atom === undefined ? '' : `:${params.atom}`}`)
+      },
+      finishTextStream: () => events.push('assistant.text.done'),
+      finishSpeechReply: async () => { events.push('speech.finish'); return true },
+      speechFinished: () => undefined,
+      callAdapterAtom: async (_connection: unknown, atom: string) => {
+        events.push(`game.atom.execute:${atom}`)
+        return { success: true, reply: '吸水成功' }
+      },
+      schedulePostReplyAction: internals.schedulePostReplyAction,
+      runPostReplyAction: internals.runPostReplyAction,
+    }
+    const respond = GameGateway.prototype.respond as unknown as (
+      this: typeof gateway,
+      processId: number,
+      transcript: string,
+      signal: AbortSignal,
+    ) => Promise<unknown>
+
+    await respond.call(gateway, 42, '帮我吸水一下', new AbortController().signal)
+    await new Promise<void>(resolve => setImmediate(resolve))
+
+    const replyIndex = events.indexOf('assistant.present')
+    const actionIndex = events.indexOf('game.atom.execute:oni_companion_absorb_water')
+    expect(replyIndex).toBeGreaterThanOrEqual(0)
+    expect(actionIndex).toBeGreaterThan(replyIndex)
+    expect(events).toContain('assistant.action.result:oni_companion_absorb_water')
+    expect(events).toContain('post-turn-work')
   })
 
   it('cancels the active agent turn when a new voice recording barges in', async () => {
@@ -116,6 +180,7 @@ describe('voice and post-turn work timing', () => {
     const gateway = {
       connectionForProcess: () => connection,
       markInteraction: () => undefined,
+      schedulePostReplyAction: vi.fn(),
       finishSpeechReply: vi.fn(),
       notify: vi.fn(),
       finishTextStream: vi.fn(),
@@ -135,6 +200,10 @@ describe('voice and post-turn work timing', () => {
     await expect(response).rejects.toThrow('玩家开始了新的语音输入')
     expect(cancel).toHaveBeenCalledOnce()
     expect(gateway.finishSpeechReply).not.toHaveBeenCalled()
-    expect(gateway.notify).not.toHaveBeenCalled()
+    expect(gateway.notify).toHaveBeenCalledOnce()
+    expect(gateway.notify).toHaveBeenCalledWith(connection, 'assistant.status', {
+      status: 'thinking',
+      transcript: '第一句',
+    })
   })
 })

@@ -1,0 +1,35 @@
+# 回答后游戏动作与干活调度并存
+
+- Task ID: `post-reply-game-action-20260831`
+- 状态：完成（源码已整理为独立提交；真实存档验收待用户执行）
+- 分支与 worktree：`feat/public-runtime-integration-20260903` / `F:\game\ai-native-game-harness`（用户明确要求整理、验证并提交现有功能）
+- 目标：恢复回答完成后的游戏动作调度，同时保留现有 Work Orchestrator 后置干活链路。
+- 允许修改：
+  - `plugins/xiaotangyuan-game/src/gateway/game-gateway.ts`
+  - `plugins/xiaotangyuan-game/src/runtime/agent/game-agent-session.ts`
+  - `plugins/xiaotangyuan-game/src/protocol/game.ts`
+  - `plugins/xiaotangyuan-game/test/runtime.test.ts`
+  - `plugins/xiaotangyuan-game/test/feedback.test.ts`
+  - `plugins/xiaotangyuan-game/test/game-session.test.ts`
+  - `plugins/xiaotangyuan-game/test/work-voice-timing.test.ts`
+  - `games/oxygen-not-included/adapter/src/index.ts`
+  - `games/oxygen-not-included/adapter/test/adapter.test.ts`
+  - `games/oxygen-not-included/bridge/src/DoubaoAIRuntime.cs`
+- 共享热点：`plugins/xiaotangyuan-game/**`（本任务为用户要求的主线合并任务；保留已有未提交修改）
+- 不修改：根 `package.json`、锁文件、Desktop 源码、manifest、公共文档及其他任务认领文件。
+- 验证：小汤圆插件 check、ONI Adapter check、ONI C# build、`git diff --check`，随后核对本机部署产物；真实存档吸水仍需人工验收。
+- 实现结果：
+  - 模型回答先进入 UI/TTS；回答发布后，游戏动作与 Work Orchestrator 分成两条互不覆盖的异步分支。
+  - ONI Adapter 在握手中声明吸水、喷水语音动作，并把 Harness 的 `game.atom.execute` 转发给 C# Mod。
+  - ONI 使用游戏内 `Q` 键录音，不注册桌面全局按键；饥荒和星露谷仍使用原有 `V` 键路径。
+  - 疑问、否定和拒绝语句不会误触发动作。
+- 自动验证：
+  - `pnpm --filter @qimidandapigu/dsh-xiaotangyuan-game run check`：111/111 通过。
+  - `pnpm --filter @qimidandapigu/oni-adapter run check`：15/15 通过。
+  - `dotnet build .\DoubaoAI.ONI.csproj -c Release --no-restore`：0 error；保留 2 个既有程序集版本 warning。
+  - 安装产物共存冒烟通过：事件顺序为回答发布 -> 后置动作 -> 动作结果，同时 post-turn work 仍会执行。
+  - `git diff --check`：无空白错误；仅有工作树既有 LF/CRLF 提示。
+- 本机部署：已将本任务的 4 个 JavaScript 运行文件和 ONI DLL 精确覆盖到安装版；覆盖前文件备份后缀为 `before-post-reply-merge-20260831-020511.bak`，源文件与安装目标 SHA-256 一致。
+- 后台进程：Desktop Harness 已重新启动；桌面启动进程 PID 为 `47288`，Gateway 正在 `127.0.0.1:33145` 监听（PID `34052`），为便于用户立即测试而保留运行。
+- 验收边界：自动测试已覆盖协议、当前光标格转发、回答先于动作以及动作/干活并存；尚未宣称真实 ONI 存档中的吸水效果已验收。
+- Git：已纳入独立的正式功能提交，随 `feat/public-runtime-integration-20260903` 推送并通过 PR 集成；未修改根 `package.json`、锁文件或 Desktop 源码。

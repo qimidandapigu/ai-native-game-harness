@@ -111,10 +111,17 @@ export function formatGamePrompt(
     context.nearbyNpc === undefined ? undefined : `Nearby NPC: ${context.nearbyNpc}`,
   ].filter((item): item is string => item !== undefined)
   const gameContext = renderGameContextForPrompt(context.observation, adapter)
+  const postReplyActions = (adapter?.voiceCommands ?? []).map(command => {
+    const definition = adapter?.atoms?.find(atom => atom.name === command.atom)
+    return `${command.phrases.join('、')} -> ${command.atom}${definition === undefined ? '' : `（${definition.description}）`}`
+  })
   return [
     'You are an in-game AI companion.',
     'Reply in the same language as the player, naturally and briefly (at most two short sentences). You speak through a small in-game bubble, so never paste a document, report, long list, or full work result into the reply.',
     'Do not use Markdown. Never claim a game action succeeded unless a game tool returned an explicit successful result in this turn.',
+    postReplyActions.length === 0
+      ? undefined
+      : `Adapter-declared actions are executed by a separate post-reply game-action stage after your public answer. For a clear matching request, say naturally that you are about to act; do not claim completion and do not call any game tool or learned-skill tool for these actions in this turn. This game-action stage is independent from the separate post-turn work service, and both may coexist. Available post-reply actions:\n${postReplyActions.join('\n')}`,
     feedbackEnabled
       ? 'When the player clearly proposes a missing product capability or improvement, call game_feedback_submit exactly once before replying. For example, “如果能够加钓鱼功能就好了” is a feature request and must be submitted. Preserve the exact player sentence in playerQuote. An ordinary request to perform an already available in-game action is not feedback. Mention the returned feedback number only after the tool succeeds; if it fails, state that upload failed and never claim success.'
       : undefined,

@@ -290,7 +290,10 @@ namespace DoubaoAI.ONI
             if (method == "assistant.status")
             {
                 if (text == "recording") _status = "聆听中…";
+                else if (text == "recognizing") _status = "识别中…";
                 else if (text == "thinking") _status = "思考中…";
+                else if (text == "acting") _status = "执行中…";
+                else if (text == "idle") { _floatingStatus = string.Empty; return; }
                 else return;
                 _floatingStatus = _status;
                 return;
@@ -310,6 +313,13 @@ namespace DoubaoAI.ONI
                 _floatingStatus = string.Empty;
                 _reply = string.IsNullOrWhiteSpace(text) ? "这次没有生成有效回复。" : text;
                 _bubbleUntil = Time.unscaledTime + 12f; return;
+            }
+            if (method == "assistant.action.result")
+            {
+                _status = text.StartsWith("动作执行失败") ? "动作失败" : "动作完成";
+                _floatingStatus = string.Empty;
+                _reply = string.IsNullOrWhiteSpace(text) ? "动作已完成。" : text;
+                _bubbleUntil = Time.unscaledTime + 8f; return;
             }
             if (method == "assistant.error")
             {

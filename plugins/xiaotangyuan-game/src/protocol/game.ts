@@ -7,6 +7,12 @@ export interface AdapterHello {
   saveId?: string
   capabilities?: string[]
   atoms?: GameAtomDefinition[]
+  voiceCommands?: GameVoiceCommand[]
+}
+
+export interface GameVoiceCommand {
+  atom: string
+  phrases: string[]
 }
 
 export interface GameAtomDefinition {
@@ -75,6 +81,23 @@ export function readAdapterHello(value: unknown): AdapterHello {
         }
       }
       if (!/^[a-z0-9][a-z0-9._-]{2,79}$/.test(definition.name as string)) throw new Error('atom name is invalid')
+    }
+  }
+  const voiceCommands = params.voiceCommands
+  if (voiceCommands !== undefined) {
+    if (!Array.isArray(voiceCommands) || voiceCommands.length > 20) {
+      throw new Error('voiceCommands must be an array with at most 20 entries')
+    }
+    const atomNames = new Set(Array.isArray(atoms) ? atoms.map(atom => asRecord(atom).name) : [])
+    for (const command of voiceCommands) {
+      const definition = asRecord(command)
+      if (typeof definition.atom !== 'string' || !atomNames.has(definition.atom)) {
+        throw new Error('voice command atom must reference a declared atom')
+      }
+      if (!Array.isArray(definition.phrases) || definition.phrases.length === 0 || definition.phrases.length > 20
+        || definition.phrases.some(phrase => typeof phrase !== 'string' || phrase.trim() === '' || phrase.length > 40)) {
+        throw new Error('voice command phrases must contain 1-20 short strings')
+      }
     }
   }
   const saveId = optionalString(params, 'saveId')
