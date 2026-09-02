@@ -341,7 +341,17 @@ export class OniAdapter implements GameAdapter {
   private flushInbox(): void {
     if (!this.inboxDirty || this.directory === undefined) return
     const target = join(this.directory, 'inbox.json'); const temporary = `${target}.tmp`
-    writeFileSync(temporary, JSON.stringify({ events: this.inbox }), 'utf8'); renameSync(temporary, target); this.inboxDirty = false
+    try {
+      writeFileSync(temporary, JSON.stringify({ events: this.inbox }), 'utf8')
+      renameSync(temporary, target)
+      this.inboxDirty = false
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      // Windows may briefly lock inbox.json while the game Bridge is reading it.
+      // Keep the dirty flag so the next poll retries instead of crashing the timer.
+      if (code === 'EPERM' || code === 'EBUSY' || code === 'EACCES' || code === 'ENOENT') return
+      throw error
+    }
   }
 
   private read(path: string): ObjectValue | undefined { try { return JSON.parse(readFileSync(path, 'utf8')) as ObjectValue } catch { return undefined } }
