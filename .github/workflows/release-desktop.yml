@@ -1,0 +1,65 @@
+name: Publish Windows desktop update
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-desktop-release
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify platform tests
+        run: pnpm --filter @ai-native-game-harness/platform-tests test
+      - name: Prepare embedded runtime
+        run: pnpm desktop:prepare
+      - name: Build NSIS update
+        run: pnpm --filter @ai-native-game-harness/desktop dist
+      - name: Verify update files
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -LiteralPath distribution/desktop -File -Filter '*.exe'
+          $blockmap = Get-ChildItem -LiteralPath distribution/desktop -File -Filter '*.blockmap'
+          if ($installer.Count -ne 1) { throw "Expected one installer, found $($installer.Count)" }
+          if ($blockmap.Count -lt 1) { throw 'Missing differential update blockmap' }
+          if (-not (Test-Path -LiteralPath distribution/desktop/latest.yml)) { throw 'Missing latest.yml' }
+      - name: Publish immutable installer assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view desktop-updates 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create desktop-updates --target $env:GITHUB_SHA --title 'Windows desktop update feed' --notes 'Managed update feed for AI Native Game Harness 游戏版.' --prerelease
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to create the desktop update feed release' }
+          }
+          Get-ChildItem -LiteralPath distribution/desktop -File |
+            Where-Object { $_.Extension -in '.exe', '.blockmap' } |
+            ForEach-Object {
+              gh release upload desktop-updates $_.FullName --clobber
+              if ($LASTEXITCODE -ne 0) { throw "Failed to upload $($_.Name)" }
+            }
+          gh release upload desktop-updates (Resolve-Path distribution/desktop/latest.yml) --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to publish latest.yml' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-desktop-update
+          path: |
+            distribution/desktop/*.exe
+            distribution/desktop/*.blockmap
+            distribution/desktop/latest.yml

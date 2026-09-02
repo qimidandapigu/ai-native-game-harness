@@ -1,0 +1,33 @@
+# Windows 最小安全自动更新
+
+- Task ID: `windows-auto-update-minimal-20260903`
+- 状态：实现与本机验收完成，待集成；公网更新源尚未发布
+- 分支与 worktree：`task/windows-auto-update-minimal-20260903` / `F:\game\ai-native-game-harness-worktrees\windows-auto-update-minimal-20260903`
+- 目标：使用现成 Electron 更新能力实现启动检查、后台下载、下次启动安装，并验证诊断与卸载数据保留边界。
+- 允许修改：
+  - `apps/desktop/src/updater.mjs`
+  - `apps/desktop/src/main.mjs`
+  - `apps/desktop/package.json`
+  - `apps/desktop/electron-builder.config.mjs`
+  - `scripts/prepare-desktop-runtime.ps1`
+  - `pnpm-lock.yaml`
+  - `.github/workflows/release-desktop.yml`
+  - `tests/integration/desktop-updater.test.ts`
+  - 本 claim
+- 共享热点：`apps/desktop/src/main.mjs`、`apps/desktop/electron-builder.config.mjs`、`scripts/prepare-desktop-runtime.ps1`、`pnpm-lock.yaml`（当前无其他 Desktop 打包进程；在独立 worktree 中实现，待交接时单独列出）。
+- 不修改：`apps/beta-key-manager/`、游戏 Mod、Steam Mods、本机正式 DSH Profile、商业登录/余额/账本、macOS 发布链路。
+- 验证：Node 语法检查、Updater 单元/集成测试、Platform 测试、`git diff --check`、Windows NSIS 构建、旧版数据保留与安装后启动检查。
+- 实现结果：
+  - 打包后的 Windows Harness 启动 15 秒后检查更新；开发版、非 Windows 或显式禁用时不启用。
+  - 使用 `electron-updater@6.8.9` 后台下载，并在下载完成后只提示一次“正常退出后安装，下次启动为新版本”。
+  - 更新过程复用现有 `runtime.log`，原有脱敏诊断导出没有替换或删改。
+  - NSIS 明确设置 `deleteAppDataOnUninstall: false`，默认卸载不删除 Harness AppData；游戏存档不在安装器管理范围内。
+  - 增加手动触发的 Windows 更新发布工作流，按安装包、blockmap、最后 `latest.yml` 的顺序发布到 `desktop-updates` 更新源。
+- 验证结果：
+  - `pnpm install --offline --frozen-lockfile` 通过。
+  - 集成测试 14 个文件、42 项通过；平台测试 22 项通过。
+  - Node 与 PowerShell 语法检查、工作流 YAML 解析、`git diff --check` 均通过。
+  - Windows NSIS 0.1.1 构建成功，安装包 SHA256：`027B8D3F66082C0154469866481E5D4170C646E4D55FB80923F5E0AE283E3499`。
+  - 0.1.1 已覆盖安装并启动；启动日志确认定时检查发生。更新源尚未发布，因此返回 404，但应用保持运行且错误进入日志。
+  - 覆盖安装并启动后，两份既有用户数据样本哈希与安装前一致：`xiaotangyuan.version` 为 `5E771745...8645FCE2`，DSH Profile `package.json` 为 `BEC97055...D33C3C7`。
+- 交接：用户已授权提交并推送代码；手动发布更新源仍是独立发布动作，本次不自动触发。

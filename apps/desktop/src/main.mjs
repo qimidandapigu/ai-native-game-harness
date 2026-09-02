@@ -10,6 +10,7 @@ import { PlatformRuntime } from './platform-runtime.mjs'
 import { DshProductRuntime } from './dsh-product-runtime.mjs'
 import { buildDiagnosticBundle, diagnosticFilename } from './diagnostics.mjs'
 import { EVALUATION_CATALOG, runDstButterflyProductEvaluation } from './evaluation-runtime.mjs'
+import { startDesktopUpdater } from './updater.mjs'
 
 const require = createRequire(import.meta.url)
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -35,6 +36,7 @@ let demoAdapterProcess
 let gamePackRegistry
 let runtimeWebUrl
 let evaluationRunning = false
+let desktopUpdater
 
 const PRODUCT_TITLE = 'AI Native Game Harness 游戏版'
 
@@ -747,7 +749,19 @@ if (!hasSingleInstanceLock) {
     mainWindow.show()
     mainWindow.focus()
   })
-  app.whenReady().then(createWindow)
+  app.whenReady().then(() => {
+    createWindow()
+    void startDesktopUpdater({
+      app,
+      dialog,
+      getWindow: () => mainWindow,
+      log: appendRuntimeLog,
+    }).then((controller) => {
+      desktopUpdater = controller
+    }).catch((error) => {
+      appendRuntimeLog(`[updater:warn] updater initialization failed without blocking startup: ${error instanceof Error ? error.message : String(error)}\n`)
+    })
+  })
   app.on('window-all-closed', () => app.quit())
   app.on('before-quit', (event) => {
     if (shutdownComplete) return
@@ -761,6 +775,7 @@ if (!hasSingleInstanceLock) {
       dshProductUnsubscribe?.()
       await dshProductRuntime?.close()
       await stopDshRuntime()
+      desktopUpdater?.stop()
       shutdownComplete = true
       app.quit()
     })()
