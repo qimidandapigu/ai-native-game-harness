@@ -15,6 +15,7 @@ const smokeUserData = mkdtempSync(join(tmpdir(), 'agh-desktop-smoke-'))
 const productionUserData = resolve(process.env.APPDATA ?? '', '@ai-native-game-harness', 'desktop')
 const requireFromDesktop = createRequire(join(repoRoot, 'apps', 'desktop', 'package.json'))
 let desktop
+let secondDesktop
 let dsh
 let devtools
 let forcedCleanup = false
@@ -78,6 +79,9 @@ function stopMarkedProcesses() {
   }
   if (desktop?.pid) {
     try { process.kill(desktop.pid) } catch {}
+  }
+  if (secondDesktop?.pid) {
+    try { process.kill(secondDesktop.pid) } catch {}
   }
   if (dsh?.pid) {
     try { process.kill(dsh.pid) } catch {}
@@ -207,16 +211,17 @@ try {
 
   const debugPort = await freePort()
   let output = ''
+  const desktopEnvironment = {
+    ...process.env,
+    AI_GAME_HARNESS_DEV: '1',
+    AI_GAME_HARNESS_DEV_USER_DATA: smokeUserData,
+    AI_GAME_HARNESS_STANDALONE: '1',
+    LOCALAPPDATA: join(smokeUserData, 'local-app-data'),
+    APPDATA: join(smokeUserData, 'roaming-app-data'),
+  }
   desktop = spawn(electronExecutable, ['.', `--remote-debugging-port=${debugPort}`], {
     cwd: join(repoRoot, 'apps', 'desktop'),
-    env: {
-      ...process.env,
-      AI_GAME_HARNESS_DEV: '1',
-      AI_GAME_HARNESS_DEV_USER_DATA: smokeUserData,
-      AI_GAME_HARNESS_STANDALONE: '1',
-      LOCALAPPDATA: join(smokeUserData, 'local-app-data'),
-      APPDATA: join(smokeUserData, 'roaming-app-data'),
-    },
+    env: desktopEnvironment,
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   })
@@ -245,6 +250,15 @@ try {
   if (preloadProbe?.ready !== true) throw new Error(`preload did not expose window.harnessDesktop.platform: ${JSON.stringify(preloadProbe)}`)
   if (!existsSync(join(smokeUserData, 'dsh-home'))) throw new Error('isolated development DSH_HOME was not created')
 
+  secondDesktop = spawn(electronExecutable, ['.'], {
+    cwd: join(repoRoot, 'apps', 'desktop'),
+    env: desktopEnvironment,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  })
+  await waitFor(() => secondDesktop.exitCode !== null || secondDesktop.signalCode !== null, 'second Desktop single-instance exit', 10_000)
+  if (desktop.exitCode !== null || desktop.signalCode !== null) throw new Error('primary Desktop exited when the second instance was launched')
+
   await closeBrowser(devtools)
   await waitFor(() => desktop.exitCode !== null || desktop.signalCode !== null, 'Desktop graceful exit', 30_000)
   dsh.kill('SIGTERM')
@@ -256,6 +270,7 @@ try {
     ok: true,
     preload: 'loaded',
     desktopMode: 'standalone-shell',
+    singleInstance: true,
     dshWeb: runtimeUrl,
     gatewayPort: 33145,
     profile: smokeUserData,
