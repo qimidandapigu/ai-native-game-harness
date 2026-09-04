@@ -14,6 +14,18 @@
       "FromFile": "assets/xiaotangyuan_companion.png"
     },
     {
+      "LogName": "注册小汤圆飞行坐骑精灵",
+      "Action": "Load",
+      "Target": "Mods/{{ModId}}/rider",
+      "FromFile": "assets/xiaotangyuan_rider.png"
+    },
+    {
+      "LogName": "注册小汤圆唱歌精灵",
+      "Action": "Load",
+      "Target": "Mods/{{ModId}}/singing",
+      "FromFile": "assets/xiaotangyuan_singing.png"
+    },
+    {
       "LogName": "添加小汤圆隐藏饰品",
       "Action": "EditData",
       "Target": "Data/Trinkets",
@@ -63,13 +75,25 @@
       "Entries": {
         "{{ModId}}_Companion": {
           "VariantsBase": {
-            "Width": 32,
-            "Height": 32
+            "Width": 64,
+            "Height": 64
           },
           "Variants": [
             {
               "Texture": "Mods/{{ModId}}/companion",
-              "TextureScale": 2.0
+              "TextureScale": 1.0,
+              "AltVariants": {
+                "DOUBAO_SINGING": {
+                  "Texture": "Mods/{{ModId}}/singing",
+                  "Condition": "FALSE"
+                },
+                "DOUBAO_RIDER": {
+                  "Texture": "Mods/{{ModId}}/rider",
+                  "TextureScale": 0.0,
+                  "ShadowScale": 0.0,
+                  "Condition": "FALSE"
+                }
+              }
             }
           ],
           "Motion": {
@@ -83,13 +107,25 @@
         },
         "{{ModId}}_Companion_Combat": {
           "VariantsBase": {
-            "Width": 32,
-            "Height": 32
+            "Width": 64,
+            "Height": 64
           },
           "Variants": [
             {
               "Texture": "Mods/{{ModId}}/companion",
-              "TextureScale": 2.0
+              "TextureScale": 1.0,
+              "AltVariants": {
+                "DOUBAO_SINGING": {
+                  "Texture": "Mods/{{ModId}}/singing",
+                  "Condition": "FALSE"
+                },
+                "DOUBAO_RIDER": {
+                  "Texture": "Mods/{{ModId}}/rider",
+                  "TextureScale": 0.0,
+                  "ShadowScale": 0.0,
+                  "Condition": "FALSE"
+                }
+              }
             }
           ],
           "Motion": {
@@ -103,13 +139,25 @@
         },
         "{{ModId}}_Companion_Farming": {
           "VariantsBase": {
-            "Width": 32,
-            "Height": 32
+            "Width": 64,
+            "Height": 64
           },
           "Variants": [
             {
               "Texture": "Mods/{{ModId}}/companion",
-              "TextureScale": 2.0
+              "TextureScale": 1.0,
+              "AltVariants": {
+                "DOUBAO_SINGING": {
+                  "Texture": "Mods/{{ModId}}/singing",
+                  "Condition": "FALSE"
+                },
+                "DOUBAO_RIDER": {
+                  "Texture": "Mods/{{ModId}}/rider",
+                  "TextureScale": 0.0,
+                  "ShadowScale": 0.0,
+                  "Condition": "FALSE"
+                }
+              }
             }
           ],
           "Motion": {
@@ -123,13 +171,25 @@
         },
         "{{ModId}}_Companion_Fishing": {
           "VariantsBase": {
-            "Width": 32,
-            "Height": 32
+            "Width": 64,
+            "Height": 64
           },
           "Variants": [
             {
               "Texture": "Mods/{{ModId}}/companion",
-              "TextureScale": 2.0
+              "TextureScale": 1.0,
+              "AltVariants": {
+                "DOUBAO_SINGING": {
+                  "Texture": "Mods/{{ModId}}/singing",
+                  "Condition": "FALSE"
+                },
+                "DOUBAO_RIDER": {
+                  "Texture": "Mods/{{ModId}}/rider",
+                  "TextureScale": 0.0,
+                  "ShadowScale": 0.0,
+                  "Condition": "FALSE"
+                }
+              }
             }
           ],
           "Motion": {

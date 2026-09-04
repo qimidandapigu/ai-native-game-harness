@@ -3,8 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 import type { ResolvedConfig } from '../../config.js'
 import { CapabilityRegistry } from '../capabilities.js'
-import type { MediaHostEvent } from '../media/windows-media-host.js'
-import { WindowsMediaHost } from '../media/windows-media-host.js'
+import type { MediaHost, MediaHostEvent } from '../media/media-host.js'
 import type { SpeechRecognitionProvider, SpeechSynthesisProvider, StreamingRecognitionSession } from '../providers/contracts.js'
 import { publishProductDiagnostic } from '../diagnostics.js'
 
@@ -59,7 +58,7 @@ export class SpeechController {
   constructor(
     private readonly ctx: Context,
     private readonly config: ResolvedConfig['speech'],
-    private readonly media: WindowsMediaHost,
+    private readonly media: MediaHost,
     private readonly handler: VoiceInteractionHandler,
     private readonly capabilities: CapabilityRegistry,
   ) {}
@@ -229,6 +228,9 @@ export class SpeechController {
   private async onMediaEvent(event: MediaHostEvent): Promise<void> {
     if (event.type === 'error') {
       this.ctx.logger.warn('xiaotangyuan-game media: %s', event.message)
+      if (event.processId !== undefined && Number.isSafeInteger(event.processId) && event.processId > 0) {
+        this.handler.failed(event.processId, event.message)
+      }
       return
     }
     if (event.type === 'recording.started') {

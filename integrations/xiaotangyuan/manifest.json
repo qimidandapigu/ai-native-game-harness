@@ -14,7 +14,7 @@
     "cordis": "4.0.1"
   },
   "development": {
-    "expectedVersion": "0.7.9",
+    "expectedVersion": "0.8.1",
     "defaultSource": "plugins/xiaotangyuan-game"
   },
   "workOrchestrator": {

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>com.qimidandapigu.ai-native-game-harness.media-host</string>
+  <key>CFBundleName</key>
+  <string>XtyMediaHost</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.1.0</string>
+  <key>LSUIElement</key>
+  <true/>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>用于在游戏前台按住语音键与小汤圆对话。</string>
+  <key>NSScreenCaptureUsageDescription</key>
+  <string>用于让小汤圆观察当前游戏窗口并提供与画面一致的帮助。</string>
+  <key>NSInputMonitoringUsageDescription</key>
+  <string>用于仅在已连接的游戏位于前台时监听按住说话快捷键。</string>
+</dict>
+</plist>

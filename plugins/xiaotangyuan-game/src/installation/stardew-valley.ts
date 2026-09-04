@@ -36,6 +36,10 @@ const MANAGED_UNIQUE_IDS = new Set([
 ])
 const MAX_ARCHIVE_SIZE = 50 * 1024 * 1024
 const MAX_COMPONENT_ARCHIVE_SIZE = 10 * 1024 * 1024
+const CONTENT_PATCHER_ARCHIVE_URL = 'https://mediafilez.forgecdn.net/files/7759/981/Content%20Patcher%202.9.1%202.9.1.zip'
+const LEGACY_CONTENT_PATCHER_ARCHIVE_URL = 'https://www.curseforge.com/api/v1/mods/309243/files/7759981/download'
+const TRINKET_TINKER_ARCHIVE_URL = 'https://api.github.com/repos/Mushymato/TrinketTinker/releases/assets/515207334'
+const LEGACY_TRINKET_TINKER_ARCHIVE_URL = 'https://github.com/Mushymato/TrinketTinker/releases/download/1.9.0/TrinketTinker.1.9.0.zip'
 
 interface ReleaseAsset {
   name: string
@@ -100,6 +104,29 @@ export interface StardewInstallResult {
   components: string
 }
 
+export interface BundledStardewSource {
+  version: string
+  adapterPath: string
+  companionPath: string
+}
+
+export interface StardewReconcilePackage {
+  name: string
+  uniqueId: string
+  version: string
+  action: 'installed' | 'updated' | 'kept'
+}
+
+export interface StardewReconcileResult {
+  status: 'game-not-found' | 'smapi-missing' | 'current' | 'changed'
+  changed: boolean
+  version: string
+  summary: string
+  detection: StardewDetection
+  packages: StardewReconcilePackage[]
+  backupRoot?: string
+}
+
 interface InstalledMod {
   path: string
   version: string
@@ -131,7 +158,7 @@ const FALLBACK_COMPONENTS: StardewComponentSpec[] = [
     folderName: 'ContentPatcher',
     archive: {
       name: 'ContentPatcher-2.9.1.zip',
-      url: 'https://www.curseforge.com/api/v1/mods/309243/files/7759981/download',
+      url: CONTENT_PATCHER_ARCHIVE_URL,
       size: 389967,
       sha256: '22962ecbeda204d207f66f4dded727a2ce67134f7decdd249c1024bbc4576817',
     },
@@ -143,7 +170,7 @@ const FALLBACK_COMPONENTS: StardewComponentSpec[] = [
     folderName: 'TrinketTinker',
     archive: {
       name: 'TrinketTinker.1.9.0.zip',
-      url: 'https://github.com/Mushymato/TrinketTinker/releases/download/1.9.0/TrinketTinker.1.9.0.zip',
+      url: TRINKET_TINKER_ARCHIVE_URL,
       size: 164458,
       sha256: 'cb04fe77e43607c3914f68c781371a3c0442accad794ebb73de34666707dd4ef',
     },
@@ -274,20 +301,25 @@ export async function steamRoots(signal?: AbortSignal): Promise<string[]> {
 
 export async function inspectStardewPath(gamePath: string): Promise<StardewDetection | undefined> {
   const resolved = resolve(gamePath)
+  const runtimeRoot = process.platform === 'darwin'
+    && (await Promise.all([
+      exists(join(resolved, 'Contents', 'MacOS', 'StardewValley')),
+      exists(join(resolved, 'Contents', 'MacOS', 'Stardew Valley.dll')),
+    ])).some(Boolean)
+    ? join(resolved, 'Contents', 'MacOS')
+    : resolved
   const gameMarkers = process.platform === 'win32'
     ? ['Stardew Valley.dll', 'StardewValley.exe']
     : process.platform === 'darwin'
-      ? ['Contents/MacOS/StardewValley', 'Stardew Valley.dll']
+      ? ['StardewValley', 'Stardew Valley.dll']
       : ['Stardew Valley.dll', 'StardewValley']
-  if (!(await Promise.all(gameMarkers.map(marker => exists(join(resolved, marker))))).some(Boolean)) return undefined
+  if (!(await Promise.all(gameMarkers.map(marker => exists(join(runtimeRoot, marker))))).some(Boolean)) return undefined
 
-  const modsPath = join(resolved, 'Mods')
+  const modsPath = join(runtimeRoot, 'Mods')
   const smapiMarkers = process.platform === 'win32'
     ? ['StardewModdingAPI.exe']
-    : process.platform === 'darwin'
-      ? ['StardewModdingAPI', 'Contents/MacOS/StardewModdingAPI']
-      : ['StardewModdingAPI']
-  const smapiInstalled = (await Promise.all(smapiMarkers.map(marker => exists(join(resolved, marker))))).some(Boolean)
+    : ['StardewModdingAPI']
+  const smapiInstalled = (await Promise.all(smapiMarkers.map(marker => exists(join(runtimeRoot, marker))))).some(Boolean)
   const [installed, contentPatcher, trinketTinker, companionPack] = await Promise.all([
     findInstalledMod(modsPath, ADAPTER_UNIQUE_ID),
     findInstalledMod(modsPath, 'Pathoschild.ContentPatcher'),
@@ -407,8 +439,12 @@ function parseComponentSpec(value: unknown): StardewComponentSpec {
     throw new Error(`星露谷组件 ${expected.uniqueId} 的安装包名称无效`)
   }
   const officialUrl = expected.uniqueId === 'Pathoschild.ContentPatcher'
-    ? /^https:\/\/www\.curseforge\.com\/api\/v1\/mods\/309243\/files\/\d+\/download$/.test(archive.url ?? '')
-    : archive.url === `https://github.com/Mushymato/TrinketTinker/releases/download/${component.version}/TrinketTinker.${component.version}.zip`
+    ? archive.url === CONTENT_PATCHER_ARCHIVE_URL || archive.url === LEGACY_CONTENT_PATCHER_ARCHIVE_URL
+    : archive.name === `TrinketTinker.${component.version}.zip`
+      && (archive.url === TRINKET_TINKER_ARCHIVE_URL
+        || archive.url === LEGACY_TRINKET_TINKER_ARCHIVE_URL
+        || /^https:\/\/api\.github\.com\/repos\/Mushymato\/TrinketTinker\/releases\/assets\/[1-9]\d*$/.test(archive.url ?? '')
+        || archive.url === `https://github.com/Mushymato/TrinketTinker/releases/download/${component.version}/TrinketTinker.${component.version}.zip`)
   if (!officialUrl) throw new Error(`星露谷组件 ${expected.uniqueId} 包含非官方安装地址`)
   if (typeof archive.size !== 'number'
     || !Number.isSafeInteger(archive.size)
@@ -426,7 +462,11 @@ function parseComponentSpec(value: unknown): StardewComponentSpec {
     folderName: expected.folderName,
     archive: {
       name: archive.name,
-      url: archive.url!,
+      url: expected.uniqueId === 'Pathoschild.ContentPatcher'
+        ? CONTENT_PATCHER_ARCHIVE_URL
+        : archive.url === LEGACY_TRINKET_TINKER_ARCHIVE_URL
+          ? TRINKET_TINKER_ARCHIVE_URL
+          : archive.url!,
       size: archive.size,
       sha256: archive.sha256.toLowerCase(),
     },
@@ -648,6 +688,21 @@ async function prepareArchivePackages(
   return prepared
 }
 
+async function prepareBundledPackage(
+  sourcePath: string,
+  expected: Omit<PreparedPackage, 'sourcePath' | 'version'> & { version: string },
+): Promise<PreparedPackage> {
+  const resolvedSource = resolve(sourcePath)
+  const manifest = await readManifest(join(resolvedSource, 'manifest.json'))
+  if (manifest?.UniqueID !== expected.uniqueId || manifest.Version === undefined) {
+    throw new Error(`内置资源不包含有效的 ${expected.name}`)
+  }
+  if (compareStableVersions(manifest.Version, expected.version) !== 0) {
+    throw new Error(`${expected.name} 内置版本不一致：期望 ${expected.version}，实际 ${manifest.Version}`)
+  }
+  return { ...expected, sourcePath: resolvedSource, version: manifest.Version }
+}
+
 async function applyPreparedPackage(
   modsPath: string,
   backupRoot: string,
@@ -707,6 +762,172 @@ async function rollbackAppliedPackages(applied: AppliedPackage[]): Promise<void>
     if (item.backupPath !== undefined && await exists(item.backupPath)) {
       await rename(item.backupPath, item.destination)
     }
+  }
+}
+
+function publicPackageResult(item: AppliedPackage): StardewReconcilePackage {
+  return {
+    name: item.name,
+    uniqueId: item.uniqueId,
+    version: item.version,
+    action: item.action,
+  }
+}
+
+function keptPackage(
+  installed: InstalledMod,
+  component: StardewComponentSpec,
+): AppliedPackage {
+  return {
+    name: component.name,
+    uniqueId: component.uniqueId,
+    version: installed.version,
+    destination: installed.path,
+    action: 'kept',
+  }
+}
+
+/**
+ * Reconciles a local Stardew installation against the first-party MODs bundled
+ * with the Desktop client. Third-party dependencies still use the same pinned,
+ * checksum-verified official archives as the interactive installer.
+ */
+export async function reconcileBundledStardewInstallation(
+  gamePath: string | undefined,
+  source: BundledStardewSource,
+  signal: AbortSignal,
+): Promise<StardewReconcileResult> {
+  if (numericVersion(source.version) === undefined) {
+    throw new Error('内置星露谷 MOD 版本必须是稳定语义版本')
+  }
+  const detection = await detectStardew(gamePath, signal)
+  if (!detection.found || detection.gamePath === undefined || detection.modsPath === undefined) {
+    return {
+      status: 'game-not-found',
+      changed: false,
+      version: source.version,
+      summary: '未找到 Stardew Valley；本次未修改游戏文件。',
+      detection,
+      packages: [],
+    }
+  }
+  if (!detection.smapiInstalled) {
+    return {
+      status: 'smapi-missing',
+      changed: false,
+      version: source.version,
+      summary: `已找到 Stardew Valley，但 ${detection.gamePath} 尚未安装 SMAPI。`,
+      detection,
+      packages: [],
+    }
+  }
+
+  const firstParty = await Promise.all([
+    prepareBundledPackage(source.companionPath, {
+      name: 'XiaoTangYuan Companion Pack',
+      uniqueId: COMPANION_UNIQUE_ID,
+      folderName: COMPANION_FOLDER_NAME,
+      version: source.version,
+    }),
+    prepareBundledPackage(source.adapterPath, {
+      name: 'Stardew Agent Mod',
+      uniqueId: ADAPTER_UNIQUE_ID,
+      folderName: MOD_FOLDER_NAME,
+      version: source.version,
+      preserveConfig: true,
+    }),
+  ])
+
+  const alreadyCurrent: AppliedPackage[] = []
+  const dependencySpecs: StardewComponentSpec[] = []
+  for (const component of FALLBACK_COMPONENTS) {
+    const installed = await findInstalledMod(detection.modsPath, component.uniqueId)
+    const comparison = installed === undefined
+      ? undefined
+      : compareStableVersions(installed.version, component.version)
+    if (installed !== undefined && comparison !== undefined && comparison >= 0) {
+      alreadyCurrent.push(keptPackage(installed, component))
+    } else {
+      dependencySpecs.push(component)
+    }
+  }
+
+  let tempRoot: string | undefined
+  try {
+    const dependencies: PreparedPackage[] = []
+    if (dependencySpecs.length > 0) {
+      tempRoot = await mkdtemp(join(tmpdir(), 'dsh-xiaotangyuan-desktop-'))
+      for (const [index, component] of dependencySpecs.entries()) {
+        dependencies.push(...await prepareArchivePackages(
+          tempRoot,
+          `component-${index}`,
+          component.archive,
+          component.archive.sha256,
+          MAX_COMPONENT_ARCHIVE_SIZE,
+          [{
+            name: component.name,
+            uniqueId: component.uniqueId,
+            folderName: component.folderName,
+            version: component.version,
+          }],
+          signal,
+        ))
+      }
+    }
+
+    await mkdir(detection.modsPath, { recursive: true })
+    const backupRoot = resolve(detection.modsPath, '..', '.xiaotangyuan-backups')
+    const timestamp = new Date().toISOString().replaceAll(/[:.]/g, '-')
+    const applied: AppliedPackage[] = [...alreadyCurrent]
+    let migratedBackups: string[] = []
+    try {
+      const packagesToApply = [...dependencies, ...firstParty]
+      const needsWrite = packagesToApply.some((prepared) => {
+        const installedVersion = prepared.uniqueId === ADAPTER_UNIQUE_ID
+          ? detection.installedVersion
+          : prepared.uniqueId === COMPANION_UNIQUE_ID
+            ? detection.companionPackVersion
+            : undefined
+        const comparison = installedVersion === undefined
+          ? undefined
+          : compareStableVersions(installedVersion, prepared.version)
+        return comparison === undefined || comparison < 0
+      }) || dependencies.length > 0
+      if (needsWrite) {
+        await mkdir(backupRoot, { recursive: true })
+        migratedBackups = await migrateLegacyStardewBackups(detection.modsPath, backupRoot)
+      }
+      for (const prepared of packagesToApply) {
+        applied.push(await applyPreparedPackage(detection.modsPath, backupRoot, prepared, timestamp))
+      }
+    } catch (error) {
+      await rollbackAppliedPackages(applied)
+      throw error
+    }
+
+    const order = [
+      'Pathoschild.ContentPatcher',
+      'mushymato.TrinketTinker',
+      COMPANION_UNIQUE_ID,
+      ADAPTER_UNIQUE_ID,
+    ]
+    applied.sort((left, right) => order.indexOf(left.uniqueId) - order.indexOf(right.uniqueId))
+    const changed = applied.some(item => item.action !== 'kept') || migratedBackups.length > 0
+    const details = applied.map(item => `${item.name} ${item.version} (${item.action})`)
+    if (migratedBackups.length > 0) details.push(`迁移旧备份 ${migratedBackups.length} 个`)
+    return {
+      status: changed ? 'changed' : 'current',
+      changed,
+      version: source.version,
+      summary: changed
+        ? `Stardew MOD 已自动修复：${details.join(', ')}`
+        : `Stardew MOD 已是最新状态：${details.join(', ')}`,
+      detection,
+      packages: applied.map(publicPackageResult),
+      ...(changed ? { backupRoot } : {}),
+    }
+  } finally {
+    if (tempRoot !== undefined) await rm(tempRoot, { recursive: true, force: true })
   }
 }
 
@@ -774,7 +995,7 @@ export async function installStardewMod(
     }
 
     await mkdir(detection.modsPath, { recursive: true })
-    const backupRoot = join(detection.gamePath, '.xiaotangyuan-backups')
+    const backupRoot = resolve(detection.modsPath, '..', '.xiaotangyuan-backups')
     await mkdir(backupRoot, { recursive: true })
     const migratedBackups = await migrateLegacyStardewBackups(detection.modsPath, backupRoot)
     const timestamp = new Date().toISOString().replaceAll(/[:.]/g, '-')

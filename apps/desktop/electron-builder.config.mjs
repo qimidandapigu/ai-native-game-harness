@@ -43,6 +43,11 @@ export default {
       from: resolve(repoRoot, 'integrations/xiaotangyuan/desktop.patch.yml'),
       to: 'config/xiaotangyuan.patch.yml',
     },
+    {
+      from: resolve(repoRoot, '.artifacts/stardew'),
+      to: 'stardew',
+      filter: ['**/*'],
+    },
   ],
   win: {
     target: ['nsis'],

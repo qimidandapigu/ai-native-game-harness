@@ -91,7 +91,7 @@ async function cdpEvaluate(webSocketDebuggerUrl, expression) {
     socket.addEventListener('open', () => socket.send(JSON.stringify({
       id: 1,
       method: 'Runtime.evaluate',
-      params: { expression, returnByValue: true },
+      params: { expression, returnByValue: true, awaitPromise: true },
     })))
     socket.addEventListener('message', event => {
       const payload = JSON.parse(String(event.data))
@@ -140,8 +140,8 @@ try {
   if (await canConnect(33145)) throw new Error('port 33145 is already in use; close the running Desktop before the isolated smoke test')
 
   if (!skipPrepare) {
-    const prepared = spawnSync('powershell.exe', [
-      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(repoRoot, 'scripts', 'prepare-desktop-dev.ps1'),
+    const prepared = spawnSync(process.execPath, [
+      join(repoRoot, 'scripts', 'prepare-desktop-dev.mjs'),
     ], { cwd: repoRoot, stdio: 'inherit', env: process.env })
     if (prepared.status !== 0) throw new Error(`desktop development preparation failed with exit code ${prepared.status}`)
   }
@@ -163,7 +163,15 @@ try {
   cpSync(preparedRuntimeState, join(smokeUserData, 'runtime-state'), { recursive: true })
 
   const electronPackage = requireFromDesktop.resolve('electron/package.json')
-  const packagedElectron = join(dirname(electronPackage), 'dist', process.platform === 'win32' ? 'electron.exe' : 'electron')
+  const packagedElectron = join(
+    dirname(electronPackage),
+    'dist',
+    process.platform === 'win32'
+      ? 'electron.exe'
+      : process.platform === 'darwin'
+        ? join('Electron.app', 'Contents', 'MacOS', 'Electron')
+        : 'electron',
+  )
   const electronExecutable = resolve(process.env.AI_GAME_HARNESS_ELECTRON ?? packagedElectron)
   if (!existsSync(electronExecutable)) {
     throw new Error(`Electron executable not found: ${electronExecutable}. Set AI_GAME_HARNESS_ELECTRON to a verified Electron ${JSON.parse(readFileSync(electronPackage, 'utf8')).version} executable.`)
@@ -206,6 +214,7 @@ try {
   await waitFor(() => canConnect(33145), 'XiaoTangYuan gateway port 33145')
 
   const debugPort = await freePort()
+  const desktopAdapterPort = await freePort()
   let output = ''
   desktop = spawn(electronExecutable, ['.', `--remote-debugging-port=${debugPort}`], {
     cwd: join(repoRoot, 'apps', 'desktop'),
@@ -214,6 +223,9 @@ try {
       AI_GAME_HARNESS_DEV: '1',
       AI_GAME_HARNESS_DEV_USER_DATA: smokeUserData,
       AI_GAME_HARNESS_STANDALONE: '1',
+      AI_GAME_HARNESS_DEMO: '1',
+      AI_GAME_HARNESS_ADAPTER_PORT: String(desktopAdapterPort),
+      STARDEW_GAME_PATH: join(smokeUserData, 'missing-stardew'),
       LOCALAPPDATA: join(smokeUserData, 'local-app-data'),
       APPDATA: join(smokeUserData, 'roaming-app-data'),
     },
@@ -238,11 +250,61 @@ try {
 
   const preloadProbe = await cdpEvaluate(devtools, `({
     ready: Boolean(window.harnessDesktop && window.harnessDesktop.platform && typeof window.harnessDesktop.platform.info === 'function'),
+    stardewReady: Boolean(window.harnessDesktop?.stardew && typeof window.harnessDesktop.stardew.status === 'function'),
+    voiceReady: Boolean(window.harnessDesktop?.voice && typeof window.harnessDesktop.voice.status === 'function'),
     harnessDesktopType: typeof window.harnessDesktop,
     url: location.href,
     title: document.title
   })`)
   if (preloadProbe?.ready !== true) throw new Error(`preload did not expose window.harnessDesktop.platform: ${JSON.stringify(preloadProbe)}`)
+  if (preloadProbe?.stardewReady !== true) throw new Error(`preload did not expose window.harnessDesktop.stardew: ${JSON.stringify(preloadProbe)}`)
+  if (preloadProbe?.voiceReady !== true) throw new Error(`preload did not expose window.harnessDesktop.voice: ${JSON.stringify(preloadProbe)}`)
+  const voiceProbe = await cdpEvaluate(devtools, `(async () => {
+    const voiceStatus = await window.harnessDesktop.voice.status()
+    return {
+      configured: voiceStatus.configured,
+      source: voiceStatus.source,
+      writable: voiceStatus.writable,
+      exposesSecret: Object.hasOwn(voiceStatus, 'value') || Object.hasOwn(voiceStatus, 'apiKey')
+    }
+  })()`)
+  if (typeof voiceProbe?.configured !== 'boolean' || voiceProbe.exposesSecret !== false) {
+    throw new Error(`voice credential boundary returned an unsafe or invalid status: ${JSON.stringify(voiceProbe)}`)
+  }
+  let lastConnectionProbe
+  const connectionProbe = await waitFor(async () => {
+    lastConnectionProbe = await cdpEvaluate(devtools, `({
+      liveStatus: document.querySelector('#live-status')?.textContent,
+      connectedAdapters: document.querySelector('#metric-adapters')?.textContent,
+      voiceFormReady: Boolean(document.querySelector('#voice-credential-form')),
+      voiceState: document.querySelector('#voice-health')?.dataset.state,
+      readyState: document.readyState
+    })`)
+    if (lastConnectionProbe?.liveStatus === '游戏已接入'
+      && lastConnectionProbe?.connectedAdapters === '1'
+      && lastConnectionProbe?.voiceFormReady === true
+      && lastConnectionProbe?.voiceState !== 'checking') {
+      return lastConnectionProbe
+    }
+    throw new Error(`last probe: ${JSON.stringify(lastConnectionProbe)}`)
+  }, 'live Adapter and voice configuration UI')
+  const stardewResult = await cdpEvaluate(devtools, 'window.harnessDesktop.stardew.reconcile()')
+  if (stardewResult?.code !== 'game-not-found') {
+    throw new Error(`isolated Stardew reconciliation returned an unexpected result: ${JSON.stringify(stardewResult)}`)
+  }
+  let lastStardewProbe
+  const stardewProbe = await waitFor(async () => {
+    lastStardewProbe = await cdpEvaluate(devtools, `({
+      phase: document.querySelector('#stardew-mod-health')?.dataset.phase,
+      title: document.querySelector('#stardew-mod-title')?.textContent,
+      retryReady: document.querySelector('#retry-stardew-mod')?.disabled === false,
+      readyState: document.readyState
+    })`)
+    if (lastStardewProbe?.phase === stardewResult.phase && lastStardewProbe?.retryReady === true) {
+      return lastStardewProbe
+    }
+    throw new Error(`last probe: ${JSON.stringify(lastStardewProbe)}`)
+  }, 'Stardew MOD status card')
   if (!existsSync(join(smokeUserData, 'dsh-home'))) throw new Error('isolated development DSH_HOME was not created')
 
   await closeBrowser(devtools)
@@ -255,7 +317,11 @@ try {
   console.log(JSON.stringify({
     ok: true,
     preload: 'loaded',
-    desktopMode: 'standalone-shell',
+    desktopMode: 'standalone-demo',
+    adapterStatus: connectionProbe,
+    adapterPort: desktopAdapterPort,
+    voiceCredential: voiceProbe,
+    stardewModStatus: stardewProbe,
     dshWeb: runtimeUrl,
     gatewayPort: 33145,
     profile: smokeUserData,

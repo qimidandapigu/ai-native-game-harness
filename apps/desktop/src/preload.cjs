@@ -12,6 +12,19 @@ contextBridge.exposeInMainWorld('harnessDesktop', {
     ipcRenderer.on('harness-status', listener)
     return () => ipcRenderer.removeListener('harness-status', listener)
   },
+  stardew: {
+    status: () => ipcRenderer.invoke('stardew:installation-status'),
+    reconcile: () => ipcRenderer.invoke('stardew:reconcile'),
+    onStatus(callback) {
+      const listener = (_event, status) => callback(status)
+      ipcRenderer.on('stardew-installation-status', listener)
+      return () => ipcRenderer.removeListener('stardew-installation-status', listener)
+    },
+  },
+  voice: {
+    status: () => ipcRenderer.invoke('voice:credential-status'),
+    configure: apiKey => ipcRenderer.invoke('voice:configure', { apiKey }),
+  },
   platform: {
     info: () => ipcRenderer.invoke('platform:info'),
     snapshot: () => ipcRenderer.invoke('platform:snapshot'),

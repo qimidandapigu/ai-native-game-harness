@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { resolve } from 'node:path'
 import { resolveConfig } from '../src/config.js'
+import { gatewayReadyParams } from '../src/gateway/game-gateway.js'
 import { readAdapterHello, readStateUpdate, readStateUpdateSaveId } from '../src/protocol/game.js'
 import { buildPcm16Wav } from '../src/runtime/speech/wav.js'
 
@@ -16,6 +18,8 @@ describe('game runtime configuration', () => {
     expect(config.speech.asrFastResourceId).toBe('volc.bigasr.auc_turbo')
     expect(config.speech.asrStreamingResourceId).toBe('volc.bigasr.sauc.duration')
     expect(config.media.pushToTalkVirtualKey).toBe(0x77)
+    expect(config.media.pushToTalkKey).toBe('v')
+    expect(config.adapterProtocolUrl).toBe('ws://127.0.0.1:33245/adapter')
     expect(config.proactiveChat.enabled).toBe(true)
     expect(config.proactiveChat.intervalSeconds).toBe(180)
     expect(JSON.stringify(config)).not.toContain('apiKey')
@@ -29,6 +33,23 @@ describe('game runtime configuration', () => {
     expect(config.speech.synthesisProvider).toBe('cloud-tts')
   })
 
+  it('validates the printable macOS push-to-talk key', () => {
+    expect(resolveConfig({ media: { pushToTalkKey: 'G' } }).media.pushToTalkKey).toBe('g')
+    expect(() => resolveConfig({ media: { pushToTalkKey: 'F12' } })).toThrow('media.pushToTalkKey')
+  })
+
+  it('advertises a validated dynamic Adapter Protocol endpoint to game MODs', () => {
+    const endpoint = resolveConfig({ adapterProtocolUrl: 'ws://localhost:45678/adapter' }).adapterProtocolUrl
+    expect(gatewayReadyParams(endpoint)).toMatchObject({
+      adapterProtocolUrl: endpoint,
+      capabilities: expect.arrayContaining(['adapter.endpoint-discovery']),
+    })
+    expect(() => resolveConfig({ adapterProtocolUrl: 'https://127.0.0.1:45678/adapter' }))
+      .toThrow('adapterProtocolUrl')
+    expect(() => resolveConfig({ adapterProtocolUrl: 'ws://example.com:45678/adapter' }))
+      .toThrow('adapterProtocolUrl')
+  })
+
   it('rejects an unsafe screenshot width', () => {
     expect(() => resolveConfig({ vision: { maxWidth: 200 } })).toThrow('vision.maxWidth')
   })
@@ -39,13 +60,14 @@ describe('game runtime configuration', () => {
   })
 
   it('requires a complete, checksummed local Dont Starve installer override', () => {
+    const archivePath = resolve('package.zip')
     expect(() => resolveConfig({
-      installers: { dontStarve: { archivePath: 'F:\\package.zip' } },
+      installers: { dontStarve: { archivePath } },
     })).toThrow('archivePath, archiveVersion, and archiveSha256')
     expect(resolveConfig({
       installers: {
         dontStarve: {
-          archivePath: 'F:\\package.zip',
+          archivePath,
           archiveVersion: '0.2.17',
           archiveSha256: 'a'.repeat(64),
         },

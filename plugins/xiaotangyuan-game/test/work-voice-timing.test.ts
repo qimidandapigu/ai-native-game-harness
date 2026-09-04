@@ -5,6 +5,7 @@ describe('voice and post-turn work timing', () => {
   it('never exposes internal fetch errors to the game', () => {
     expect(playerFacingVoiceFailure('fetch failed')).toBe('网络刚才有点不稳，我没能回答出来。请再问我一次吧。')
     expect(playerFacingVoiceFailure('request timeout')).toBe('这次等得太久了，我先停下来。请再问我一次吧。')
+    expect(playerFacingVoiceFailure('麦克风尚未授权')).toBe('麦克风还不能使用，请在 macOS 隐私与安全性中允许 AI Native Game Harness 使用麦克风。')
   })
 
   it('keeps a work bubble held until its spoken notification has finished', async () => {

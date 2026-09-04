@@ -8,7 +8,7 @@ import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@qimidandapigu/dsh-work-orchestrator'
 import { resolveConfig, type Config } from './config.js'
 import { GameGateway } from './gateway/game-gateway.js'
-import { WindowsMediaHost } from './runtime/media/windows-media-host.js'
+import { NativeMediaHost } from './runtime/media/native-media-host.js'
 import { MultimodalRouter } from './runtime/multimodal/multimodal-router.js'
 import { SignedFeedbackClient } from './runtime/feedback/signed-feedback-client.js'
 import { CapabilityRegistry } from './runtime/capabilities.js'
@@ -35,7 +35,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   if (memory !== undefined) registerMemoryTools(ctx, memory)
 
   ctx.effect(() => {
-    const media = new WindowsMediaHost(ctx, resolved.media)
+    const media = new NativeMediaHost(ctx, resolved.media)
     const multimodal = new MultimodalRouter(ctx, resolved.vision, media)
     let speech: SpeechController | undefined
     const gateway = new GameGateway(
@@ -61,6 +61,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       },
       processId => media.startRecording(processId),
       processId => media.stopRecording(processId),
+      resolved.adapterProtocolUrl,
     )
     const capabilities = new CapabilityRegistry()
     const speechProvider = new VolcengineSpeechProvider(ctx, resolved.speech)
@@ -86,7 +87,15 @@ export type { GameAtomExecutor, SkillProgram, SkillRecord, SkillRunResult, Skill
 export { SkillService } from './runtime/skills/skill-service.js'
 export { SkillStore } from './runtime/skills/skill-store.js'
 export type { FeedbackReceipt, FeedbackReport, FeedbackSubmission } from './runtime/feedback/contracts.js'
-export type { AdapterHello, GameAtomDefinition, GameChatContext, GameChatRequest } from './protocol/game.js'
+export type {
+  AdapterHello,
+  GameAtomDefinition,
+  GameChatContext,
+  GameChatRequest,
+  GameComposeRequest,
+  GameSpeakRequest,
+} from './protocol/game.js'
+export type { MediaHost, MediaHostEvent } from './runtime/media/media-host.js'
 export type { RpcFailure, RpcRequest, RpcSuccess } from './protocol/json-rpc.js'
 export { CapabilityRegistry, REQUIRED_ENGINE_CAPABILITIES, missingRequiredCapabilities } from './runtime/capabilities.js'
 export { normalizeGameContext, renderGameContextForPrompt, AI_NATIVE_GAME_CONTEXT_SCHEMA } from './runtime/context/game-context.js'

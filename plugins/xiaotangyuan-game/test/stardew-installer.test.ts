@@ -10,6 +10,7 @@ import {
   parseStardewDistributionManifest,
   parseSteamLibraryPaths,
   preserveStardewConfig,
+  reconcileBundledStardewInstallation,
   selectStardewRelease,
   stripJsonComments,
 } from '../src/installation/stardew-valley.js'
@@ -18,6 +19,235 @@ const temporaryPaths: string[] = []
 
 afterEach(async () => {
   await Promise.all(temporaryPaths.splice(0).map(path => rm(path, { recursive: true, force: true })))
+})
+
+async function writeMod(
+  modsPath: string,
+  folderName: string,
+  uniqueId: string,
+  version: string,
+  files: Record<string, string> = {},
+): Promise<string> {
+  const target = join(modsPath, folderName)
+  await mkdir(target, { recursive: true })
+  await writeFile(join(target, 'manifest.json'), JSON.stringify({ UniqueID: uniqueId, Version: version }))
+  await Promise.all(Object.entries(files).map(async ([name, content]) => {
+    await writeFile(join(target, name), content)
+  }))
+  return target
+}
+
+async function stardewFixture(smapiInstalled = true): Promise<{
+  root: string
+  mods: string
+  source: { version: string, adapterPath: string, companionPath: string }
+}> {
+  const root = await mkdtemp(join(tmpdir(), 'stardew-reconcile-test-'))
+  temporaryPaths.push(root)
+  await writeFile(join(root, 'Stardew Valley.dll'), '')
+  if (smapiInstalled) {
+    await writeFile(join(root, process.platform === 'win32' ? 'StardewModdingAPI.exe' : 'StardewModdingAPI'), '')
+  }
+  const mods = join(root, 'Mods')
+  const bundled = join(root, 'bundled')
+  const adapterPath = await writeMod(
+    bundled,
+    'StardewAgentMod',
+    'qimidandapigu.StardewAgent',
+    '0.8.0',
+    { 'StardewAgentMod.dll': 'new-adapter' },
+  )
+  const companionPath = await writeMod(
+    bundled,
+    'XiaoTangYuanCompanion',
+    'qimidandapigu.XiaoTangYuanCompanion',
+    '0.8.0',
+    { 'content.json': '{"Format":"2.8.0"}' },
+  )
+  return { root, mods, source: { version: '0.8.0', adapterPath, companionPath } }
+}
+
+async function installCurrentDependencies(mods: string): Promise<void> {
+  await writeMod(mods, 'ContentPatcher', 'Pathoschild.ContentPatcher', '2.9.1')
+  await writeMod(mods, 'TrinketTinker', 'mushymato.TrinketTinker', '1.9.0')
+}
+
+describe('inspectStardewPath', () => {
+  it.skipIf(process.platform !== 'darwin')('uses the SMAPI Mods directory inside a macOS app bundle', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'stardew-macos-layout-test-'))
+    temporaryPaths.push(root)
+    const runtimeRoot = join(root, 'Contents', 'MacOS')
+    await mkdir(runtimeRoot, { recursive: true })
+    await writeFile(join(runtimeRoot, 'StardewValley'), '')
+    await writeFile(join(runtimeRoot, 'StardewModdingAPI'), '')
+    await writeMod(
+      join(runtimeRoot, 'Mods'),
+      'StardewAgentMod',
+      'qimidandapigu.StardewAgent',
+      '0.8.0',
+    )
+
+    const detection = await inspectStardewPath(root)
+
+    expect(detection).toMatchObject({
+      found: true,
+      gamePath: root,
+      modsPath: join(runtimeRoot, 'Mods'),
+      smapiInstalled: true,
+      installedVersion: '0.8.0',
+    })
+  })
+})
+
+describe('reconcileBundledStardewInstallation', () => {
+  it('installs bundled first-party MODs while keeping current dependencies', async () => {
+    const fixture = await stardewFixture()
+    await installCurrentDependencies(fixture.mods)
+
+    const result = await reconcileBundledStardewInstallation(
+      fixture.root,
+      fixture.source,
+      AbortSignal.timeout(5_000),
+    )
+
+    expect(result.status).toBe('changed')
+    expect(result.packages.map(item => [item.uniqueId, item.action])).toEqual([
+      ['Pathoschild.ContentPatcher', 'kept'],
+      ['mushymato.TrinketTinker', 'kept'],
+      ['qimidandapigu.XiaoTangYuanCompanion', 'installed'],
+      ['qimidandapigu.StardewAgent', 'installed'],
+    ])
+    await expect(readFile(join(fixture.mods, 'StardewAgentMod', 'StardewAgentMod.dll'), 'utf8'))
+      .resolves.toBe('new-adapter')
+  })
+
+  it('updates old first-party MODs transactionally and preserves adapter config', async () => {
+    const fixture = await stardewFixture()
+    await installCurrentDependencies(fixture.mods)
+    await writeMod(
+      fixture.mods,
+      'StardewAgentMod',
+      'qimidandapigu.StardewAgent',
+      '0.5.0',
+      { 'StardewAgentMod.dll': 'old-adapter', 'config.json': '{"TextChatKey":"Y"}' },
+    )
+    await writeMod(
+      fixture.mods,
+      'XiaoTangYuanCompanion',
+      'qimidandapigu.XiaoTangYuanCompanion',
+      '0.5.0',
+      { 'content.json': '{"old":true}' },
+    )
+
+    const result = await reconcileBundledStardewInstallation(
+      fixture.root,
+      fixture.source,
+      AbortSignal.timeout(5_000),
+    )
+
+    expect(result.status).toBe('changed')
+    expect(result.packages.filter(item => item.action === 'updated')).toHaveLength(2)
+    await expect(readFile(join(fixture.mods, 'StardewAgentMod', 'config.json'), 'utf8'))
+      .resolves.toBe('{"TextChatKey":"Y"}')
+    await expect(readFile(join(fixture.mods, 'StardewAgentMod', 'StardewAgentMod.dll'), 'utf8'))
+      .resolves.toBe('new-adapter')
+  })
+
+  it.skipIf(process.platform !== 'darwin')('updates bundled MODs in the macOS app layout', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'stardew-macos-reconcile-test-'))
+    temporaryPaths.push(root)
+    const runtimeRoot = join(root, 'Contents', 'MacOS')
+    const mods = join(runtimeRoot, 'Mods')
+    await mkdir(runtimeRoot, { recursive: true })
+    await writeFile(join(runtimeRoot, 'StardewValley'), '')
+    await writeFile(join(runtimeRoot, 'StardewModdingAPI'), '')
+    await installCurrentDependencies(mods)
+    await writeMod(
+      mods,
+      'StardewAgentMod',
+      'qimidandapigu.StardewAgent',
+      '0.5.1',
+      { 'StardewAgentMod.dll': 'old-adapter', 'config.json': '{"TextChatKey":"Y"}' },
+    )
+    await writeMod(
+      mods,
+      'XiaoTangYuanCompanion',
+      'qimidandapigu.XiaoTangYuanCompanion',
+      '0.5.0',
+      { 'content.json': '{"old":true}' },
+    )
+    const bundled = join(root, 'bundled')
+    const adapterPath = await writeMod(
+      bundled,
+      'StardewAgentMod',
+      'qimidandapigu.StardewAgent',
+      '0.8.0',
+      { 'StardewAgentMod.dll': 'new-adapter' },
+    )
+    const companionPath = await writeMod(
+      bundled,
+      'XiaoTangYuanCompanion',
+      'qimidandapigu.XiaoTangYuanCompanion',
+      '0.8.0',
+      { 'content.json': '{"Format":"2.8.0"}' },
+    )
+
+    const result = await reconcileBundledStardewInstallation(
+      root,
+      { version: '0.8.0', adapterPath, companionPath },
+      AbortSignal.timeout(5_000),
+    )
+
+    expect(result.status).toBe('changed')
+    expect(result.backupRoot).toBe(join(runtimeRoot, '.xiaotangyuan-backups'))
+    await expect(readFile(join(mods, 'StardewAgentMod', 'StardewAgentMod.dll'), 'utf8'))
+      .resolves.toBe('new-adapter')
+    await expect(readFile(join(mods, 'StardewAgentMod', 'config.json'), 'utf8'))
+      .resolves.toBe('{"TextChatKey":"Y"}')
+  })
+
+  it('does not downgrade newer MODs or touch an already current installation', async () => {
+    const fixture = await stardewFixture()
+    await installCurrentDependencies(fixture.mods)
+    await writeMod(
+      fixture.mods,
+      'StardewAgentMod',
+      'qimidandapigu.StardewAgent',
+      '0.9.0',
+      { 'StardewAgentMod.dll': 'newer-adapter' },
+    )
+    await writeMod(
+      fixture.mods,
+      'XiaoTangYuanCompanion',
+      'qimidandapigu.XiaoTangYuanCompanion',
+      '0.9.0',
+    )
+
+    const result = await reconcileBundledStardewInstallation(
+      fixture.root,
+      fixture.source,
+      AbortSignal.timeout(5_000),
+    )
+
+    expect(result.status).toBe('current')
+    expect(result.packages.every(item => item.action === 'kept')).toBe(true)
+    expect(result.backupRoot).toBeUndefined()
+    await expect(readFile(join(fixture.mods, 'StardewAgentMod', 'StardewAgentMod.dll'), 'utf8'))
+      .resolves.toBe('newer-adapter')
+  })
+
+  it('reports a missing SMAPI prerequisite without modifying Mods', async () => {
+    const fixture = await stardewFixture(false)
+
+    const result = await reconcileBundledStardewInstallation(
+      fixture.root,
+      fixture.source,
+      AbortSignal.timeout(5_000),
+    )
+
+    expect(result.status).toBe('smapi-missing')
+    await expect(readFile(join(fixture.mods, 'StardewAgentMod', 'manifest.json'), 'utf8')).rejects.toThrow()
+  })
 })
 
 describe('preserveStardewConfig', () => {
@@ -68,7 +298,7 @@ describe('parseStardewDistributionManifest', () => {
         folderName: 'ContentPatcher',
         archive: {
           name: 'ContentPatcher-2.9.1.zip',
-          url: 'https://www.curseforge.com/api/v1/mods/309243/files/7759981/download',
+          url: 'https://mediafilez.forgecdn.net/files/7759/981/Content%20Patcher%202.9.1%202.9.1.zip',
           size: 389967,
           sha256: '22962ecbeda204d207f66f4dded727a2ce67134f7decdd249c1024bbc4576817',
         },
@@ -80,7 +310,7 @@ describe('parseStardewDistributionManifest', () => {
         folderName: 'TrinketTinker',
         archive: {
           name: 'TrinketTinker.1.9.0.zip',
-          url: 'https://github.com/Mushymato/TrinketTinker/releases/download/1.9.0/TrinketTinker.1.9.0.zip',
+          url: 'https://api.github.com/repos/Mushymato/TrinketTinker/releases/assets/515207334',
           size: 164458,
           sha256: 'cb04fe77e43607c3914f68c781371a3c0442accad794ebb73de34666707dd4ef',
         },
@@ -90,6 +320,20 @@ describe('parseStardewDistributionManifest', () => {
 
   it('accepts the official static release manifest', () => {
     expect(parseStardewDistributionManifest(validManifest)).toEqual(validManifest)
+  })
+
+  it('normalizes the legacy CurseForge API route to the fixed official CDN asset', () => {
+    const legacy = structuredClone(validManifest)
+    legacy.components[0]!.archive.url = 'https://www.curseforge.com/api/v1/mods/309243/files/7759981/download'
+    expect(parseStardewDistributionManifest(legacy).components[0]!.archive.url)
+      .toBe('https://mediafilez.forgecdn.net/files/7759/981/Content%20Patcher%202.9.1%202.9.1.zip')
+  })
+
+  it('normalizes the legacy GitHub browser route to the official asset API', () => {
+    const legacy = structuredClone(validManifest)
+    legacy.components[1]!.archive.url = 'https://github.com/Mushymato/TrinketTinker/releases/download/1.9.0/TrinketTinker.1.9.0.zip'
+    expect(parseStardewDistributionManifest(legacy).components[1]!.archive.url)
+      .toBe('https://api.github.com/repos/Mushymato/TrinketTinker/releases/assets/515207334')
   })
 
   it('rejects a mismatched version or foreign archive URL', () => {

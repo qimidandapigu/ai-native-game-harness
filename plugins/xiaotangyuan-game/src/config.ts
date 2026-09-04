@@ -23,6 +23,8 @@ export interface SpeechConfig {
 export interface MediaConfig {
   enabled?: boolean
   pushToTalkVirtualKey?: number
+  /** Printable key used by the macOS Media Host global event monitor. */
+  pushToTalkKey?: string
   executablePath?: string
 }
 
@@ -65,6 +67,8 @@ export interface InstallersConfig { dontStarve?: DontStarveInstallerConfig }
 export interface Config {
   host?: string
   port?: number
+  /** Loopback Adapter Protocol endpoint advertised to connected game MODs. */
+  adapterProtocolUrl?: string
   vision?: VisionConfig
   speech?: SpeechConfig
   media?: MediaConfig
@@ -78,6 +82,7 @@ export interface Config {
 export interface ResolvedConfig {
   host: string
   port: number
+  adapterProtocolUrl: string
   vision: {
     enabled: boolean
     maxWidth: number
@@ -97,6 +102,7 @@ export interface ResolvedConfig {
   media: {
     enabled: boolean
     pushToTalkVirtualKey: number
+    pushToTalkKey: string
     executablePath?: string
   }
   feedback: {
@@ -146,10 +152,20 @@ export function resolveConfig(config: Config = {}): ResolvedConfig {
   if (!Number.isInteger(port) || port < 1024 || port > 65535) {
     throw new Error('port must be an integer between 1024 and 65535')
   }
+  const adapterProtocolUrl = config.adapterProtocolUrl?.trim() || 'ws://127.0.0.1:33245/adapter'
+  const adapterEndpoint = new URL(adapterProtocolUrl)
+  if ((adapterEndpoint.protocol !== 'ws:' && adapterEndpoint.protocol !== 'wss:')
+    || !isLoopback(adapterEndpoint.hostname)) {
+    throw new Error('adapterProtocolUrl must use ws:// or wss:// on a loopback host')
+  }
 
   const pushToTalkVirtualKey = config.media?.pushToTalkVirtualKey ?? 0x77
   if (!Number.isInteger(pushToTalkVirtualKey) || pushToTalkVirtualKey < 1 || pushToTalkVirtualKey > 255) {
-    throw new Error('media.pushToTalkVirtualKey must be a Windows virtual-key code between 1 and 255')
+    throw new Error('media.pushToTalkVirtualKey must be a virtual-key code between 1 and 255')
+  }
+  const pushToTalkKey = config.media?.pushToTalkKey?.trim().toLowerCase() || 'v'
+  if (!/^[a-z0-9]$/.test(pushToTalkKey)) {
+    throw new Error('media.pushToTalkKey must be one ASCII letter or digit')
   }
   const visionMaxWidth = config.vision?.maxWidth ?? 1280
   if (!Number.isInteger(visionMaxWidth) || visionMaxWidth < 320 || visionMaxWidth > 3840) {
@@ -232,6 +248,7 @@ export function resolveConfig(config: Config = {}): ResolvedConfig {
   return {
     host,
     port,
+    adapterProtocolUrl,
     vision: {
       enabled: config.vision?.enabled ?? true,
       maxWidth: visionMaxWidth,
@@ -251,6 +268,7 @@ export function resolveConfig(config: Config = {}): ResolvedConfig {
     media: {
       enabled: config.media?.enabled ?? true,
       pushToTalkVirtualKey,
+      pushToTalkKey,
       ...(config.media?.executablePath === undefined ? {} : { executablePath: config.media.executablePath }),
     },
     feedback: {

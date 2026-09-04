@@ -14,6 +14,7 @@ internal sealed class SpeechBubble
     private string? text;
     private long startedAt;
     private bool persistent;
+    private bool statusVisible;
     private bool speechActive;
     private long durationMilliseconds = DefaultDurationMilliseconds;
 
@@ -28,6 +29,7 @@ internal sealed class SpeechBubble
         this.startedAt = (Game1.currentGameTime?.TotalGameTime.Ticks ?? 0) / 10000;
         this.durationMilliseconds = DefaultDurationMilliseconds;
         this.persistent = this.speechActive;
+        this.statusVisible = false;
     }
 
     public void ShowStatus(string nextText)
@@ -36,13 +38,20 @@ internal sealed class SpeechBubble
         this.startedAt = (Game1.currentGameTime?.TotalGameTime.Ticks ?? 0) / 10000;
         this.durationMilliseconds = DefaultDurationMilliseconds;
         this.persistent = true;
+        this.statusVisible = true;
     }
 
     public void Clear()
     {
         this.text = null;
         this.persistent = false;
+        this.statusVisible = false;
         this.speechActive = false;
+    }
+
+    public void EndStatus()
+    {
+        if (this.statusVisible) this.Clear();
     }
 
     public void HoldForSpeech()
@@ -58,6 +67,7 @@ internal sealed class SpeechBubble
         this.startedAt = (Game1.currentGameTime?.TotalGameTime.Ticks ?? 0) / 10000;
         this.durationMilliseconds = PostSpeechDurationMilliseconds;
         this.persistent = false;
+        this.statusVisible = false;
     }
 
     public void Draw(SpriteBatch batch, int yOffset)

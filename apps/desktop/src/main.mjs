@@ -8,7 +8,11 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell, utilityProcess } from
 import { GamePackRegistry, readGamePackManifest } from '@ai-native-game-harness/game-pack'
 import { PlatformRuntime } from './platform-runtime.mjs'
 import { DshProductRuntime } from './dsh-product-runtime.mjs'
+import { buildDshChildEnvironment } from './dsh-process-options.mjs'
 import { buildDiagnosticBundle, diagnosticFilename } from './diagnostics.mjs'
+import { stageContentAddressedArchive } from './plugin-archive-cache.mjs'
+import { reconcileDesktopStardew } from './stardew-bootstrap.mjs'
+import { createVoiceCredentialStore } from './voice-credentials.mjs'
 
 const require = createRequire(import.meta.url)
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -32,6 +36,14 @@ const pendingDshDiagnostics = []
 let demoAdapterProcess
 let gamePackRegistry
 let runtimeWebUrl
+let voiceCredentialStore
+let stardewInstallationStatus = {
+  phase: 'idle',
+  code: 'not-checked',
+  title: '等待检查 Stardew MOD',
+  detail: '客户端启动后会自动检查。',
+}
+let stardewReconcileTask
 
 const PRODUCT_TITLE = 'AI Native Game Harness 游戏版'
 
@@ -88,6 +100,18 @@ async function installGamePageEntry() {
     })
     button.addEventListener('click', () => { window.location.href = 'ai-native-game-harness://game' })
     document.body.append(button)
+    const renderGameConnection = (snapshot) => {
+      const adapters = Array.isArray(snapshot && snapshot.adapters) ? snapshot.adapters : []
+      const adapter = adapters.find((item) => item && item.status === 'connected')
+      button.textContent = adapter
+        ? '● 游戏已接入' + (adapter.displayName ? ' · ' + adapter.displayName : '')
+        : '○ 等待游戏接入 · 进入游戏版'
+      button.style.background = adapter ? '#0f5148' : '#493b18'
+      button.style.color = adapter ? '#d8fff5' : '#fff1c2'
+    }
+    const platform = window.harnessDesktop && window.harnessDesktop.platform
+    if (platform && platform.onSnapshot) platform.onSnapshot(renderGameConnection)
+    if (platform && platform.snapshot) platform.snapshot().then(renderGameConnection).catch(() => undefined)
   })()`)
 }
 
@@ -154,6 +178,13 @@ function sendStatus(message, detail = '') {
   }
 }
 
+function updateStardewInstallationStatus(status) {
+  stardewInstallationStatus = status
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('stardew-installation-status', status)
+  }
+}
+
 function runtimePaths() {
   const packaged = app.isPackaged
   const resourceRoot = packaged ? process.resourcesPath : repoRoot
@@ -189,6 +220,15 @@ function runtimePaths() {
     : join(repoRoot, 'games', 'oxygen-not-included', 'adapter', 'package.json')
   const dshBin = join(dirname(dshPackage), 'lib', 'bin.js')
   const oniVersion = JSON.parse(readFileSync(oniPackage, 'utf8')).version
+  const stardewRoot = packaged
+    ? join(resourceRoot, 'stardew')
+    : join(repoRoot, '.artifacts', 'stardew')
+  const stardewInstallerPath = packaged
+    ? join(dirname(runtimeRequire.resolve('@qimidandapigu/dsh-xiaotangyuan-game/package.json')), 'dist', 'installation', 'stardew-valley.js')
+    : join(repoRoot, 'plugins', 'xiaotangyuan-game', 'dist', 'installation', 'stardew-valley.js')
+  for (const required of [join(stardewRoot, 'bundle.json'), stardewInstallerPath]) {
+    if (!existsSync(required)) throw new Error(`未找到 Stardew Desktop 资源：${required}`)
+  }
 
   const fingerprint = (path, version) => packaged
     ? version
@@ -198,16 +238,24 @@ function runtimePaths() {
   const oniPath = oniArchive ? join(pluginRoot, oniArchive) : undefined
   const pluginVersion = pluginArchive.replace(/^.*-game-/, '').replace(/\.tgz$/, '')
   const workPluginVersion = workArchive.replace(/^.*-orchestrator-/, '').replace(/\.tgz$/, '')
+  const pluginFingerprint = fingerprint(pluginPath, pluginVersion)
+  const workPluginFingerprint = fingerprint(workPluginPath, workPluginVersion)
+  const oniFingerprint = oniPath ? fingerprint(oniPath, oniVersion) : oniVersion
+  const pluginInstallPath = packaged ? pluginPath : stageContentAddressedArchive(pluginPath)
+  const workPluginInstallPath = packaged ? workPluginPath : stageContentAddressedArchive(workPluginPath)
+  const oniInstallPath = packaged || !oniPath ? oniPath : stageContentAddressedArchive(oniPath)
 
   return {
     dshBin,
     patchPath,
     pluginPath,
+    pluginInstallPath,
     pluginVersion,
-    pluginFingerprint: fingerprint(pluginPath, pluginVersion),
+    pluginFingerprint,
     workPluginPath,
+    workPluginInstallPath,
     workPluginVersion,
-    workPluginFingerprint: fingerprint(workPluginPath, workPluginVersion),
+    workPluginFingerprint,
     corePluginPath: packaged
       ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'game-core', 'dist', 'index.js')
       : join(repoRoot, 'plugins', 'game-core', 'dist', 'index.js'),
@@ -221,17 +269,33 @@ function runtimePaths() {
       ? join(resourceRoot, 'runtime', 'node_modules', '@ai-native-game-harness', 'dsh-story-generator', 'dist', 'index.js')
       : join(repoRoot, 'plugins', 'dsh-story-generator', 'dist', 'index.js'),
     oniPath,
+    oniInstallPath,
     oniVersion,
-    oniFingerprint: oniPath ? fingerprint(oniPath, oniVersion) : oniVersion,
+    oniFingerprint,
+    stardewRoot,
+    stardewInstallerPath,
   }
 }
 
-function childEnvironment(paths) {
-  return {
-    ...process.env,
-    DSH_HOME: join(app.getPath('userData'), 'dsh-home'),
-    DSH_DISABLE_HMR: app.isPackaged ? '1' : process.env.DSH_DISABLE_HMR,
-  }
+function childEnvironment() {
+  return buildDshChildEnvironment({
+    environment: process.env,
+    dshHome: join(app.getPath('userData'), 'dsh-home'),
+    packaged: app.isPackaged,
+  })
+}
+
+function voiceCredentials() {
+  if (voiceCredentialStore) return voiceCredentialStore
+  const runtimeRequire = app.isPackaged
+    ? createRequire(join(process.resourcesPath, 'runtime', 'package.json'))
+    : require
+  voiceCredentialStore = createVoiceCredentialStore({
+    dshHome: join(app.getPath('userData'), 'dsh-home'),
+    environment: process.env,
+    dshPackagePath: runtimeRequire.resolve('@deepseek-ai/dsh/package.json'),
+  })
+  return voiceCredentialStore
 }
 
 function appendRuntimeLog(text) {
@@ -252,7 +316,7 @@ function appendRuntimeLog(text) {
 function forkDsh(args, paths, serviceName) {
   return utilityProcess.fork(paths.dshBin, args, {
     cwd: app.getPath('userData'),
-    env: childEnvironment(paths),
+    env: childEnvironment(),
     execArgv: ['--expose-internals'],
     serviceName,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -294,12 +358,12 @@ async function ensurePlugin(paths) {
     writeFileSync(profilePath, `${JSON.stringify(profile, null, 2)}\n`)
     const pluginDependency = profile.dependencies?.['@qimidandapigu/dsh-xiaotangyuan-game']
     const workDependency = profile.dependencies?.['@qimidandapigu/dsh-work-orchestrator']
-    const dependenciesCurrent = pluginDependency === `file:${paths.pluginPath}`
-      && workDependency === `file:${paths.workPluginPath}`
+    const dependenciesCurrent = pluginDependency === `file:${paths.pluginInstallPath}`
+      && workDependency === `file:${paths.workPluginInstallPath}`
     if (installedVersion !== expectedVersion || !dependenciesCurrent) {
       sendStatus('正在更新游戏插件', `Work ${paths.workPluginVersion} / 小汤圆 ${paths.pluginVersion}`)
-      await runDshOnce(['plugin', '--profile', 'web', 'add', paths.workPluginPath], paths)
-      await runDshOnce(['plugin', '--profile', 'web', 'add', paths.pluginPath], paths)
+      await runDshOnce(['plugin', '--profile', 'web', 'add', paths.workPluginInstallPath], paths)
+      await runDshOnce(['plugin', '--profile', 'web', 'add', paths.pluginInstallPath], paths)
     }
     mkdirSync(stateRoot, { recursive: true })
     writeFileSync(markerPath, `${expectedVersion}\n`)
@@ -309,11 +373,46 @@ async function ensurePlugin(paths) {
   if (installedVersion === expectedVersion) return
 
   sendStatus('正在安装游戏插件', `Work ${paths.workPluginVersion} / 小汤圆 ${paths.pluginVersion} / 缺氧 Adapter ${paths.oniVersion}`)
-  await runDshOnce(['plugin', '--profile', 'web', 'add', paths.workPluginPath], paths)
-  await runDshOnce(['plugin', '--profile', 'web', 'add', paths.pluginPath], paths)
-  await runDshOnce(['plugin', '--profile', 'web', 'add', paths.oniPath], paths)
+  await runDshOnce(['plugin', '--profile', 'web', 'add', paths.workPluginInstallPath], paths)
+  await runDshOnce(['plugin', '--profile', 'web', 'add', paths.pluginInstallPath], paths)
+  await runDshOnce(['plugin', '--profile', 'web', 'add', paths.oniInstallPath], paths)
   mkdirSync(stateRoot, { recursive: true })
   writeFileSync(markerPath, `${expectedVersion}\n`)
+}
+
+async function reconcileStardewInstallation(paths) {
+  if (stardewReconcileTask) return await stardewReconcileTask
+  updateStardewInstallationStatus({
+    phase: 'checking',
+    code: 'checking',
+    title: '正在检查 Stardew MOD',
+    detail: '检查游戏、SMAPI、依赖与内置 Mod 版本…',
+  })
+  sendStatus('正在检查 Stardew MOD', '缺失依赖会自动安装，旧版小汤圆 Mod 会自动更新…')
+  stardewReconcileTask = reconcileDesktopStardew({
+    installerPath: paths.stardewInstallerPath,
+    stardewRoot: paths.stardewRoot,
+    gamePath: process.env.STARDEW_GAME_PATH,
+    signal: AbortSignal.timeout(120_000),
+  }).then((status) => {
+    updateStardewInstallationStatus(status)
+    appendRuntimeLog(`[desktop] Stardew bootstrap: ${status.code}; ${status.detail}\n`)
+    return status
+  }).catch((error) => {
+    const status = {
+      phase: 'error',
+      code: 'repair-failed',
+      title: 'Stardew MOD 自动修复未完成',
+      detail: error instanceof Error ? error.message : String(error),
+      checkedAt: new Date().toISOString(),
+    }
+    updateStardewInstallationStatus(status)
+    appendRuntimeLog(`[desktop] Stardew bootstrap failed: ${status.detail}\n`)
+    return status
+  }).finally(() => {
+    stardewReconcileTask = undefined
+  })
+  return await stardewReconcileTask
 }
 
 function getFreePort() {
@@ -355,7 +454,7 @@ function writeProductPatch(paths, adapterPort) {
   const yamlString = (value) => String(value).replaceAll("'", "''")
   const storyDataRoot = yamlString(join(app.getPath('userData'), 'story'))
   const gamePackRoot = yamlString(join(app.getPath('userData'), 'game-packs'))
-  writeFileSync(productPatchPath, `- id: xiaotangyuan-game\n  config:\n    media:\n      enabled: true\n      pushToTalkVirtualKey: 86\n- id: xiaotangyuan-oni-adapter\n  config:\n    adapterProtocolUrl: 'ws://127.0.0.1:${adapterPort}/adapter'\n- insert:\n    - id: ai-native-game-core-product\n      name: '${coreUrl}'\n      config:\n        productSnapshotOutput: true\n    - id: ai-native-game-transport-product\n      name: '${transportUrl}'\n      config:\n        enabled: true\n        host: 127.0.0.1\n        port: ${adapterPort}\n        path: /adapter\n        requestTimeoutMs: 10000\n    - id: ai-native-game-learning-product\n      name: '${learningUrl}'\n    - id: ai-native-game-story-product\n      name: '${storyUrl}'\n      config:\n        dataRoot: '${storyDataRoot}'\n        gamePackRoot: '${gamePackRoot}'\n        productSnapshotOutput: true\n`)
+  writeFileSync(productPatchPath, `- id: xiaotangyuan-game\n  config:\n    adapterProtocolUrl: 'ws://127.0.0.1:${adapterPort}/adapter'\n    media:\n      enabled: true\n      pushToTalkVirtualKey: 86\n      pushToTalkKey: v\n- id: xiaotangyuan-oni-adapter\n  config:\n    adapterProtocolUrl: 'ws://127.0.0.1:${adapterPort}/adapter'\n- insert:\n    - id: ai-native-game-core-product\n      name: '${coreUrl}'\n      config:\n        productSnapshotOutput: true\n    - id: ai-native-game-transport-product\n      name: '${transportUrl}'\n      config:\n        enabled: true\n        host: 127.0.0.1\n        port: ${adapterPort}\n        path: /adapter\n        requestTimeoutMs: 10000\n    - id: ai-native-game-learning-product\n      name: '${learningUrl}'\n    - id: ai-native-game-story-product\n      name: '${storyUrl}'\n      config:\n        dataRoot: '${storyDataRoot}'\n        gamePackRoot: '${gamePackRoot}'\n        productSnapshotOutput: true\n`)
   return productPatchPath
 }
 
@@ -399,6 +498,7 @@ async function startRuntime() {
   sendStatus('正在检查内置游戏插件', `Work ${paths.workPluginVersion} / 小汤圆 ${paths.pluginVersion} / 缺氧 Adapter ${paths.oniVersion}`)
   await ensurePlugin(paths)
   appendRuntimeLog('[desktop] built-in plugins ready\n')
+  await reconcileStardewInstallation(paths)
   sendStatus('正在分配本地端口', '准备 AI Runtime 和游戏 Adapter 通道…')
   const port = await getFreePort()
   const adapterPort = await getFreePort()
@@ -480,6 +580,17 @@ function registerPlatformIpc() {
   ipcMain.handle('navigation:show-game', () => showGamePage())
   ipcMain.handle('platform:info', () => requireProductRuntime().info())
   ipcMain.handle('platform:snapshot', () => requireProductRuntime().snapshot())
+  ipcMain.handle('stardew:installation-status', () => stardewInstallationStatus)
+  ipcMain.handle('stardew:reconcile', async () => {
+    const paths = runtimePaths()
+    return await reconcileStardewInstallation(paths)
+  })
+  ipcMain.handle('voice:credential-status', async () => await voiceCredentials().status())
+  ipcMain.handle('voice:configure', async (_event, input) => {
+    const status = await voiceCredentials().set(input?.apiKey)
+    appendRuntimeLog('[desktop] Volcengine speech credential updated\n')
+    return status
+  })
   ipcMain.handle('platform:chat', (ipcEvent, input) => {
     const requestId = typeof input?.requestId === 'string' ? input.requestId.slice(0, 200) : ''
     return requireProductRuntime().chat(validateChatInput(input), (event) => {

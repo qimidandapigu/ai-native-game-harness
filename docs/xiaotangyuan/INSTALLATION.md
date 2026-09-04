@@ -8,17 +8,18 @@
 
 | 项目 | 要求 |
 |---|---|
-| 小汤圆 Harness 插件 | 源码 `0.7.7`；旧仓库最新公开 Release `0.5.1` |
+| 小汤圆 Harness 插件 | 源码 `0.8.1`；旧仓库最新公开 Release `0.5.1` |
+| Stardew Adapter / 内容包 | Adapter 与内容包源码均为 `0.8.1`（未发布） |
 | Stardew Valley | `1.6.15` 或更高 |
 | SMAPI | `4.4.0` 或更高 |
 | Content Patcher | 安装器固定为 `2.9.1` |
 | TrinketTinker | 安装器固定为 `1.9.0` |
-| 语音媒体 Host | Windows x64 |
+| 语音媒体 Host | Windows x64 / macOS arm64 |
 | 饥荒联机版 Mod | 源码 `0.2.23`；公开清单仍以实际 Release 为准 |
 | 缺氧 Adapter | 源码 `0.1.6`；旧仓库公开安装包 `0.1.3` |
 | 缺氧 C# Bridge | 源码 `0.6.7`；旧仓库历史 Release 为 `oni-v0.6.1` |
 
-文字对话和游戏适配器不应依赖具体模型厂商。当前 `0.7.7` 源码中的语音 Provider 实现是火山引擎；游戏会话由 DSH 中支持图片输入的模型直接接收玩家文字、截图和统一结构化 Context 并回答，不再串联第二个对话模型。
+文字对话和游戏适配器不应依赖具体模型厂商。当前 `0.8.1` 源码中的语音 Provider 实现是火山引擎；游戏会话由 DSH 中支持图片输入的模型直接接收玩家文字、截图和统一结构化 Context 并回答，不再串联第二个对话模型。
 
 主仓库已经发布 `v1.1.0` 稳定源码快照，但该 Release 没有一键安装资产。下面的公网安装命令仍指向旧仓库已经发布的历史插件包；源码封版和本地构建成功不等于其中的组件已经成为公开安装包。
 
@@ -47,6 +48,7 @@ dsh plugin --profile web list
 ```text
 Harness Web：http://127.0.0.1:3080
 游戏 Gateway：ws://127.0.0.1:33145
+动作 Gateway：Desktop 启动时分配 loopback 动态端口，并通过 33145 Gateway 自动通知游戏 Mod
 ```
 
 如果还安装着旧包 `@qimidandapigu/dsh-game-agent`，应先移除旧包，避免两个 Gateway 争用 `33145`。
@@ -60,12 +62,35 @@ Harness Web：http://127.0.0.1:3080
 ```text
 credentialRef = VOLCENGINE_API_KEY
 ASR resource   = volc.bigasr.auc
-TTS resource   = seed-tts-1.0
+TTS resource   = seed-tts-2.0
+TTS voice      = ICL_uranus_zh_female_yuanqitianmei_tob
 ```
 
 插件保存的是 `VOLCENGINE_API_KEY` 这个凭据名称。真实 Key 由 DSH 凭据管理器解析和使用。若改用其他凭据名称，需要同时修改插件的 `speech.credentialRef`；不要把真实 Key 直接写入仓库或游戏 `config.json`。
 
-## 3. 让 Harness 自动安装星露谷组件
+Desktop 启动后，点击右下角“进入游戏版”，再打开“Adapter 中心”，在“VOLCENGINE ASR / TTS”卡片中填写 API Key 并保存。密钥只由 Electron 主进程写入当前本机 DSH 凭据文件，页面只能看到“已配置/未配置”，不能读取密钥内容；不需要把 Key 发到聊天中。若启动环境已经提供 `VOLCENGINE_API_KEY`，客户端会显示为环境变量配置并禁止覆盖。
+
+macOS 首次按住 `V` 使用语音时，需要在“系统设置 → 隐私与安全性”允许客户端访问麦克风。Stardew `0.8.1` 在游戏内直接把 V 的按下/松开交给 Harness，不再依赖输入监控权限；输入监控/辅助功能仅用于其他仍使用全局快捷键的游戏。修改权限后完全退出并重新启动客户端。
+
+## 3. Desktop 启动时自动维护星露谷组件
+
+本地源码开发只需在仓库根目录运行：
+
+```shell
+pnpm desktop:dev
+```
+
+命令会先构建当前平台 MediaHost、小汤圆插件 `0.8.1`、Stardew Adapter 与内容包 `0.8.1`，再打开隔离开发客户端。客户端启动时自动执行：
+
+```text
+查找 Stardew → 检查 SMAPI → 检查依赖 → 校验内置 Mod → 备份 → 安装/更新 → 安装后验证
+```
+
+缺失或旧版 Content Patcher / TrinketTinker 会从固定官方来源安装；缺失或旧版第一方 Mod 会更新到客户端内置版本；已安装的更高版本不会降级。结果显示在启动页和“游戏版 → Adapter 中心”。SMAPI 缺失时只提示，不静默运行第三方安装脚本。
+
+自动维护完成后通过 SMAPI 启动或重启游戏。游戏 Adapter 建立连接后，原 Harness 页右下角入口与游戏版顶部都会显示“游戏已接入”；只有找到 Mod 不等于已经接入，状态以实时 Adapter 连接为准。
+
+原有对话工具仍可用于读取公开 Release 安装源。刷新 Harness 页面、新建对话并发送：
 
 刷新 Harness 页面、新建对话并发送：
 
@@ -92,7 +117,7 @@ game_mod_install
 | `XiaoTangYuanCompanion` | 小汤圆星露谷 Release | 小汤圆图像和组件配置 |
 | `StardewAgentMod` | 小汤圆星露谷 Release | 游戏状态、文字输入、Gateway 和气泡 |
 
-第一方 Release 不包含第三方二进制。安装器使用 `distribution/stardew-valley-v2.json` 中固定的官方地址、文件大小和 SHA-256。
+第一方 Release 不包含第三方二进制。对话工具使用 `distribution/stardew-valley-v2.json`；Desktop 内置源复用同一个事务安装模块，并继续使用固定的第三方官方地址、文件大小和 SHA-256。
 
 ## 4. 让 Harness 自动安装饥荒联机版 Mod
 
@@ -151,7 +176,9 @@ Harness 会调用 `oxygen_not_included_mod_detect` 和 `oxygen_not_included_mod_
 - `T`：打开游戏内文字输入框。
 - 配置的 Push-to-Talk 键：游戏窗口在前台时按住录音，松开提交。
 
-`T` 由 SMAPI 适配器处理。语音键由 Harness 中的 Windows 媒体 Host 全局监听，并且只允许当前已连接的前台游戏进程触发。通用插件源码默认值为 `F8`（Virtual-Key `119`）；AI Native Game Harness 桌面游戏版通过独立配置默认使用 `V`（`86`），`Q` 是 `81`。
+`T` 由 SMAPI 适配器处理。语音键由 Harness 中的 Native Media Host 全局监听，并且只允许当前已连接的前台游戏进程触发。Windows 使用 `media.pushToTalkVirtualKey`，桌面游戏版默认 `V`（`86`）；macOS 使用 `media.pushToTalkKey`，默认 `v`。
+
+macOS 首次启动需要在“系统设置 → 隐私与安全性”中允许 AI Native Game Harness 使用麦克风，并按系统实际显示允许输入监控或辅助功能；首次截图还会触发屏幕录制授权。修改权限后应完全退出并重新启动 Harness。SMAPI Mod 本身不申请这些权限。
 
 松开语音键后，最终转写会在 Harness 内部直接进入游戏 Agent。当前桌面版不会把流式中间转写或玩家完整原话重复显示到游戏气泡，只显示“正在听”和“正在思考”等阶段状态。
 

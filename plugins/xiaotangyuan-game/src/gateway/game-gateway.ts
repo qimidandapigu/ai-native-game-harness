@@ -4,8 +4,10 @@ import type { WorkOrchestratorService } from '@qimidandapigu/dsh-work-orchestrat
 import WebSocket, { WebSocketServer, type RawData } from 'ws'
 import {
   readAdapterHello,
+  readGameCompose,
   readGameChat,
   readGameRetry,
+  readGameSpeak,
   readStateUpdate,
   readStateUpdateSaveId,
   type AdapterHello,
@@ -39,6 +41,9 @@ export async function playPresentedSpeech(
 }
 
 export function playerFacingVoiceFailure(message: string): string {
+  if (/microphone|麦克风|录音|audio input|permission|权限/i.test(message)) {
+    return '麦克风还不能使用，请在 macOS 隐私与安全性中允许 AI Native Game Harness 使用麦克风。'
+  }
   if (/fetch failed|network|socket|econn|enotfound|connection/i.test(message)) {
     return '网络刚才有点不稳，我没能回答出来。请再问我一次吧。'
   }
@@ -49,6 +54,21 @@ export function playerFacingVoiceFailure(message: string): string {
     return '我的模型配置暂时不可用，请到桌面设置里检查一下。'
   }
   return '我这次没能回答出来，请再问我一次吧。'
+}
+
+export function gatewayReadyParams(adapterProtocolUrl: string): Record<string, unknown> {
+  return {
+    protocolVersion: '1.1',
+    adapterProtocolUrl,
+    capabilities: [
+      'assistant.text-stream',
+      'assistant.autonomous-speech',
+      'speech.asr-stream',
+      'speech.tts-stream',
+      'speech.barge-in',
+      'adapter.endpoint-discovery',
+    ],
+  }
 }
 
 interface PendingAdapterRequest {
@@ -99,6 +119,7 @@ export class GameGateway implements VoiceInteractionHandler {
     private readonly finishSpeechReply: (processId: number, interactionId: string, finalText: string) => Promise<boolean>,
     private readonly startRecording: (processId: number) => boolean = () => false,
     private readonly stopRecording: (processId: number) => boolean = () => false,
+    private readonly adapterProtocolUrl: string = 'ws://127.0.0.1:33245/adapter',
   ) {
     this.server = new WebSocketServer({ host, port, maxPayload: 1024 * 1024 })
     this.server.on('connection', socket => this.onConnection(socket))
@@ -131,10 +152,7 @@ export class GameGateway implements VoiceInteractionHandler {
     this.send(socket, {
       jsonrpc: '2.0',
       method: 'gateway.ready',
-      params: {
-        protocolVersion: '1.1',
-        capabilities: ['assistant.text-stream', 'speech.asr-stream', 'speech.tts-stream', 'speech.barge-in'],
-      },
+      params: gatewayReadyParams(this.adapterProtocolUrl),
     })
 
     socket.on('message', (data) => {
@@ -294,11 +312,56 @@ export class GameGateway implements VoiceInteractionHandler {
       case 'assistant.compose': {
         if (state.session === undefined) throw new Error('adapter.hello must be sent before assistant.compose')
         this.markInteraction(state)
-        const chat = readGameChat(request.params)
+        const chat = readGameCompose(request.params)
         normalizeContextObservation(chat.context, state.adapter)
         if (chat.context?.saveId !== undefined) state.latestSaveId = chat.context.saveId
         if (chat.context?.observation !== undefined) state.latestObservation = chat.context.observation
-        return await state.session.compose(chat)
+        const result = await state.session.compose(chat)
+        if (chat.speak) {
+          const processId = state.adapter?.processId
+          state.speechQueue = state.speechQueue.then(async () => {
+            this.notify(state, 'assistant.status', { status: 'speaking' })
+            try {
+              if (processId === undefined) {
+                await this.speak(result.reply, AbortSignal.timeout(120_000))
+              } else {
+                await playPresentedSpeech(
+                  () => this.speak(result.reply, AbortSignal.timeout(120_000)),
+                  () => this.speechStarted(processId, result.interactionId),
+                  () => this.speechFinished(processId, result.interactionId),
+                )
+              }
+            } finally {
+              this.notify(state, 'assistant.status', { status: 'ready' })
+            }
+          }).catch(error => {
+            this.ctx.logger.warn('xiaotangyuan-game: 陪伴文本已生成，但可选语音播放失败')
+            this.ctx.logger.warn(error)
+          })
+        }
+        return result
+      }
+      case 'assistant.speak': {
+        if (state.session === undefined) throw new Error('adapter.hello must be sent before assistant.speak')
+        this.markInteraction(state)
+        const speech = readGameSpeak(request.params)
+        const interactionId = randomUUID()
+        const processId = state.adapter?.processId
+        this.notify(state, 'assistant.status', { status: 'speaking' })
+        try {
+          if (processId === undefined) {
+            await this.speak(speech.text, AbortSignal.timeout(120_000))
+          } else {
+            await playPresentedSpeech(
+              () => this.speak(speech.text, AbortSignal.timeout(120_000)),
+              () => this.speechStarted(processId, interactionId),
+              () => this.speechFinished(processId, interactionId),
+            )
+          }
+          return { accepted: true }
+        } finally {
+          this.notify(state, 'assistant.status', { status: 'ready' })
+        }
       }
       case 'state.update': {
         state.latestObservation = normalizeGameContext(readStateUpdate(request.params), state.adapter).value
@@ -316,13 +379,13 @@ export class GameGateway implements VoiceInteractionHandler {
       case 'voice.start': {
         const processId = state.adapter?.processId
         if (processId === undefined) throw new Error('adapter.hello must provide processId before voice.start')
-        if (!this.startRecording(processId)) throw new Error('Windows 媒体服务尚未启动')
+        if (!this.startRecording(processId)) throw new Error('当前平台的媒体服务尚未启动')
         return { accepted: true }
       }
       case 'voice.stop': {
         const processId = state.adapter?.processId
         if (processId === undefined) throw new Error('adapter.hello must provide processId before voice.stop')
-        if (!this.stopRecording(processId)) throw new Error('Windows 媒体服务尚未启动')
+        if (!this.stopRecording(processId)) throw new Error('当前平台的媒体服务尚未启动')
         return { accepted: true }
       }
       default:

@@ -41,6 +41,14 @@ let selectedGameId
 let gamePacks = []
 let traceFilter = 'all'
 let traceSearch = ''
+let stardewInstallationStatus = {
+  phase: 'idle',
+  title: '等待检查 Stardew MOD',
+  detail: '客户端启动后会自动检查游戏、依赖和版本。',
+}
+let receivedStardewStatusEvent = false
+let voiceCredentialStatus = { phase: 'checking', configured: false, writable: false }
+let voiceCredentialBusy = false
 const seenRuntimeNotifications = new Set()
 const $ = (selector) => document.querySelector(selector)
 
@@ -92,7 +100,7 @@ function render() {
   const runtime = snapshot.runtime ?? fallback.runtime
   const connected = adapter?.status === 'connected'
   $('#game-name').textContent = adapter?.displayName ?? '等待游戏连接'
-  $('#live-status').textContent = connected ? 'LIVE' : adapter ? 'OFFLINE' : 'WAIT'
+  $('#live-status').textContent = connected ? '游戏已接入' : adapter ? '等待重连' : '等待接入'
   $('#revision-badge').textContent = adapter ? `REV ${current.revision}` : 'NO GAME'
   renderGameState(adapter, current)
   renderStory(adapter, current)
@@ -134,6 +142,70 @@ function render() {
   renderTraces()
   renderAdapters()
   renderGamePacks()
+  renderStardewInstallationStatus()
+  renderVoiceCredentialStatus()
+}
+
+function renderStardewInstallationStatus() {
+  const card = $('#stardew-mod-health')
+  if (!card) return
+  card.dataset.phase = stardewInstallationStatus.phase ?? 'idle'
+  $('#stardew-mod-title').textContent = stardewInstallationStatus.title ?? 'Stardew MOD 状态未知'
+  $('#stardew-mod-detail').textContent = stardewInstallationStatus.detail ?? '暂无检查详情。'
+  const retry = $('#retry-stardew-mod')
+  retry.disabled = stardewInstallationStatus.phase === 'checking'
+  retry.textContent = retry.disabled ? '正在检查…' : '重新检查'
+}
+
+function renderVoiceCredentialStatus() {
+  const card = $('#voice-health')
+  if (!card) return
+  const title = $('#voice-status-title')
+  const detail = $('#voice-status-detail')
+  const input = $('#volcengine-api-key')
+  const save = $('#save-voice-credential')
+  const writable = voiceCredentialStatus.writable !== false
+  if (voiceCredentialStatus.phase === 'checking') {
+    card.dataset.state = 'checking'
+    title.textContent = '正在检查语音配置'
+    detail.textContent = '读取本机语音凭据状态…'
+  } else if (voiceCredentialStatus.phase === 'error') {
+    card.dataset.state = 'error'
+    title.textContent = '语音配置检查失败'
+    detail.textContent = voiceCredentialStatus.message ?? '无法读取本机语音配置。'
+  } else if (voiceCredentialStatus.configured) {
+    card.dataset.state = 'ready'
+    title.textContent = voiceCredentialStatus.source === 'env'
+      ? '火山语音已由环境变量配置'
+      : '火山语音已配置'
+    detail.textContent = voiceCredentialStatus.message
+      ?? (voiceCredentialStatus.source === 'env'
+        ? '当前值由启动环境提供，客户端不会读取或覆盖它。'
+        : '凭据仅保存在本机；下一次 ASR/TTS 即时使用。macOS 首次使用请允许麦克风与输入监控。')
+  } else {
+    card.dataset.state = 'missing'
+    title.textContent = '需要配置火山语音'
+    detail.textContent = voiceCredentialStatus.message
+      ?? '输入 API Key 后即可启用语音识别与伙伴 TTS；密钥不会显示或传给页面。'
+  }
+  input.disabled = !writable || voiceCredentialBusy
+  save.disabled = !writable || voiceCredentialBusy
+  save.textContent = voiceCredentialBusy
+    ? '正在保存…'
+    : voiceCredentialStatus.configured ? '更新 API Key' : '保存并启用'
+}
+
+async function refreshVoiceCredentialStatus() {
+  const voice = window.harnessDesktop?.voice
+  if (!voice?.status) {
+    voiceCredentialStatus = { phase: 'error', configured: false, writable: false, message: '语音配置只在 Electron Desktop 中提供。' }
+    return
+  }
+  try {
+    voiceCredentialStatus = { phase: 'ready', ...(await voice.status()) }
+  } catch (error) {
+    voiceCredentialStatus = { phase: 'error', configured: false, writable: false, message: error.message }
+  }
 }
 
 function learningEmpty(text) {
@@ -825,6 +897,56 @@ $('#refresh-adapters').addEventListener('click', async () => {
     addMessage('assistant', `刷新失败：${error.message}`)
   }
 })
+$('#retry-stardew-mod').addEventListener('click', async () => {
+  const stardew = window.harnessDesktop?.stardew
+  if (!stardew?.reconcile) {
+    addMessage('assistant', 'Stardew MOD 自动检查只在 Electron Desktop 中提供。')
+    return
+  }
+  stardewInstallationStatus = {
+    phase: 'checking',
+    title: '正在检查 Stardew MOD',
+    detail: '检查游戏、SMAPI、依赖与内置 Mod 版本…',
+  }
+  renderStardewInstallationStatus()
+  try {
+    stardewInstallationStatus = await stardew.reconcile()
+  } catch (error) {
+    stardewInstallationStatus = {
+      phase: 'error',
+      title: 'Stardew MOD 检查失败',
+      detail: error.message,
+    }
+  }
+  renderStardewInstallationStatus()
+})
+$('#voice-credential-form').addEventListener('submit', async (event) => {
+  event.preventDefault()
+  if (voiceCredentialBusy) return
+  const voice = window.harnessDesktop?.voice
+  const input = $('#volcengine-api-key')
+  if (!voice?.configure) {
+    voiceCredentialStatus = { phase: 'error', configured: false, writable: false, message: '语音配置只在 Electron Desktop 中提供。' }
+    renderVoiceCredentialStatus()
+    return
+  }
+  voiceCredentialBusy = true
+  renderVoiceCredentialStatus()
+  try {
+    const status = await voice.configure(input.value)
+    input.value = ''
+    voiceCredentialStatus = {
+      phase: 'ready',
+      ...status,
+      message: '已安全保存到本机，下一次语音交互即时生效。macOS 首次使用请允许麦克风与输入监控。',
+    }
+  } catch (error) {
+    voiceCredentialStatus = { phase: 'error', configured: false, writable: true, message: error.message }
+  } finally {
+    voiceCredentialBusy = false
+    renderVoiceCredentialStatus()
+  }
+})
 $('#install-game-pack').addEventListener('click', async () => {
   const desktop = window.harnessDesktop?.platform
   if (!desktop?.installGamePack) {
@@ -889,9 +1011,20 @@ window.harnessDesktop?.platform?.onSnapshot((fresh) => {
   snapshot = fresh
   render()
 })
-const [initial] = await Promise.all([api('/api/snapshot'), refreshGamePacks()])
+window.harnessDesktop?.stardew?.onStatus((status) => {
+  receivedStardewStatusEvent = true
+  stardewInstallationStatus = status
+  renderStardewInstallationStatus()
+})
+const [initial, , initialStardewStatus] = await Promise.all([
+  api('/api/snapshot'),
+  refreshGamePacks(),
+  window.harnessDesktop?.stardew?.status?.(),
+  refreshVoiceCredentialStatus(),
+])
 if (initial) {
   appendRuntimeNotifications(initial)
   snapshot = initial
 }
+if (initialStardewStatus && !receivedStardewStatusEvent) stardewInstallationStatus = initialStardewStatus
 render()

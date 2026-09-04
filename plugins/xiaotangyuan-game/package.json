@@ -1,6 +1,6 @@
 {
   "name": "@qimidandapigu/dsh-xiaotangyuan-game",
-  "version": "0.7.9",
+  "version": "0.8.1",
   "description": "XiaoTangYuan game AI runtime for AI Native Game Harness.",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,11 +14,16 @@
       "types": "./dist/web-search-zhipu.d.ts",
       "default": "./dist/web-search-zhipu.js"
     },
+    "./stardew-installer": {
+      "types": "./dist/installation/stardew-valley.d.ts",
+      "default": "./dist/installation/stardew-valley.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "media/windows-x64/XtyMediaHost.exe",
+    "media/macos-arm64/XtyMediaHost",
     "cordis.patch.yml",
     "README.md"
   ],

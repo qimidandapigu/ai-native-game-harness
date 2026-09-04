@@ -146,6 +146,24 @@
 
       <section class="page" id="page-adapters" aria-labelledby="page-title">
         <div class="section-intro"><div><p class="eyebrow">GAME ADAPTER PROTOCOL</p><h2>连接游戏，不绑定运行时</h2><p>每个游戏只需实现统一的观察、动作与事件接口。Agent 实现可以替换，游戏 Adapter 不必改写。</p></div><div class="section-actions"><button class="secondary compact" id="install-game-pack">安装 Game Pack</button><button class="primary" id="refresh-adapters">刷新连接</button></div></div>
+        <article class="mod-health-card" id="stardew-mod-health" data-phase="idle" aria-live="polite">
+          <div class="mod-health-icon">SV</div>
+          <div class="mod-health-copy"><span>STARDEW MOD HEALTH</span><strong id="stardew-mod-title">等待检查 Stardew MOD</strong><small id="stardew-mod-detail">客户端启动后会自动检查游戏、依赖和版本。</small></div>
+          <button class="secondary compact" id="retry-stardew-mod" type="button">重新检查</button>
+        </article>
+        <article class="voice-health-card" id="voice-health" data-state="checking" aria-live="polite">
+          <div class="mod-health-icon">V</div>
+          <div class="mod-health-copy">
+            <span>VOLCENGINE ASR / TTS</span>
+            <strong id="voice-status-title">正在检查语音配置</strong>
+            <small id="voice-status-detail">配置后，游戏接入时按住 V 说话；伙伴回复与主动发言会通过火山 TTS 播放。</small>
+          </div>
+          <form class="voice-credential-form" id="voice-credential-form">
+            <label for="volcengine-api-key">火山语音 API Key</label>
+            <input id="volcengine-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="在本机安全保存 API Key" required>
+            <button class="primary" id="save-voice-credential" type="submit">保存并启用</button>
+          </form>
+        </article>
         <article class="runtime-card">
           <div><span>Agent Runtime</span><strong id="runtime-agent">等待启动</strong></div>
           <div><span>Session</span><strong id="runtime-session">—</strong></div>

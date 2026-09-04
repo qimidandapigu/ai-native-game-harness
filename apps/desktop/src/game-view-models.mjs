@@ -162,6 +162,78 @@ function oniRenderer(_adapter, observation) {
   }
 }
 
+function stardewRenderer(adapter, observation) {
+  const state = isObject(observation.state) ? observation.state : {}
+  const scene = isObject(state.scene) ? state.scene : {}
+  const location = isObject(scene.location) ? scene.location : {}
+  const clock = isObject(scene.clock) ? scene.clock : {}
+  const weather = isObject(scene.weather) ? scene.weather : {}
+  const player = isObject(state.player) ? state.player : {}
+  const vitals = isObject(player.vitals) ? player.vitals : {}
+  const health = isObject(vitals.health) ? vitals.health : {}
+  const playerStamina = isObject(vitals.stamina) ? vitals.stamina : {}
+  const companion = isObject(state.companion) ? state.companion : {}
+  const growth = isObject(companion.growth) ? companion.growth : {}
+  const companionStamina = isObject(companion.stamina) ? companion.stamina : {}
+  const flight = isObject(companion.flight) ? companion.flight : {}
+  const assists = isObject(companion.assists) ? companion.assists : {}
+  const extensions = isObject(state.extensions) ? state.extensions : {}
+  const stardew = isObject(extensions.stardew) ? extensions.stardew : {}
+  const farm = isObject(stardew.farm) ? stardew.farm : {}
+  const entities = Array.isArray(state.entities) ? state.entities.filter(isObject) : []
+  const actions = adapter.capabilities?.filter((item) => item.kind === 'action').length ?? 0
+  const growthForm = typeof growth.form === 'string' ? growth.form : 'seed'
+
+  return {
+    kind: 'stardew',
+    title: '《星露谷物语》农场',
+    description: '来自 SMAPI Adapter 的权威游戏状态；动作会经过 Harness Core、游戏门禁和主线程执行。',
+    metrics: [
+      { label: '地点', value: location.id ?? '未进入存档' },
+      { label: '时间', value: stardewClock(clock) },
+      { label: '小汤圆体力', value: valuePair(companionStamina.current, companionStamina.max) },
+      { label: '动作能力', value: actions },
+    ],
+    sections: [
+      {
+        title: '农场状态',
+        items: [
+          { label: '天气', value: weather.kind ?? '—' },
+          { label: '耕地', value: farm.tilled ?? 0 },
+          { label: '待浇水', value: farm.dry ?? 0 },
+          { label: '成熟作物', value: farm.ripe ?? 0 },
+        ],
+      },
+      {
+        title: '玩家状态',
+        items: [
+          { label: '生命', value: valuePair(health.current, health.max) },
+          { label: '体力', value: valuePair(playerStamina.current, playerStamina.max) },
+          { label: '金币', value: isObject(player.currency) ? player.currency.money ?? '—' : '—' },
+          { label: '附近人物', value: entities.length },
+        ],
+      },
+      {
+        title: '小汤圆',
+        items: [
+          { label: '成长形态', value: growthLabel(growthForm) },
+          { label: '战斗成长', value: valuePair(growth.combat, growth.threshold) },
+          { label: '种植成长', value: valuePair(growth.farming, growth.threshold) },
+          { label: '钓鱼成长', value: valuePair(growth.fishing, growth.threshold) },
+          { label: '飞行', value: flight.airborne === true ? (flight.transitioning === true ? '过渡中' : '飞行中') : '地面' },
+          { label: '战斗协助', value: assists.combatActive === true ? '运行中' : '未运行' },
+        ],
+      },
+    ],
+    prompts: [
+      { label: '农场建议', text: '根据当前农场状态，建议我下一步做什么？' },
+      { label: '浇水', text: '帮我把当前地图需要浇水的地都浇了' },
+      { label: '收割', text: '帮我收割当前地图成熟的作物' },
+      { label: '清理附近', text: '帮我清理周围八格的天然杂物' },
+    ],
+  }
+}
+
 function compactValue(value) {
   if (value === null) return '空'
   if (Array.isArray(value)) return `${value.length} 项`
@@ -185,6 +257,20 @@ function numberPair(left, right) {
   return Number.isFinite(Number(left)) && Number.isFinite(Number(right)) ? `${left}, ${right}` : '—'
 }
 
+function valuePair(current, maximum) {
+  return current !== undefined && maximum !== undefined ? `${current} / ${maximum}` : '—'
+}
+
+function stardewClock(clock) {
+  if (clock.time === undefined) return '—'
+  const text = String(clock.time).padStart(4, '0')
+  return `${text.slice(0, -2)}:${text.slice(-2)}`
+}
+
+function growthLabel(form) {
+  return ({ seed: '未定型', combat: '战斗型', farming: '种植型', fishing: '钓鱼型' })[form] ?? form
+}
+
 function finiteNumber(value, fallback) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : fallback
@@ -204,3 +290,4 @@ function isObject(value) {
 
 registerGameViewRenderer('mock-game', mockRenderer)
 registerGameViewRenderer('oxygen-not-included', oniRenderer)
+registerGameViewRenderer('stardew-valley', stardewRenderer)

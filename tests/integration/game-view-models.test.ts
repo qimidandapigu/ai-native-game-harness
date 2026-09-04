@@ -91,6 +91,50 @@ describe('Desktop game view models', () => {
     })
   })
 
+  it('renders Stardew farm, player, companion growth, and action status', () => {
+    const view = buildGameViewModel({
+      gameId: 'stardew-valley',
+      displayName: 'Stardew Valley / 星露谷物语',
+      capabilities: [capability('game.state', 'observation'), capability('stardew.water_all'), capability('stardew.clear_debris')],
+    }, {
+      gameId: 'stardew-valley',
+      saveId: 'farm-a',
+      revision: 3,
+      state: {
+        scene: {
+          location: { id: 'Farm' },
+          clock: { time: 930 },
+          weather: { kind: 'sunny' },
+        },
+        player: {
+          vitals: { health: { current: 80, max: 100 }, stamina: { current: 140, max: 270 } },
+          currency: { money: 1234 },
+        },
+        companion: {
+          growth: { form: 'farming', combat: 3, farming: 20, fishing: 5, threshold: 20 },
+          stamina: { current: 12, max: 15 },
+          flight: { airborne: false, transitioning: false },
+          assists: { combatActive: false },
+        },
+        entities: [{ id: 'Abigail', kind: 'npc' }],
+        extensions: { stardew: { farm: { tilled: 18, dry: 7, ripe: 4 } } },
+      },
+    })
+
+    expect(view).toMatchObject({
+      kind: 'stardew',
+      title: '《星露谷物语》农场',
+      metrics: [
+        { label: '地点', value: 'Farm' },
+        { label: '时间', value: '09:30' },
+        { label: '小汤圆体力', value: '12 / 15' },
+        { label: '动作能力', value: 2 },
+      ],
+    })
+    expect(view.sections[0].items).toContainEqual({ label: '待浇水', value: 7 })
+    expect(view.sections[2].items).toContainEqual({ label: '成长形态', value: '种植型' })
+  })
+
   it('limits the generic raw-state preview and filters common secret fields', () => {
     const preview = safeStatePreview({
       apiKey: 'must-not-leak',

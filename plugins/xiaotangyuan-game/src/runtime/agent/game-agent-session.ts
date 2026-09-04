@@ -23,6 +23,7 @@ import type { SkillService } from '../skills/skill-service.js'
 import { registerSkillTools } from '../../tools/skill-tools.js'
 import { renderGameContextForPrompt } from '../context/game-context.js'
 import { keepRecentConversationTurns, pruneHistoricalImages } from './context-history.js'
+import { deterministicRoutingFor, roleInstructionsFor } from './game-role.js'
 
 export type InteractionSource = 'chat' | 'voice' | 'retry'
 
@@ -111,6 +112,8 @@ export function formatGamePrompt(
     context.nearbyNpc === undefined ? undefined : `Nearby NPC: ${context.nearbyNpc}`,
   ].filter((item): item is string => item !== undefined)
   const gameContext = renderGameContextForPrompt(context.observation, adapter)
+  const productRole = roleInstructionsFor(adapter)
+  const deterministicRouting = deterministicRoutingFor(adapter, request.text)
   return [
     'You are an in-game AI companion.',
     'Reply in the same language as the player, naturally and briefly (at most two short sentences). You speak through a small in-game bubble, so never paste a document, report, long list, or full work result into the reply.',
@@ -125,9 +128,15 @@ export function formatGamePrompt(
       ? 'This is a one-off game-authored composition request. Do not call game_feedback_submit and do not refer to earlier conversation history.'
       : undefined,
     `Adapter: ${adapter?.adapterId ?? 'unknown'}`,
+    productRole === undefined
+      ? undefined
+      : `Harness game role instructions:\n${productRole}`,
     context.roleInstructions === undefined
       ? undefined
       : `Game-specific role instructions:\n${context.roleInstructions}`,
+    deterministicRouting === undefined
+      ? undefined
+      : `Harness deterministic command routing:\n${deterministicRouting}`,
     longTermMemory === undefined
       ? undefined
       : `Long-term memory from XiaoTangYuan's isolated game profile. It may be stale; current game state and tool results always win:\n${longTermMemory}`,
@@ -372,7 +381,7 @@ export class GameAgentSession {
         workContext,
       ),
     }]
-    content.push({ type: 'image', attachment: image })
+    if (image !== undefined) content.push({ type: 'image', attachment: image })
     try {
       if (pruned.images > 0) {
         this.ctx.logger.info(

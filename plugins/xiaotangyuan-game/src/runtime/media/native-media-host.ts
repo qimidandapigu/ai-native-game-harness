@@ -1,59 +1,15 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { access } from 'node:fs/promises'
+import { constants } from 'node:fs'
+import { access, chmod, copyFile, mkdir, rename, rm } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createInterface } from 'node:readline'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ResolvedConfig } from '../../config.js'
 import type { BinaryAsset } from '../providers/contracts.js'
-
-export type MediaHostEvent = {
-  type: 'ready'
-  version: string
-} | {
-  type: 'recording.started'
-  processId: number
-  recordingId: string
-  sampleRate: number
-  bitsPerSample: 16
-  channels: 1
-} | {
-  type: 'recording.chunk'
-  processId: number
-  recordingId: string
-  sequence: number
-  audioBase64: string
-} | {
-  type: 'recording.stopped'
-  processId: number
-  recordingId: string
-} | {
-  type: 'recording.completed'
-  processId: number
-  recordingId: string
-  mediaType: string
-  audioBase64: string
-} | {
-  type: 'recording.cancelled'
-  processId: number
-  recordingId: string
-  message: string
-} | {
-  type: 'playback.finished'
-  playbackId: string
-} | {
-  type: 'capture.completed'
-  requestId: string
-  processId: number
-  mediaType: string
-  imageBase64: string
-  width: number
-  height: number
-} | {
-  type: 'error'
-  requestId?: string | null
-  message: string
-}
+import type { MediaHost, MediaHostEvent } from './media-host.js'
 
 interface PendingCapture {
   resolve: (asset: BinaryAsset) => void
@@ -72,7 +28,24 @@ interface PlaybackEstimate {
   durationMs: number
 }
 
-export class WindowsMediaHost {
+export async function stageMacMediaExecutable(
+  sourcePath: string,
+  targetRoot = join(homedir(), '.xiaotangyuan', 'media', 'macos-arm64'),
+): Promise<string> {
+  await mkdir(targetRoot, { recursive: true, mode: 0o700 })
+  const target = join(targetRoot, 'XtyMediaHost')
+  const temporary = join(targetRoot, `.XtyMediaHost-${process.pid}-${randomUUID()}.tmp`)
+  try {
+    await copyFile(sourcePath, temporary)
+    await chmod(temporary, 0o755)
+    await rename(temporary, target)
+  } finally {
+    await rm(temporary, { force: true })
+  }
+  return target
+}
+
+export class NativeMediaHost implements MediaHost {
   private child?: ChildProcessWithoutNullStreams
   private readonly listeners = new Set<(event: MediaHostEvent) => void | Promise<void>>()
   private readonly pendingCaptures = new Map<string, PendingCapture>()
@@ -84,18 +57,29 @@ export class WindowsMediaHost {
     private readonly config: ResolvedConfig['media'],
   ) {}
 
-  private executablePath(): string {
-    return this.config.executablePath
-      ?? fileURLToPath(new URL('../../../media/windows-x64/XtyMediaHost.exe', import.meta.url))
+  private async executablePath(): Promise<string | undefined> {
+    if (this.config.executablePath !== undefined) return this.config.executablePath
+    if (process.platform === 'win32') {
+      return fileURLToPath(new URL('../../../media/windows-x64/XtyMediaHost.exe', import.meta.url))
+    }
+    if (process.platform === 'darwin') {
+      const bundled = fileURLToPath(new URL('../../../media/macos-arm64/XtyMediaHost', import.meta.url))
+      return await stageMacMediaExecutable(bundled)
+    }
+    return undefined
   }
 
   async start(): Promise<boolean> {
-    if (!this.config.enabled || process.platform !== 'win32') return false
-    const executable = this.executablePath()
+    if (!this.config.enabled) return false
+    const executable = await this.executablePath()
+    if (executable === undefined) {
+      this.ctx.logger.warn('xiaotangyuan-game: 当前平台没有 Media Host Adapter：%s', process.platform)
+      return false
+    }
     try {
-      await access(executable)
+      await access(executable, process.platform === 'darwin' ? constants.X_OK : constants.F_OK)
     } catch {
-      this.ctx.logger.warn('xiaotangyuan-game: Windows 媒体服务不存在：%s', executable)
+      this.ctx.logger.warn('xiaotangyuan-game: Media Host 不存在：%s', executable)
       return false
     }
 
@@ -109,8 +93,8 @@ export class WindowsMediaHost {
     })
     child.on('exit', (code, signal) => {
       if (this.child === child) this.child = undefined
-      this.rejectPendingCaptures(new Error('Windows 媒体服务已退出'))
-      this.rejectPendingPlaybacks(new Error('Windows 媒体服务已退出'))
+      this.rejectPendingCaptures(new Error('Media Host 已退出'))
+      this.rejectPendingPlaybacks(new Error('Media Host 已退出'))
       if (code !== 0 && code !== null) {
         this.ctx.logger.warn('xiaotangyuan-game: 媒体服务退出，code=%s signal=%s', code, signal)
       }
@@ -159,8 +143,12 @@ export class WindowsMediaHost {
         this.pendingCaptures.delete(event.requestId)
         pending.cleanup()
         pending.reject(new Error(event.message))
+        return
       }
-      return
+      if (this.pendingPlaybacks.has(event.requestId)) {
+        this.rejectPlayback(event.requestId, new Error(event.message))
+        return
+      }
     }
     for (const listener of this.listeners) {
       Promise.resolve(listener(event)).catch(error => {
@@ -180,6 +168,7 @@ export class WindowsMediaHost {
     this.send('configure', {
       processIds: [...processIds],
       pushToTalkVirtualKey: this.config.pushToTalkVirtualKey,
+      pushToTalkKey: this.config.pushToTalkKey,
     })
   }
 
@@ -194,13 +183,13 @@ export class WindowsMediaHost {
   }
 
   async play(audio: BinaryAsset, signal?: AbortSignal): Promise<void> {
-    if (audio.mediaType !== 'audio/wav') throw new Error(`Windows 媒体服务需要 audio/wav，收到 ${audio.mediaType}`)
+    if (audio.mediaType !== 'audio/wav') throw new Error(`Media Host 需要 audio/wav，收到 ${audio.mediaType}`)
     const playbackId = randomUUID()
     const durationMs = wavDurationMilliseconds(audio.bytes)
     this.playbackEstimates.set(playbackId, { startedAt: Date.now(), durationMs })
     const completed = this.waitForPlayback(playbackId, durationMs + 350, signal)
     if (!this.send('play', { playbackId, audioBase64: Buffer.from(audio.bytes).toString('base64') })) {
-      this.rejectPlayback(playbackId, new Error('Windows 媒体服务尚未启动'))
+      this.rejectPlayback(playbackId, new Error('Media Host 尚未启动'))
     }
     await completed
   }
@@ -224,7 +213,7 @@ export class WindowsMediaHost {
       : Math.max(0, estimate.durationMs - (Date.now() - estimate.startedAt)) + 350
     const completed = this.waitForPlayback(playbackId, remainingMs, signal)
     if (!this.send('play.end', { playbackId })) {
-      this.rejectPlayback(playbackId, new Error('Windows 媒体服务尚未启动'))
+      this.rejectPlayback(playbackId, new Error('Media Host 尚未启动'))
     }
     await completed
   }
@@ -306,7 +295,7 @@ export class WindowsMediaHost {
       if (!this.send('capture', { requestId, processId, maxWidth })) {
         this.pendingCaptures.delete(requestId)
         cleanup()
-        reject(new Error('Windows 媒体服务尚未启动'))
+        reject(new Error('Media Host 尚未启动'))
       }
     })
   }
@@ -327,8 +316,8 @@ export class WindowsMediaHost {
   async close(): Promise<void> {
     const child = this.child
     this.child = undefined
-    this.rejectPendingCaptures(new Error('Windows 媒体服务正在关闭'))
-    this.rejectPendingPlaybacks(new Error('Windows 媒体服务正在关闭'))
+    this.rejectPendingCaptures(new Error('Media Host 正在关闭'))
+    this.rejectPendingPlaybacks(new Error('Media Host 正在关闭'))
     if (child === undefined) return
     if (child.stdin.writable) child.stdin.write(`${JSON.stringify({ method: 'shutdown', params: {} })}\n`)
     await new Promise<void>((resolve) => {

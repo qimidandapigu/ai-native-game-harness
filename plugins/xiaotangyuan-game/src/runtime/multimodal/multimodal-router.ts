@@ -5,12 +5,12 @@ import type { LlmResolvedModelInfo } from '@deepseek-ai/dsh-llm'
 import { performance } from 'node:perf_hooks'
 import screenshot from 'screenshot-desktop'
 import type { ResolvedConfig } from '../../config.js'
-import { WindowsMediaHost } from '../media/windows-media-host.js'
+import type { MediaHost } from '../media/media-host.js'
 import type { BinaryAsset } from '../providers/contracts.js'
 
 export interface MultimodalInput {
   selection: ModelSelection
-  image: ImageAttachmentRef
+  image?: ImageAttachmentRef
   timing: {
     modelSelectionMs: number
     captureMs: number
@@ -32,7 +32,7 @@ export class MultimodalRouter {
   constructor(
     private readonly ctx: Context,
     private readonly config: ResolvedConfig['vision'],
-    private readonly media: WindowsMediaHost,
+    private readonly media: MediaHost,
   ) {}
 
   private async findImageModel(signal: AbortSignal): Promise<ModelSelection | undefined> {
@@ -87,20 +87,32 @@ export class MultimodalRouter {
     const selectionStarted = performance.now()
     const selection = await this.selectModel(signal)
     const captureStarted = performance.now()
-    const image: BinaryAsset = processId === undefined
-      ? { bytes: new Uint8Array(await screenshot({ format: 'png' })), mediaType: 'image/png' }
-      : await this.media.captureProcessWindow(processId, this.config.maxWidth, signal)
-    if (image.mediaType !== 'image/png') throw new Error(`Windows 媒体服务返回了不支持的截图格式：${image.mediaType}`)
-    const attachmentStarted = performance.now()
-    const attachment = await this.ctx.attachments.saveImage({
-      data: image.bytes,
-      mediaType: 'image/png',
-      name: 'game-window.png',
-    })
-    const finished = performance.now()
+    let attachmentStarted = captureStarted
+    let finished = captureStarted
+    let image: ImageAttachmentRef | undefined
+    try {
+      const captured: BinaryAsset = processId === undefined
+        ? { bytes: new Uint8Array(await screenshot({ format: 'png' })), mediaType: 'image/png' }
+        : await this.media.captureProcessWindow(processId, this.config.maxWidth, signal)
+      if (captured.mediaType !== 'image/png') {
+        throw new Error(`媒体服务返回了不支持的截图格式：${captured.mediaType}`)
+      }
+      attachmentStarted = performance.now()
+      image = await this.ctx.attachments.saveImage({
+        data: captured.bytes,
+        mediaType: 'image/png',
+        name: 'game-window.png',
+      })
+      finished = performance.now()
+    } catch (error) {
+      attachmentStarted = performance.now()
+      finished = attachmentStarted
+      this.ctx.logger.warn('xiaotangyuan-game: 游戏窗口截图不可用，继续使用结构化状态和文字输入')
+      this.ctx.logger.warn(error)
+    }
     return {
       selection,
-      image: attachment,
+      image,
       timing: {
         modelSelectionMs: captureStarted - selectionStarted,
         captureMs: attachmentStarted - captureStarted,

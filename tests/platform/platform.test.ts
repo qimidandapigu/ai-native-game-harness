@@ -348,6 +348,14 @@ describe('independent platform boundary', () => {
     expect(content).toContain('PLAYER_MESSAGE:\n记住我想先完成基地供氧')
   })
 
+  it('adds Stardew role and authoritative tool rules only to Stardew Desktop turns', () => {
+    const stardew = productTurnContent('帮我浇水', 'stardew-valley')
+    const other = productTurnContent('帮我浇水', 'oxygen-not-included')
+    expect(stardew).toContain('You are XiaoTangYuan')
+    expect(stardew).toContain('result reports ok=true')
+    expect(other).not.toContain('You are XiaoTangYuan')
+  })
+
   it('accepts only finite non-negative values from the official DSH sessionStats projection', () => {
     expect(normalizeSessionStats({
       turns: 2,

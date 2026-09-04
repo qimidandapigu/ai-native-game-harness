@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readAdapterHello, readGameRetry } from '../src/protocol/game.js'
+import { readAdapterHello, readGameCompose, readGameRetry, readGameSpeak } from '../src/protocol/game.js'
 import { failure, parseRpcRequest, success } from '../src/protocol/json-rpc.js'
 
 describe('JSON-RPC protocol', () => {
@@ -37,5 +37,13 @@ describe('JSON-RPC protocol', () => {
     expect(() => readAdapterHello({
       adapterId: 'test', gameId: 'test-game', version: '1', protocolVersion: '1.1', saveId: 'C:\\Users\\player\\save',
     })).toThrow('saveId')
+  })
+
+  it('validates autonomous composition and direct speech requests', () => {
+    expect(readGameCompose({ text: '写一句早安', speak: true })).toEqual({ text: '写一句早安', speak: true })
+    expect(readGameCompose({ text: '只写日记' })).toEqual({ text: '只写日记', speak: false })
+    expect(readGameSpeak({ text: '  晚安。  ' })).toEqual({ text: '晚安。' })
+    expect(() => readGameCompose({ text: '早安', speak: 'yes' })).toThrow('speak')
+    expect(() => readGameSpeak({ text: '' })).toThrow('text')
   })
 })

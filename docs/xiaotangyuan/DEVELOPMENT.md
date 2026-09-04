@@ -6,6 +6,7 @@
 - pnpm `10`。
 - .NET SDK `8`，星露谷适配器目标为 `net6.0`。
 - Windows x64 用于构建和验证 `XtyMediaHost.exe`。
+- Apple Silicon macOS 14 或更高、Xcode Command Line Tools，用于构建和验证 Swift `XtyMediaHost`。
 - 本机安装 Stardew Valley 与 SMAPI 时，可进行真实游戏验证；普通 TypeScript 测试不依赖游戏启动。
 
 ## 职责边界
@@ -16,6 +17,9 @@ plugins/xiaotangyuan-game
 
 apps/windows-media-host
   Windows 麦克风录制、前台进程限制、可配置热键、WAV 播放
+
+plugins/xiaotangyuan-game/media/macos-arm64
+  macOS 麦克风、前台热键、ScreenCaptureKit、WAV/PCM 播放与嵌入式权限说明
 
 apps/feedback-receiver
   官方 Harness 签名校验、重放保护、私有 GitHub Issue 写入
@@ -44,8 +48,8 @@ games/oxygen-not-included/bridge
 pnpm install
 pnpm check
 pnpm check:xiaotangyuan
-pnpm desktop:dev:prepare
 pnpm desktop:dev
+pnpm desktop:dev:prepare
 pnpm desktop:dev:sync
 pnpm integration:xiaotangyuan
 pnpm desktop:dist
@@ -60,9 +64,9 @@ dotnet build games/oxygen-not-included/bridge/DoubaoAI.ONI.csproj -c Release
 |---|---|
 | `pnpm check` | Game Core、Transport、Fake Game 的构建与集成测试 |
 | `pnpm check:xiaotangyuan` | 饥荒、反馈接收端、ONI Adapter 和小汤圆插件的完整检查 |
-| `pnpm desktop:dev:prepare` | 首次准备 Desktop 源码开发依赖和开发插件，不生成安装包 |
-| `pnpm desktop:dev` | 使用独立开发 DSH_HOME 直接运行 Electron 源码，不重新准备发行 Runtime |
-| `pnpm desktop:dev:sync` | 插件代码变化后增量构建、打开发归档并按 SHA-256 触发下次启动更新 |
+| `pnpm desktop:dev` | 跨平台准备当前 MediaHost、Stardew 内置资源、插件包和独立开发 DSH_HOME，然后运行 Electron 源码 |
+| `pnpm desktop:dev:prepare` | 只执行上述准备，不打开客户端；写入 `.artifacts`，不安装 Steam Mods |
+| `pnpm desktop:dev:sync` | 与 prepare 使用同一可复现入口；插件代码变化后重新构建、打包并刷新开发 profile |
 | `pnpm integration:xiaotangyuan` | 构建媒体 Host、小汤圆与 ONI Adapter 包，启动桌面同版本 DSH，并用本地模拟模型验证 Web、Gateway、状态和对话闭环 |
 | `pnpm desktop:dist` | 准备内置 DSH Runtime、小汤圆插件和桌面配置，生成 Windows NSIS 安装包 |
 | `dotnet build games/stardew-valley/adapter/StardewAgentMod.csproj -c Release` | 编译星露谷 `StardewAgentMod.dll` |
@@ -126,17 +130,23 @@ dsh-xiaotangyuan-game-stardew-<adapter-version>.zip
 
 构建成功不等于游戏内验证成功。发布后仍需重启对应游戏，检查游戏日志，并完成一次真实文字/语音对话。缺氧还要确认 ONI Adapter 已建立到 `33145` 的连接、媒体 Host 存活且当前 PID 的桥目录被选中。
 
+macOS 必须分别记录四级证据：Swift Host 编译与协议测试、未签名应用结构检查、系统麦克风/输入监控/屏幕录制授权、真实游戏前台的“按住录音 → ASR → Agent/Tool → TTS → 扬声器”。前三者不能替代第四项；正式分发还需要 Developer ID 签名与 notarization。
+
 ## 开发与发行分层
 
 日常开发直接运行源码；不要把 NSIS 当作代码刷新机制：
 
-1. 新 checkout 或依赖变化：`pnpm install --frozen-lockfile`，然后 `pnpm desktop:dev:prepare`。
-2. 只改 Desktop HTML / CSS / JS：重新运行 `pnpm desktop:dev`。
-3. 修改小汤圆、Work Orchestrator、ONI Adapter、Transport、Learning 或 Story：运行 `pnpm desktop:dev:sync`，再重启 `desktop:dev`。
+1. 新 checkout 或依赖变化：运行一次 `pnpm install --frozen-lockfile`。
+2. 日常启动：运行 `pnpm desktop:dev`；它会先准备最新本地资源，再打开客户端。
+3. 只准备不启动：运行 `pnpm desktop:dev:prepare` 或 `pnpm desktop:dev:sync`。
 4. 功能阶段验收：运行 `pnpm desktop:pack` 检查 unpacked 目录。
 5. Beta 或正式发布：运行 `pnpm desktop:dist` 并单独完成安装、启动、卸载和真实游戏验收。
 
-完整发行脚本保持不变；源码开发模式不会修改已经安装的 Desktop、Steam Mods 或正式 DSH profile。
+准备脚本本身只修改 `.artifacts` 隔离目录；真正打开 Desktop 后，按产品要求会自动检查并可能更新 Steam Stardew `Mods`。它不会修改正式 DSH profile。
+
+开发 profile 的 pnpm store 同样隔离在 `.artifacts/desktop-dev-user-data/pnpm-store/v<major>`。当当前 pnpm 主版本与旧 profile 不一致时，准备脚本只重建该 profile 的 `node_modules` 并自动重试，不修改全局 pnpm 配置；首次恢复可能需要联网下载依赖。
+
+准备入口还会预检 `apps/desktop/node_modules/electron`：缺少二进制或 `path.txt` 不规范时先运行 Electron 官方安装脚本，随后重新读取路径并验证可执行文件。这样 Desktop 不依赖 Electron CLI 的首次启动下载兜底。
 
 ## 发布前检查表
 
@@ -145,7 +155,8 @@ dsh-xiaotangyuan-game-stardew-<adapter-version>.zip
 - `pnpm check:xiaotangyuan` 通过。
 - 饥荒代码变更时 `scripts/build-dont-starve-release.ps1` 通过，且清单与本地资产大小和 SHA-256 一致。
 - 星露谷代码变更时对应 `dotnet build` 为 0 警告、0 错误。
-- 插件包中存在 `media/windows-x64/XtyMediaHost.exe`。
+- Windows 发布包中存在 `media/windows-x64/XtyMediaHost.exe`；macOS 插件包中存在 `media/macos-arm64/XtyMediaHost`，运行时能将其原子复制为稳定的用户级 `0755` 可执行文件。
+- macOS Helper 内嵌麦克风、屏幕录制与输入监控用途说明，且产物为 arm64 Mach-O。
 - Release 资产的远端大小和 digest 与本地一致。
 - GitHub `main` 已包含生成该资产的源提交。
 - `git ls-remote --tags origin` 已确认目标 tag 是否真实存在，文档状态与远端一致。

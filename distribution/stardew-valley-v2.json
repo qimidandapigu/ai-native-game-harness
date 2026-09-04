@@ -16,7 +16,7 @@
       "folderName": "ContentPatcher",
       "archive": {
         "name": "ContentPatcher-2.9.1.zip",
-        "url": "https://www.curseforge.com/api/v1/mods/309243/files/7759981/download",
+          "url": "https://mediafilez.forgecdn.net/files/7759/981/Content%20Patcher%202.9.1%202.9.1.zip",
         "size": 389967,
         "sha256": "22962ecbeda204d207f66f4dded727a2ce67134f7decdd249c1024bbc4576817"
       }
@@ -28,7 +28,7 @@
       "folderName": "TrinketTinker",
       "archive": {
         "name": "TrinketTinker.1.9.0.zip",
-        "url": "https://github.com/Mushymato/TrinketTinker/releases/download/1.9.0/TrinketTinker.1.9.0.zip",
+        "url": "https://api.github.com/repos/Mushymato/TrinketTinker/releases/assets/515207334",
         "size": 164458,
         "sha256": "cb04fe77e43607c3914f68c781371a3c0442accad794ebb73de34666707dd4ef"
       }

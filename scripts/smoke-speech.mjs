@@ -1,24 +1,22 @@
 import { randomUUID } from 'node:crypto'
+import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
+import { pathToFileURL } from 'node:url'
 
 const credentialRef = process.argv[2] ?? 'VOLCENGINE_API_KEY'
 const credentialsPath = join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), '.credentials.yaml')
-const document = await readFile(credentialsPath, 'utf8')
-
-function yamlScalar(raw) {
-  const value = raw.trim()
-  if (value.startsWith('"')) return JSON.parse(value)
-  if (value.startsWith("'") && value.endsWith("'")) return value.slice(1, -1).replaceAll("''", "'")
-  return value
-}
-
-let apiKey
-for (const line of document.split(/\r?\n/)) {
-  const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*):\s*(.+)$/)
-  if (match?.[1] === credentialRef) apiKey = yamlScalar(match[2])
+let apiKey = process.env[credentialRef]
+if (typeof apiKey !== 'string' || apiKey.length === 0) {
+  const document = await readFile(credentialsPath, 'utf8')
+  const localRequire = createRequire(import.meta.url)
+  const runtimeRequire = createRequire(localRequire.resolve('@deepseek-ai/dsh/package.json'))
+  const credentialModulePath = runtimeRequire.resolve('@deepseek-ai/dsh-credentials-local')
+  const { parseCredentialsDocument } = await import(pathToFileURL(credentialModulePath).href)
+  const parsed = parseCredentialsDocument(document, credentialsPath)
+  apiKey = parsed.refs.get(credentialRef)
 }
 if (typeof apiKey !== 'string' || apiKey.length === 0) throw new Error(`DSH 凭据 ${credentialRef} 未配置`)
 
@@ -52,12 +50,12 @@ function wavFromPcm(pcm) {
 const ttsRequestId = randomUUID()
 const tts = await fetch('https://openspeech.bytedance.com/api/v3/tts/unidirectional', {
   method: 'POST',
-  headers: headers('seed-tts-1.0', ttsRequestId),
+  headers: headers('seed-tts-2.0', ttsRequestId),
   body: JSON.stringify({
     user: { uid: 'xiaotangyuan-smoke-test' },
     req_params: {
       text: '你好，这是小汤圆语音能力测试。',
-      speaker: 'zh_female_shuangkuaisisi_emo_v2_mars_bigtts',
+      speaker: 'ICL_uranus_zh_female_yuanqitianmei_tob',
       audio_params: { format: 'pcm', sample_rate: 24000 },
     },
   }),

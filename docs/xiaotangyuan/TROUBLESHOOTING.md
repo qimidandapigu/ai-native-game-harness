@@ -18,15 +18,16 @@ SMAPI 是否加载 StardewAgentMod？
 
 ```text
 %APPDATA%\StardewValley\ErrorLogs\SMAPI-latest.txt
+~/.config/StardewValley/ErrorLogs/SMAPI-latest.txt   # macOS
 ```
 
 正常日志应包含类似：
 
 ```text
-XiaoTangYuan Game AI - Stardew Valley 0.5.0
+XiaoTangYuan Game AI - Stardew Valley 0.8.1
 Content Patcher 2.9.1
 TrinketTinker 1.9.0
-XiaoTangYuan Companion 0.5.0
+XiaoTangYuan Companion 0.8.1
 ```
 
 如果出现 `multiple copies of this mod installed`，说明 `Mods` 中存在同一 `UniqueID` 的多个目录。先升级 Harness 插件到 `0.5.1` 或更新版本，然后再次让 Harness 执行检测和安装；它会把小汤圆管理的旧备份迁移到：
@@ -41,13 +42,16 @@ XiaoTangYuan Companion 0.5.0
 
 依次确认：
 
-1. 游戏已经进入存档，不是在标题界面加载 MOD 的中间阶段。
-2. 星露谷窗口在前台；媒体 Host 会核对前台进程 ID。
-3. Harness 正在运行，并且插件版本是 `0.5.1` 或更新版本；饥荒链路要求 `0.6.1`。
-4. `127.0.0.1:33145` 正在监听。
-5. Windows 默认录音设备可用，且没有被独占。
-6. `media.enabled` 与 `speech.enabled` 没有关闭。
-7. `media.pushToTalkVirtualKey` 与实际按键一致：`F8=119`、`V=86`。通用插件源码默认是 F8，桌面游戏版的全局键是 V；缺氧由 Mod 单独捕获 Q 并发送 `voice.start` / `voice.stop`，不占用全局热键。
+1. 客户端“游戏版 → Adapter 中心”的“VOLCENGINE ASR / TTS”卡片显示“火山语音已配置”；未配置时直接在此卡片本机保存 API Key。
+2. 游戏已经进入存档，不是在标题界面加载 MOD 的中间阶段。
+3. 星露谷窗口在前台。`0.8.1` 起 V 的按下/松开由游戏 Mod 直接发给 Harness，并立即显示“正在连接麦克风/正在听”；媒体 Host 仍会核对游戏进程 ID。
+4. Harness 正在运行，并且插件版本是 `0.5.1` 或更新版本；饥荒链路要求 `0.6.1`。
+5. `127.0.0.1:33145` 正在监听。
+6. Windows 默认录音设备或 macOS 默认输入设备可用，且没有被独占。
+7. `media.enabled` 与 `speech.enabled` 没有关闭。
+8. Windows 的 `media.pushToTalkVirtualKey` 与实际按键一致：`F8=119`、`V=86`；macOS 的 `media.pushToTalkKey` 默认为 `v`。缺氧由 Mod 单独捕获 Q 并发送 `voice.start` / `voice.stop`，不占用全局热键。
+
+macOS 的 Stardew 语音必需麦克风权限；截图需要屏幕录制权限。`0.8.1` 的游戏内 V 通路不要求输入监控/辅助功能，只有全局快捷键通路才需要。修改权限后完全退出并重新启动 Harness。源码协议测试不能替代 TCC 授权与真实游戏前台验收。
 
 如果松开按键后仍长期显示“正在听”，先确认 Harness Web 界面与 Gateway 的 `33145` 仍在监听。`0.7.1` 起松键会立即切换为“正在思考”，并在 30 秒后强制停止异常录音；旧版本在 ASR 返回前会错误地保留“正在听”状态。
 
@@ -62,7 +66,14 @@ XiaoTangYuan Companion 0.5.0
 ```powershell
 dsh plugin --profile web list
 Get-NetTCPConnection -State Listen |
-  Where-Object LocalPort -In 33145
+  Where-Object LocalAddress -In 127.0.0.1,::1
+```
+
+macOS 只读检查：
+
+```shell
+pgrep -fl XtyMediaHost
+lsof -nP -iTCP:33145 -sTCP:LISTEN
 ```
 
 ## 出现“正在听”，但松开后失败
@@ -80,10 +91,10 @@ Get-NetTCPConnection -State Listen |
 
 ## 能转写和回复，但没有声音
 
-这通常是 TTS 或 Windows 播放设备问题：
+这通常是 TTS 或当前平台播放设备问题：
 
 - 检查 Harness 是否返回 TTS 错误。
-- 确认 Windows 默认播放设备正常。
+- 确认 Windows 默认播放设备或 macOS 默认输出设备正常。
 - 确认生成音频格式为 `audio/wav`；媒体 Host 只接受 WAV 播放。
 
 ## 有对话，但小汤圆宠物不显示
@@ -96,7 +107,7 @@ TrinketTinker
 XiaoTangYuan Companion
 ```
 
-并确认 `Mods/XiaoTangYuanCompanion/content.json` 和两张 PNG 素材存在。宠物资源由 Content Patcher 加载，跟随与渲染由 TrinketTinker 负责，AI 适配器不再自行绘制宠物。
+并确认 `Mods/XiaoTangYuanCompanion/content.json` 及普通、唱歌、骑乘 PNG 素材存在。宠物资源由 Content Patcher 加载，跟随与渲染由 TrinketTinker 负责；气泡、HUD、日记和动作演出由独立 Presentation 组件处理。
 
 ## Harness 页面能用，但游戏连不上
 
@@ -104,9 +115,10 @@ XiaoTangYuan Companion
 
 ```text
 33145  小汤圆游戏版 Gateway
+动态端口  Adapter Protocol 动作 Gateway（由 gateway.ready 自动发现）
 ```
 
-Gateway 只绑定本机回环地址。若 `33145` 被占用，检查是否同时启动了另一份 AI Native Game Harness 游戏版。
+Gateway 只绑定本机回环地址。无需手工把游戏 Mod 改成 Desktop 的随机动作端口；如果动作通道没有连接，先在“管理游戏连接”页重新检查 Mod，再查看 SMAPI 日志是否出现“已自动适配动作通道”。若 `33145` 被占用，检查是否同时启动了另一份 AI Native Game Harness 游戏版。
 
 ## DSH 冒烟启动前就提示 `ERR_MODULE_NOT_FOUND`
 
@@ -119,6 +131,44 @@ Gateway 只绑定本机回环地址。若 `33145` 被占用，检查是否同时
 - 仅 `pnpm check` 通过，不能写成上述两条环境冒烟已经通过。
 
 桌面发行 Runtime 使用 `pnpm desktop:prepare` 创建完整 hoisted 依赖树。若清理环境后单独运行冒烟仍在 DSH ready 之前缺包，应先修复对应 smoke 脚本的 Profile 初始化/Runtime 装配，再继续真实游戏验收；不要通过手工复制零散包掩盖发行问题。
+
+## `pnpm desktop:dev` 提示 `ERR_PNPM_UNEXPECTED_STORE`
+
+这表示 `.artifacts/desktop-dev-user-data` 中的隔离开发 profile 曾由另一 pnpm 主版本或另一 store 创建，不代表本地 `.tgz` 损坏。
+
+当前准备脚本会自动：
+
+1. 探测 DSH Web profile 实际调用的 pnpm 版本；
+2. 为该主版本使用 `.artifacts/desktop-dev-user-data/pnpm-store/v<major>`；
+3. 只在 `.modules.yaml` 记录不匹配时重建隔离 profile 的 `node_modules`；
+4. 若安装期间仍检测到 store 漂移，清理该生成目录并自动重试一次。
+
+因此不要运行 `pnpm config set store-dir ... --global`，也不要删除 `~/Library/pnpm/store`。直接重新执行：
+
+```shell
+pnpm desktop:dev
+```
+
+首次从另一 pnpm 主版本恢复时需要联网下载新隔离 store 所需的依赖。若仍失败，可先运行 `pnpm desktop:dev:prepare` 获取完整准备日志；该命令不会启动客户端或安装 Steam Mods。
+
+## 下载 Electron 后提示 `spawn .../Electron ENOENT`
+
+如果准备阶段已经完成，随后出现：
+
+```text
+Downloading Electron binary...
+Error: spawn .../Electron ENOENT
+```
+
+通常是旧 `path.txt` 带有尾随换行，同时 Electron 二进制尚未落盘。Electron 的运行时下载兜底可能下载成功后仍使用下载前缓存的旧路径，从而把带换行的路径交给 `spawn`。
+
+`desktop:dev:prepare` 现在会在启动客户端前完成 Electron 预检：必要时运行官方安装脚本，安装后重新读取并规范化 `path.txt`，确认目标位于 Electron `dist` 内且可执行。直接重新运行：
+
+```shell
+pnpm desktop:dev
+```
+
+首次补齐 Electron 二进制需要联网。不要手工修改 `node_modules` 中的 Electron 源码；若仍失败，可运行 `pnpm desktop:dev:prepare`，检查最终 JSON 中是否包含有效的 `electronRuntime.executable`。
 
 ## 饥荒启动时报 `jingling.zip` 缺失
 
@@ -168,7 +218,7 @@ Get-NetTCPConnection -State Established -LocalPort 33145 -ErrorAction SilentlyCo
 
 正常状态应同时满足：
 
-- Harness 插件 `0.7.7` 和 ONI Adapter `0.1.6` 已安装；
+- Harness 插件 `0.7.9` 和 ONI Adapter `0.1.6` 已安装；
 - `XtyMediaHost.exe` 正在运行；
 - 缺氧窗口位于前台；
 - `33145` 除监听外还有一个来自 ONI Adapter 的已建立连接；

@@ -19,12 +19,14 @@ internal sealed class GameAgentClient : IAsyncDisposable
     private string? saveId;
     private long nextRequestId;
 
-    public event Action<string>? AssistantPresented;
+    public event Action<string, string>? AssistantPresented;
     public event Action<string>? AssistantStreaming;
+    public event Action<string>? AssistantSpeechCaptionChanged;
     public event Action<string, string?>? AssistantStatusChanged;
     public event Action? AssistantSpeechStarted;
     public event Action? AssistantSpeechFinished;
     public event Action<string>? AssistantFailed;
+    public event Action<string>? AdapterProtocolEndpointDiscovered;
 
     public GameAgentClient(string gatewayUrl)
     {
@@ -51,6 +53,50 @@ internal sealed class GameAgentClient : IAsyncDisposable
         return ReadReply(response.RootElement);
     }
 
+    public async Task<string> ComposeAsync(
+        string prompt,
+        object context,
+        bool speak,
+        CancellationToken cancellationToken)
+    {
+        using JsonDocument response = await this.SendRequestAsync(
+            "assistant.compose",
+            new { text = prompt, context, speak },
+            cancellationToken
+        ).ConfigureAwait(false);
+        return ReadReply(response.RootElement);
+    }
+
+    public async Task SpeakAsync(string text, CancellationToken cancellationToken)
+    {
+        using JsonDocument response = await this.SendRequestAsync(
+            "assistant.speak",
+            new { text },
+            cancellationToken
+        ).ConfigureAwait(false);
+        ThrowIfError(response.RootElement);
+    }
+
+    public async Task StartVoiceAsync(CancellationToken cancellationToken)
+    {
+        using JsonDocument response = await this.SendRequestAsync(
+            "voice.start",
+            new { },
+            cancellationToken
+        ).ConfigureAwait(false);
+        ThrowIfError(response.RootElement);
+    }
+
+    public async Task StopVoiceAsync(CancellationToken cancellationToken)
+    {
+        using JsonDocument response = await this.SendRequestAsync(
+            "voice.stop",
+            new { },
+            cancellationToken
+        ).ConfigureAwait(false);
+        ThrowIfError(response.RootElement);
+    }
+
     public async Task PublishObservationAsync(object observation, CancellationToken cancellationToken)
     {
         await this.EnsureConnectedAsync(cancellationToken).ConfigureAwait(false);
@@ -64,19 +110,22 @@ internal sealed class GameAgentClient : IAsyncDisposable
 
     private static string ReadReply(JsonElement root)
     {
-        if (root.TryGetProperty("error", out JsonElement error))
-        {
-            string message = error.TryGetProperty("message", out JsonElement errorMessage)
-                ? errorMessage.GetString() ?? "Unknown gateway error."
-                : "Unknown gateway error.";
-            throw new InvalidOperationException(message);
-        }
+        ThrowIfError(root);
         if (!root.TryGetProperty("result", out JsonElement result)
             || !result.TryGetProperty("reply", out JsonElement reply))
         {
             throw new InvalidOperationException("Gateway returned no reply.");
         }
         return reply.GetString() ?? string.Empty;
+    }
+
+    private static void ThrowIfError(JsonElement root)
+    {
+        if (!root.TryGetProperty("error", out JsonElement error)) return;
+        string message = error.TryGetProperty("message", out JsonElement errorMessage)
+            ? errorMessage.GetString() ?? "Unknown gateway error."
+            : "Unknown gateway error.";
+        throw new InvalidOperationException(message);
     }
 
     private async Task EnsureConnectedAsync(CancellationToken cancellationToken)
@@ -98,7 +147,7 @@ internal sealed class GameAgentClient : IAsyncDisposable
                 {
                     adapterId = "qimidandapigu.StardewAgent",
                     gameId = "stardew-valley",
-                    version = "0.6.1",
+                    version = "0.8.2",
                     protocolVersion = "1.1",
                     capabilities = new[] { "assistant.text-stream", "assistant.speech-sync" },
                     processId = Environment.ProcessId,
@@ -231,6 +280,8 @@ internal sealed class GameAgentClient : IAsyncDisposable
         switch (method)
         {
             case "gateway.ready":
+                if (TryReadLoopbackWebSocketUrl(parameters, "adapterProtocolUrl", out string endpoint))
+                    this.AdapterProtocolEndpointDiscovered?.Invoke(endpoint);
                 this.AssistantStatusChanged?.Invoke("ready", null);
                 break;
             case "assistant.delta":
@@ -242,7 +293,12 @@ internal sealed class GameAgentClient : IAsyncDisposable
                 break;
             case "assistant.present":
                 if (parameters.TryGetProperty("text", out JsonElement text))
-                    this.AssistantPresented?.Invoke(text.GetString() ?? "");
+                {
+                    string source = parameters.TryGetProperty("source", out JsonElement sourceValue)
+                        ? sourceValue.GetString() ?? "unknown"
+                        : "unknown";
+                    this.AssistantPresented?.Invoke(text.GetString() ?? "", source);
+                }
                 break;
             case "assistant.status":
                 string status = parameters.TryGetProperty("status", out JsonElement statusValue)
@@ -256,7 +312,7 @@ internal sealed class GameAgentClient : IAsyncDisposable
                 break;
             case "assistant.speech.phrase":
                 if (parameters.TryGetProperty("text", out JsonElement speechText))
-                    this.AssistantStreaming?.Invoke(speechText.GetString() ?? "");
+                    this.AssistantSpeechCaptionChanged?.Invoke(speechText.GetString() ?? "");
                 break;
             case "assistant.speech.done":
                 this.AssistantSpeechFinished?.Invoke();
@@ -267,6 +323,25 @@ internal sealed class GameAgentClient : IAsyncDisposable
                 this.AssistantFailed?.Invoke(message);
                 break;
         }
+    }
+
+    private static bool TryReadLoopbackWebSocketUrl(
+        JsonElement parameters,
+        string propertyName,
+        out string endpoint)
+    {
+        endpoint = string.Empty;
+        if (parameters.ValueKind != JsonValueKind.Object
+            || !parameters.TryGetProperty(propertyName, out JsonElement value)
+            || value.ValueKind != JsonValueKind.String
+            || !Uri.TryCreate(value.GetString(), UriKind.Absolute, out Uri? uri)
+            || uri.Scheme is not "ws" and not "wss"
+            || !uri.IsLoopback)
+        {
+            return false;
+        }
+        endpoint = uri.AbsoluteUri;
+        return true;
     }
 
     private void FailPending(Exception error)

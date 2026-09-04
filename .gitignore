@@ -1,4 +1,5 @@
 node_modules/
+.pnpm-store/
 dist/
 **/bin/
 **/obj/
@@ -8,6 +9,13 @@ coverage/
 distribution/desktop/
 .release/
 plugins/xiaotangyuan-game/media/
+!plugins/xiaotangyuan-game/media/
+plugins/xiaotangyuan-game/media/*
+!plugins/xiaotangyuan-game/media/macos-arm64/
+plugins/xiaotangyuan-game/media/macos-arm64/*
+!plugins/xiaotangyuan-game/media/macos-arm64/Info.plist
+!plugins/xiaotangyuan-game/media/macos-arm64/XtyMediaHost.swift
+!plugins/xiaotangyuan-game/media/macos-arm64/build.sh
 *.tgz
 *.log
 .DS_Store

@@ -44,7 +44,14 @@ function asErrorMessage(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
-export function productTurnContent(message) {
+const STARDEW_PRODUCT_ROLE = [
+  'You are XiaoTangYuan, the player\'s in-game companion in Stardew Valley.',
+  'Keep replies warm, concise, and grounded in the current authoritative game observation.',
+  'For requests to change the game world, use an available stardew game tool. Never claim the action happened before its result reports ok=true.',
+  'Treat stamina, companion form, location, revision, and action errors as hard game rules, not suggestions.',
+].join('\n')
+
+export function productTurnContent(message, gameId) {
   return [
     PRODUCT_TURN_PREFIX.trimEnd(),
     'This is an AI Native Game Harness Desktop game turn.',
@@ -57,9 +64,10 @@ export function productTurnContent(message) {
     'If the player asks you to learn a repeatable game procedure, call game_learning_skill_catalog before game_learning_skill_learn; only report it learned when learned=true.',
     'If the player asks to run a learned procedure, call game_learning_skill_catalog before game_learning_skill_run and only report success when success=true.',
     'If the player requests substantial non-game work such as research, a presentation, HTML, a document, code, or an artifact revision, acknowledge it briefly but do not perform that work or call work tools in this turn. A post-turn work skill will decide whether to hand it to a separate Worker DSH Session. Do not claim that Worker has started or finished yet.',
+    gameId === 'stardew-valley' ? STARDEW_PRODUCT_ROLE : undefined,
     'PLAYER_MESSAGE:',
     message,
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 }
 
 function safeJson(text) {
@@ -438,7 +446,7 @@ export class DshProductRuntime {
     return true
   }
 
-  async chat({ message }, onEvent = () => undefined) {
+  async chat({ message, gameId }, onEvent = () => undefined) {
     if (!this.#sessionId) throw new Error('AI Native Game Harness Session 尚未创建。')
     if (this.#pendingChat) throw new Error('AI Native Game Harness Session 正在处理上一条消息。')
 
@@ -459,7 +467,13 @@ export class DshProductRuntime {
       const result = await this.#rpc('session.prompt', {
         sessionId: this.#sessionId,
         mode: 'queue',
-        content: [{ type: 'text', text: productTurnContent(message) }],
+        content: [{
+          type: 'text',
+          text: productTurnContent(
+            message,
+            gameId ?? this.#coreSnapshot.adapters.find((adapter) => adapter.status === 'connected')?.gameId,
+          ),
+        }],
         clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       })
       if (result.command) {

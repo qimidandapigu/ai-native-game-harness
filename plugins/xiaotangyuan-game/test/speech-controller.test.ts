@@ -76,3 +76,31 @@ describe('streaming speech exactly-once fallback', () => {
     expect(handler.speechPhraseStarted).toHaveBeenNthCalledWith(2, 42, 'turn-4', '第二句。', '第一句。第二句。')
   })
 })
+
+describe('process-scoped media failures', () => {
+  it('returns a microphone start failure to the matching game connection', async () => {
+    let mediaListener: ((event: unknown) => void | Promise<void>) | undefined
+    const media = {
+      onEvent: vi.fn((listener: (event: unknown) => void | Promise<void>) => {
+        mediaListener = listener
+        return () => undefined
+      }),
+      start: vi.fn(async () => true),
+      configure: vi.fn(),
+      close: vi.fn(async () => undefined),
+    }
+    const handler = { failed: vi.fn() }
+    const controller = new SpeechController(
+      { logger: { warn: vi.fn() } } as never,
+      { enabled: true, recognitionProvider: 'auto', synthesisProvider: 'auto' } as never,
+      media as never,
+      handler as never,
+      { resolve: vi.fn(async () => undefined) } as never,
+    )
+
+    await controller.start()
+    await mediaListener?.({ type: 'error', processId: 42, message: '麦克风尚未授权' })
+
+    expect(handler.failed).toHaveBeenCalledWith(42, '麦克风尚未授权')
+  })
+})
