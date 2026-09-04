@@ -61,6 +61,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       },
       processId => media.startRecording(processId),
       processId => media.stopRecording(processId),
+      resolved.adapterProtocolUrl,
     )
     await gateway.start()
     const capabilities = new CapabilityRegistry()
@@ -87,7 +88,14 @@ export type { GameAtomExecutor, SkillProgram, SkillRecord, SkillRunResult, Skill
 export { SkillService } from './runtime/skills/skill-service.js'
 export { SkillStore } from './runtime/skills/skill-store.js'
 export type { FeedbackReceipt, FeedbackReport, FeedbackSubmission } from './runtime/feedback/contracts.js'
-export type { AdapterHello, GameAtomDefinition, GameChatContext, GameChatRequest } from './protocol/game.js'
+export type {
+  AdapterHello,
+  GameAtomDefinition,
+  GameChatContext,
+  GameChatRequest,
+  GameComposeRequest,
+  GameSpeakRequest,
+} from './protocol/game.js'
 export type { RpcFailure, RpcRequest, RpcSuccess } from './protocol/json-rpc.js'
 export { CapabilityRegistry, REQUIRED_ENGINE_CAPABILITIES, missingRequiredCapabilities } from './runtime/capabilities.js'
 export { normalizeGameContext, renderGameContextForPrompt, AI_NATIVE_GAME_CONTEXT_SCHEMA } from './runtime/context/game-context.js'

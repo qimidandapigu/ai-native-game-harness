@@ -38,6 +38,14 @@ export interface GameChatRequest {
   context?: GameChatContext
 }
 
+export interface GameComposeRequest extends GameChatRequest {
+  speak: boolean
+}
+
+export interface GameSpeakRequest {
+  text: string
+}
+
 export interface GameRetryRequest {
   context?: GameChatContext
 }
@@ -116,6 +124,25 @@ export function readGameChat(value: unknown): GameChatRequest {
   const context = readContext(params.context)
 
   return { text: params.text.trim(), ...(context === undefined ? {} : { context }) }
+}
+
+export function readGameCompose(value: unknown): GameComposeRequest {
+  const params = asRecord(value)
+  const chat = readGameChat(params)
+  if (params.speak !== undefined && typeof params.speak !== 'boolean') {
+    throw new Error('speak must be a boolean when provided')
+  }
+  return { ...chat, speak: params.speak === true }
+}
+
+export function readGameSpeak(value: unknown): GameSpeakRequest {
+  const params = asRecord(value)
+  if (typeof params.text !== 'string' || params.text.trim() === '') {
+    throw new Error('text must be a non-empty string')
+  }
+  const text = params.text.trim()
+  if (text.length > 2_000) throw new Error('text must be at most 2000 characters')
+  return { text }
 }
 
 function limitedOptionalString(record: Record<string, unknown>, key: string, maxLength: number): string | undefined {

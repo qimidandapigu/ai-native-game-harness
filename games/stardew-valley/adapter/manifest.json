@@ -1,8 +1,8 @@
 {
   "Name": "XiaoTangYuan Game AI - Stardew Valley",
   "Author": "qimidandapigu",
-  "Version": "0.6.1",
-  "Description": "Stardew Valley AI companion with combat, farming, and fishing evolution paths.",
+  "Version": "0.8.2",
+  "Description": "Stardew Valley AI companion with authoritative Harness actions, companion life, voice presentation, and three evolution paths.",
   "UniqueID": "qimidandapigu.StardewAgent",
   "EntryDll": "StardewAgentMod.dll",
   "MinimumApiVersion": "4.4.0",
@@ -20,7 +20,7 @@
     },
     {
       "UniqueID": "qimidandapigu.XiaoTangYuanCompanion",
-      "MinimumVersion": "0.6.0",
+      "MinimumVersion": "0.8.0",
       "IsRequired": true
     }
   ],

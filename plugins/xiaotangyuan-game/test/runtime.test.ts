@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { resolveConfig } from '../src/config.js'
 import { readAdapterHello, readStateUpdate, readStateUpdateSaveId } from '../src/protocol/game.js'
 import { buildPcm16Wav } from '../src/runtime/speech/wav.js'
-import { globalPushToTalkProcessIds, matchPostReplyVoiceCommand } from '../src/gateway/game-gateway.js'
+import { gatewayReadyParams, globalPushToTalkProcessIds, matchPostReplyVoiceCommand } from '../src/gateway/game-gateway.js'
 
 describe('game runtime configuration', () => {
   it('keeps ONI on its in-game Q key instead of the shared desktop push-to-talk key', () => {
@@ -41,9 +41,20 @@ describe('game runtime configuration', () => {
     expect(config.speech.asrFastResourceId).toBe('volc.bigasr.auc_turbo')
     expect(config.speech.asrStreamingResourceId).toBe('volc.bigasr.sauc.duration')
     expect(config.media.pushToTalkVirtualKey).toBe(0x77)
+    expect(config.adapterProtocolUrl).toBe('ws://127.0.0.1:33245/adapter')
     expect(config.proactiveChat.enabled).toBe(true)
     expect(config.proactiveChat.intervalSeconds).toBe(180)
     expect(JSON.stringify(config)).not.toContain('apiKey')
+  })
+
+  it('advertises only a validated loopback Adapter Protocol endpoint', () => {
+    expect(resolveConfig({ adapterProtocolUrl: 'ws://localhost:4567/adapter' }).adapterProtocolUrl)
+      .toBe('ws://localhost:4567/adapter')
+    expect(() => resolveConfig({ adapterProtocolUrl: 'ws://192.168.1.20:4567/adapter' }))
+      .toThrow('loopback')
+    expect(gatewayReadyParams('ws://127.0.0.1:4567/adapter')).toMatchObject({
+      adapterProtocolUrl: 'ws://127.0.0.1:4567/adapter',
+    })
   })
 
   it('allows recognition and synthesis capabilities to select different implementations', () => {

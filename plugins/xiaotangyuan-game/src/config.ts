@@ -67,6 +67,8 @@ export interface InstallersConfig { dontStarve?: DontStarveInstallerConfig }
 export interface Config {
   host?: string
   port?: number
+  /** Loopback Adapter Protocol endpoint advertised to connected game MODs. */
+  adapterProtocolUrl?: string
   vision?: VisionConfig
   speech?: SpeechConfig
   media?: MediaConfig
@@ -80,6 +82,7 @@ export interface Config {
 export interface ResolvedConfig {
   host: string
   port: number
+  adapterProtocolUrl: string
   vision: {
     enabled: boolean
     maxWidth: number
@@ -149,6 +152,12 @@ export function resolveConfig(config: Config = {}): ResolvedConfig {
   }
   if (!Number.isInteger(port) || port < 1024 || port > 65535) {
     throw new Error('port must be an integer between 1024 and 65535')
+  }
+  const adapterProtocolUrl = config.adapterProtocolUrl?.trim() || 'ws://127.0.0.1:33245/adapter'
+  const adapterEndpoint = new URL(adapterProtocolUrl)
+  if ((adapterEndpoint.protocol !== 'ws:' && adapterEndpoint.protocol !== 'wss:')
+    || !isLoopback(adapterEndpoint.hostname)) {
+    throw new Error('adapterProtocolUrl must use ws:// or wss:// on a loopback host')
   }
 
   const pushToTalkVirtualKey = config.media?.pushToTalkVirtualKey ?? 0x77
@@ -236,6 +245,7 @@ export function resolveConfig(config: Config = {}): ResolvedConfig {
   return {
     host,
     port,
+    adapterProtocolUrl,
     vision: {
       enabled: config.vision?.enabled ?? true,
       maxWidth: visionMaxWidth,

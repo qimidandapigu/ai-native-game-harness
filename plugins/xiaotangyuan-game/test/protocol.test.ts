@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readAdapterHello, readGameRetry } from '../src/protocol/game.js'
+import { readAdapterHello, readGameCompose, readGameRetry, readGameSpeak } from '../src/protocol/game.js'
 import { failure, parseRpcRequest, success } from '../src/protocol/json-rpc.js'
 
 describe('JSON-RPC protocol', () => {
@@ -28,6 +28,17 @@ describe('JSON-RPC protocol', () => {
     expect(readGameRetry({ context: { playerName: 'Wilson', observation: { day: 3 } } })).toMatchObject({
       context: { playerName: 'Wilson', observation: { day: 3 } },
     })
+  })
+
+  it('parses game-authored composition and local speech requests', () => {
+    expect(readGameCompose({ text: '写一句雨天台词', speak: true })).toEqual({
+      text: '写一句雨天台词',
+      speak: true,
+    })
+    expect(readGameCompose({ text: '只写不念' }).speak).toBe(false)
+    expect(readGameSpeak({ text: '  今天早点回家。 ' })).toEqual({ text: '今天早点回家。' })
+    expect(() => readGameCompose({ text: '无效', speak: 'yes' })).toThrow('speak')
+    expect(() => readGameSpeak({ text: '' })).toThrow('non-empty')
   })
 
   it('accepts opaque save identities and rejects local paths', () => {

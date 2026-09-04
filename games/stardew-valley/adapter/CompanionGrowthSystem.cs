@@ -114,6 +114,12 @@ internal sealed class CompanionGrowthSystem
         );
     }
 
+    public void ApplyVisibility(bool showCompanion)
+    {
+        this.showCompanion = showCompanion;
+        this.companion.ApplyEnabled(showCompanion, this.Form);
+    }
+
     public string GetStatusText()
     {
         if (this.Form != CompanionForm.Seed)

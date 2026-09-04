@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
+using StardewAgentMod.Game;
+using StardewAgentMod.Game.Companion;
 using StardewValley;
 using StardewValley.Monsters;
 using StardewValley.TerrainFeatures;
@@ -9,7 +12,11 @@ namespace StardewAgentMod;
 
 internal static class GameObservationBuilder
 {
-    public static object Capture(CompanionGrowthSnapshot? companionGrowth = null)
+    public static object Capture(
+        CompanionGrowthSnapshot? companionGrowth = null,
+        CompanionRuntimeSnapshot? companionRuntime = null,
+        CompanionLifeSnapshot? companionLife = null,
+        IReadOnlyDictionary<string, bool>? abilities = null)
     {
         Farmer player = Game1.player;
         GameLocation location = Game1.currentLocation;
@@ -122,7 +129,30 @@ internal static class GameObservationBuilder
             {
                 id = "xiaotangyuan",
                 present = companionGrowth is not null,
-                growth = companionGrowth
+                growth = companionGrowth,
+                life = companionLife,
+                abilities,
+                stamina = companionRuntime is null
+                    ? null
+                    : new
+                    {
+                        current = companionRuntime.Stamina,
+                        max = companionRuntime.StaminaMax,
+                    },
+                flight = companionRuntime is null
+                    ? null
+                    : new
+                    {
+                        airborne = companionRuntime.IsAirborne,
+                        transitioning = companionRuntime.IsFlightTransitioning,
+                    },
+                assists = companionRuntime is null
+                    ? null
+                    : new
+                    {
+                        combatActive = companionRuntime.IsCombatAssistActive,
+                        rescueActive = companionRuntime.IsRescueActive,
+                    }
             },
             entities = nearbyNpcs.Cast<object>().Concat(monsters).Take(30).ToArray(),
             objectives = player.questLog
@@ -132,6 +162,7 @@ internal static class GameObservationBuilder
                 .ToArray(),
             ui = new
             {
+                worldReady = true,
                 menuOpen = Game1.activeClickableMenu is not null,
                 eventRunning = Game1.eventUp,
                 playerControllable = player.CanMove
